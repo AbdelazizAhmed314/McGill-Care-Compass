@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+.env
+.env.*
+
+# Local notebooks and generated artifacts
+.ipynb_checkpoints/
+notebooks/local/
+outputs/
+reports/generated/
+
+# Raw/source inputs are documented but not committed by default.
+data/raw/
+data/external/
+data/source-inputs/*
+!data/source-inputs/README.md
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

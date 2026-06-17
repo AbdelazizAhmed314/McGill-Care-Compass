@@ -1,0 +1,43 @@
+name: Project task
+description: Track work that is not already covered by the 13 milestone issues.
+title: "[Task]: "
+labels: ["documentation"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What outcome should this issue produce?
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Checklist
+      description: Break the work into reviewable tasks.
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance check
+      description: What evidence proves this is done?
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk area
+      options:
+        - data
+        - matching
+        - ux
+        - guardrails
+        - evaluation
+        - deployment
+        - documentation
+        - qa
+    validations:
+      required: true
