@@ -105,12 +105,17 @@ def parse_issues(path: Path) -> list[IssueSpec]:
         labels = []
         if labels_match:
             labels = [label.strip(" `") for label in labels_match.group(1).split(",")]
+        body = re.split(
+            r"\n(?=## (Milestone:|Optional Contingency Issues|Definition of Done))",
+            section.strip(),
+            maxsplit=1,
+        )[0].strip()
         issues.append(
             IssueSpec(
                 title=title_match.group(1).strip(),
                 milestone=current_milestone,
                 labels=labels,
-                body=section.strip(),
+                body=body,
             )
         )
     if len(issues) != 13:
@@ -179,7 +184,12 @@ def create_milestones(repo: str, dry_run: bool) -> None:
         )
 
 
-def create_issues(repo: str, issues: list[IssueSpec], dry_run: bool) -> None:
+def create_issues(
+    repo: str,
+    issues: list[IssueSpec],
+    dry_run: bool,
+    update_existing: bool,
+) -> None:
     existing_raw = run(
         [
             "gh",
@@ -192,17 +202,34 @@ def create_issues(repo: str, issues: list[IssueSpec], dry_run: bool) -> None:
             "--limit",
             "200",
             "--json",
-            "title",
+            "number,title",
         ],
         capture=True,
         dry_run=dry_run,
     )
-    existing = set()
+    existing: dict[str, int] = {}
     if existing_raw:
-        existing = {item["title"] for item in json.loads(existing_raw)}
+        existing = {item["title"]: item["number"] for item in json.loads(existing_raw)}
     for issue in issues:
         if issue.title in existing:
-            print(f"Skipping existing issue: {issue.title}")
+            if not update_existing:
+                print(f"Skipping existing issue: {issue.title}")
+                continue
+            args = [
+                "gh",
+                "issue",
+                "edit",
+                str(existing[issue.title]),
+                "--repo",
+                repo,
+                "--body",
+                issue.body,
+                "--milestone",
+                issue.milestone,
+            ]
+            for label in issue.labels:
+                args.extend(["--add-label", label])
+            run(args, dry_run=dry_run)
             continue
         args = [
             "gh",
@@ -231,13 +258,18 @@ def main() -> None:
         help="Finalized issue-breakdown markdown file.",
     )
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--update-existing",
+        action="store_true",
+        help="Refresh existing matching issues from the finalized issue document.",
+    )
     args = parser.parse_args()
 
     repo = repo_slug(args.repo, args.dry_run)
     issues = parse_issues(Path(args.issues_file))
     create_labels(repo, args.dry_run)
     create_milestones(repo, args.dry_run)
-    create_issues(repo, issues, args.dry_run)
+    create_issues(repo, issues, args.dry_run, args.update_existing)
 
 
 if __name__ == "__main__":
