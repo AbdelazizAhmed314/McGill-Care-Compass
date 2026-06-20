@@ -13,6 +13,7 @@ This folder contains the durable project documents for McGill Care Compass: Newc
 | [Project-Plan-High-Level.md](Project-Plan-High-Level.md) | High-level overview of milestones, the shared issue/milestone Gantt chart, GitHub issue structure, roles, capacity, and delivery rules. |
 | [Risk-Assumptions-and-Safety-Boundaries.md](Risk-Assumptions-and-Safety-Boundaries.md) | Risks, mitigations, source authority, high-risk boundaries, and safety rules. |
 | [Evaluation-and-Usability-Plan.md](Evaluation-and-Usability-Plan.md) | Fixed scenario evaluation, top-three relevance rubric, tests, and usability plan. |
+| [User-Journey-and-Prototype-Response-Format.md](User-Journey-and-Prototype-Response-Format.md) | Issue 2 UX contract covering user journey, intake questions, response layout, wording standards, mockups, and examples. |
 | [GitHub-Issue-Based-Task-Breakdown.md](GitHub-Issue-Based-Task-Breakdown.md) | 13-issue GitHub board structure mapped to the milestone timeline. |
 | [Team-Roles-and-Individual-Workload-Appendix.md](Team-Roles-and-Individual-Workload-Appendix.md) | Supporting appendix organized by teammate, with `MH`, `MY`, and `AA` task responsibilities, dependencies, acceptance checks, and planned hours. |
 
