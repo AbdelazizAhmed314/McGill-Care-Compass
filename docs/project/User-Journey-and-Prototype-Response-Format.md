@@ -151,6 +151,8 @@ recommendations. Broad scraped candidates can inform discovery and curation, but
 they should not be displayed as recommended services unless they have been
 normalized into the curated service-record schema.
 
+Reviewer-note update: source links should verify and support actionable, source-derived next steps rather than replace them.
+
 ## Primary User Journey
 
 The primary journey starts with a newcomer student who knows they need help but
@@ -636,9 +638,9 @@ point for [service purpose].
 ### Standard Next-Step Pattern
 
 ```text
-Start by reviewing the official source or using the listed contact/booking route.
-Confirm details such as availability, cost, documents, or eligibility with the
-responsible office or service.
+Start with this action: [specific source-derived action]. Use the official source
+link to verify details such as availability, cost, documents, timing, or
+eligibility caveats with the responsible office or service.
 ```
 
 ### Topic-Specific Limitation Templates
@@ -719,8 +721,9 @@ layout structure.
 | Why this matched: You selected healthcare access and a       |
 | McGill student context. This is an official McGill starting |
 | point for health and wellness care navigation.               |
-| Recommended next step: Review the official source page and   |
-| use its listed access route.                                 |
+| Recommended next step: Use the listed access route to      |
+| start with the appropriate service, then verify details in   |
+| the official source.                                         |
 | Important limit: This navigator cannot diagnose symptoms or  |
 | decide whether care is urgent.                               |
 | Official source: [Open official source]                      |
@@ -791,8 +794,8 @@ Primary starting point: Access Health and Wellness Care
 Why this matched: You selected healthcare access as a newly arrived McGill
 student. This is an official McGill starting point for health and wellness care
 navigation.
-Recommended next step: Review the official source page and use the listed access
-route.
+Recommended next step: Use the listed access route to start with the
+appropriate care-navigation service, then verify details in the official source.
 Important limit: This navigator cannot diagnose symptoms, recommend treatment,
 or decide whether care is urgent.
 Source: McGill University - official source link
@@ -817,8 +820,9 @@ Primary starting point: International Student Services
 Why this matched: You selected immigration and legal status as an international
 student. This is an official McGill starting point for international student
 navigation.
-Recommended next step: Review the official source and contact the responsible
-service for case-specific questions.
+Recommended next step: Contact the responsible student-service or official
+information channel for case-specific guidance, then use the source link to
+verify current instructions.
 Important limit: This navigator cannot interpret documents, decide status, or
 provide legal advice.
 Source: McGill University - official source link
@@ -842,8 +846,8 @@ Example response:
 Primary starting point: International Health Insurance
 Why this matched: You selected health insurance and McGill IHI. This is an
 official McGill source for international health insurance navigation.
-Recommended next step: Review the official insurance source and use the listed
-contact or activation route.
+Recommended next step: Use the listed insurance activation or contact route,
+then verify coverage details in the official source.
 Important limit: Confirm coverage, exemptions, claims, and costs with the
 official insurance source.
 Source: McGill University - official source link
@@ -868,8 +872,8 @@ Primary starting point: Student Wellness Hub
 Why this matched: You selected mental health and wellbeing with urgent but not
 emergency urgency. This is an official McGill starting point for wellness
 support.
-Recommended next step: Review the official source and use the listed support
-route.
+Recommended next step: Use the listed support route to connect with the
+appropriate service, then verify current access details in the official source.
 Important limit: This navigator cannot assess risk, diagnose, or replace crisis
 or clinical support.
 Source: McGill University - official source link
@@ -893,8 +897,8 @@ Example response:
 Primary starting point: CRA student tax information
 Why this matched: You selected tax filing and residency information. This is an
 official federal source for learning about student tax topics.
-Recommended next step: Review the official CRA source or look for a listed tax
-clinic if you need help.
+Recommended next step: Use the CRA guidance or a listed tax clinic to decide
+where to get help, then verify current instructions in the official source.
 Important limit: This navigator cannot decide tax residency, filing obligations,
 credits, deductions, or refunds.
 Source: Canada Revenue Agency - official source link
@@ -918,8 +922,9 @@ Example response:
 Primary starting point: McGill Financial Aid
 Why this matched: You selected financial aid and affordability. This is an
 official McGill starting point for student funding support.
-Recommended next step: Review the official source and use the listed contact or
-application route.
+Recommended next step: Use the listed contact or application route to start
+the funding-support process, then verify current requirements in the official
+source.
 Important limit: This navigator cannot decide financial-aid eligibility, award
 amounts, or application outcomes.
 Source: McGill University - official source link
@@ -943,8 +948,8 @@ Example response:
 Primary starting point: Career Planning Service
 Why this matched: You selected work and career support and a McGill student
 context. This is an official McGill starting point for career navigation.
-Recommended next step: Review the official source and use the listed booking or
-contact route.
+Recommended next step: Use the listed booking or contact route to start with
+career support, then verify current service details in the official source.
 Important limit: This navigator cannot interpret permit conditions or decide
 work authorization.
 Source: McGill University - official source link
@@ -968,8 +973,8 @@ Example response:
 Primary starting point: Service Point
 Why this matched: You selected campus documents and administration. This is an
 official McGill starting point for common student administrative services.
-Recommended next step: Review the official source and use the listed service
-route.
+Recommended next step: Use the listed service route to start the administrative
+request, then verify current instructions in the official source.
 Important limit: This navigator cannot access or change your student record.
 Source: McGill University - official source link
 Last verified: 2026-06-19
@@ -992,8 +997,8 @@ Example response:
 Primary starting point: Off-Campus Housing
 Why this matched: You selected housing and basic needs with an off-campus
 Montreal context. This is a McGill-related starting point for housing navigation.
-Recommended next step: Review the official source and use the listed support
-route.
+Recommended next step: Use the listed support route to connect with the
+appropriate service, then verify current access details in the official source.
 Important limit: This navigator cannot provide legal advice or decide a housing
 dispute.
 Source: McGill University - official source link
@@ -1017,8 +1022,9 @@ Example response:
 Primary starting point: Campus Life and Engagement
 Why this matched: You selected language and integration support as a first-term
 student. This is an official McGill starting point for campus integration.
-Recommended next step: Review the official source and look for relevant
-orientation, peer, or community programs.
+Recommended next step: Use the listed orientation, peer, or community program
+route that fits your situation, then verify current availability in the
+official source.
 Important limit: Confirm current availability and language options with the
 official source.
 Source: McGill University - official source link
