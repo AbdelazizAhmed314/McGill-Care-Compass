@@ -163,20 +163,23 @@ start with.
 
 1. The student opens McGill Care Compass.
 2. The student sees a concise intake that asks structured questions only.
-3. The student selects their student context, stage, main need, urgency,
-   location, language preference, delivery preference, and insurance or coverage
-   context when relevant.
-4. If the intake indicates emergency, immediate safety risk, or a high-risk
+3. The student selects universal profile fields, stage, main need, urgency,
+   location, language preference, and delivery preference.
+4. The tool maps the main need to one locked taxonomy and shows only that
+   taxonomy's Stage 2 questionnaire.
+5. If the taxonomy is complex and still has materially different routes, the
+   tool shows one optional pre-written Stage 3 route-narrowing question.
+6. If the intake indicates emergency, immediate safety risk, or a high-risk
    professional-judgment situation, the tool shows safety guidance before normal
    results.
-5. The student submits the intake.
-6. The tool returns a small ranked set of recommendations.
-7. The first result is the primary starting point.
-8. Backup results are shown below the primary result.
-9. Every result includes why it matched, the next step, limitations, official
+7. The student submits the intake.
+8. The tool returns a small ranked set of recommendations.
+9. The first result is the primary starting point.
+10. Backup results are shown below the primary result.
+11. Every result includes why it matched, the next step, limitations, official
    source links, source publisher, and last verified date.
-10. The student can expand source details for provenance and confidence.
-11. If no curated record fits, the tool shows a no-match fallback instead of
+12. The student can expand source details for provenance and confidence.
+13. If no curated record fits, the tool shows a no-match fallback instead of
     inventing a service.
 
 ### Journey States
@@ -193,8 +196,13 @@ start with.
 
 ```mermaid
 flowchart TD
-    A[Student opens McGill Care Compass] --> B[Structured intake]
-    B --> C{Emergency or immediate safety risk?}
+    A[Student opens McGill Care Compass] --> B[Stage 1 universal intake]
+    B --> B2[Map main need to one taxonomy]
+    B2 --> B3[Stage 2 taxonomy questionnaire]
+    B3 --> B4{Complex taxonomy needs route narrowing?}
+    B4 -->|Yes| B5[Stage 3 pre-written route question]
+    B4 -->|No| C{Emergency or immediate safety risk?}
+    B5 --> C
     C -->|Yes| D[Show urgent safety guidance]
     D --> E[Show secondary official services if available]
     C -->|No| F{Supported taxonomy need?}
@@ -252,7 +260,9 @@ not answers:
 
 The intake must be structured, short, and privacy-preserving. It should collect
 enough context for routing without collecting sensitive identifiers or detailed
-private narratives.
+private narratives. The default flow has two stages, with an optional third
+route-narrowing stage only when the selected taxonomy is complex enough to need
+it.
 
 ### Intake Design Rules
 
@@ -268,52 +278,352 @@ private narratives.
 - Do not ask for student ID, SIN, passport number, medical record number,
   financial account details, detailed symptoms, diagnoses, exact income, or
   detailed immigration document contents.
+- Do not show all taxonomy question sets. After the main need maps to one
+  taxonomy, show only the follow-up questions for that taxonomy.
+- Do not ask insurance questions for documents/admin, tax questions for housing,
+  or any other follow-up from an unrelated taxonomy.
+- Each follow-up question should either identify the need subtype or support safe
+  applicability narrowing.
 
-### Required Questions
+### Staged Questionnaire Flow
+
+The questionnaire uses pre-written questions only. The system does not generate
+new follow-up questions from free text. Most users should see Stage 1 and one
+Stage 2 taxonomy questionnaire. Stage 3 appears only when the selected taxonomy
+is complex enough that one more route-narrowing question is needed.
+
+```mermaid
+flowchart TD
+    A[Stage 1: universal intake questions] --> B[Map main need to one taxonomy]
+    B --> C{Supported taxonomy?}
+    C -->|No| D[Unsupported fallback]
+    C -->|Yes| E[Stage 2: show one taxonomy questionnaire]
+    E --> F{Complex taxonomy still has materially different routes?}
+    F -->|Yes| G[Stage 3: ask one pre-written route-narrowing question]
+    F -->|No| H[Skip Stage 3]
+    G --> I[Determine need subtype and applicability/profile fit]
+    H --> I
+    I --> J[Shortlist curated service records]
+    J --> K[Format source-linked recommendations]
+```
+
+### Stage 1: Universal Intake Questions
+
+These questions appear for every student. They define the profile and initial
+routing context, but they should not try to settle category-specific eligibility
+or professional decisions.
 
 | Question ID | User-facing label | Required | Allowed values | Purpose | Downstream use | Safety/privacy notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `student_type` | Which student context best describes you? | Yes | International student; exchange or visiting student; undergraduate student; graduate student; permanent resident student; Canadian non-resident or returning student; unsure | Identifies broad user context. | Match intended users and wording. | Do not ask for immigration document numbers or status proof. |
-| `current_stage` | Where are you in your McGill journey? | Yes | Pre-arrival; newly arrived; first term; continuing student; graduating or leaving soon; unsure | Changes likely next steps and wording. | Prioritize orientation, arrival, continuing, or transition services. | Avoid dates of arrival unless later needed for non-sensitive evaluation. |
-| `main_need` | What do you need help navigating first? | Yes | Healthcare access; mental health and wellbeing; health insurance and coverage; immigration and legal status; housing and basic needs; academic and advising support; financial aid and affordability; work and career support; tax filing and residency information; campus documents and administration; language and integration; urgent or safety-related help; something else | Drives taxonomy category. | Primary category match and evaluation category. | "Something else" routes to unsupported or fallback handling. |
-| `urgency_level` | How urgent is this? | Yes | Emergency or immediate danger; urgent but not emergency; routine; planning ahead; unsure | Determines safety messaging and result ordering. | Emergency path, high-risk flags, tie-breaking. | Do not ask the user to describe symptoms or danger in detail. |
+| `mcgill_relationship` | What is your relationship to McGill right now? | Yes | Admitted or incoming student; current McGill student; exchange or visiting student; recently graduated or leaving soon; supporting a McGill student; unsure | Separates McGill relationship from academic level and newcomer context. | Intended-user fit, wording, and service ownership. | Do not ask for student number, offer letter, or account access. |
+| `academic_level` | What academic level best fits you? | Yes | Undergraduate; graduate; exchange or visiting; not sure; not applicable | Avoids mixing academic level with immigration or newcomer status. | Advising, funding, academic, and service routing. | Do not ask for program, grades, transcript, or faculty unless a future low-risk route needs it. |
+| `newcomer_context` | Which newcomer context best fits your situation? | Yes | International student; permanent resident or new Canadian; Canadian student new to Quebec or Montreal; refugee or asylum-seeker context; unsure; prefer not to say | Captures newcomer context without treating it as a formal status decision. | Government, settlement, immigration, insurance, and wording context. | Do not ask for document numbers, document images, passport details, or status proof. |
+| `current_stage` | Where are you in your McGill journey? | Yes | Pre-arrival; newly arrived; first term; continuing student; graduating or leaving soon; unsure | Changes likely next steps and wording. | Prioritize orientation, arrival, continuing, or transition services. | Avoid exact arrival dates unless later needed for non-sensitive evaluation. |
+| `main_need` | What do you need help navigating first? | Yes | Healthcare access; mental health and wellbeing; health insurance and coverage; immigration and legal status; housing and basic needs; academic and advising support; financial aid and affordability; work and career support; tax filing and residency information; campus documents and administration; language and integration; urgent or safety-related help; something else | Maps the student to one locked taxonomy. | Primary category match and evaluation category. | "Something else" routes to unsupported or fallback handling. |
+| `jurisdiction_context` | Which system do you think this is about? | Yes | McGill; Quebec; Canada; community or external provider; not sure | Aligns the questionnaire with RAG chunk `jurisdiction` metadata. | Jurisdiction filter or ranking preference for retrieved chunks. | Source-routing signal only; do not use it to decide legal jurisdiction or official responsibility. |
+| `urgency_level` | How urgent is this? | Yes | Emergency or immediate danger; urgent but not emergency; routine; planning ahead; unsure | Determines safety messaging and result ordering. | Emergency path, high-risk flags, tie-breaking. | Do not ask the user to describe symptoms, danger, or crisis details. |
 | `campus_location` | Which location is most relevant? | Yes | Downtown campus; Macdonald campus; off campus in Montreal; outside Montreal; online or remote; unsure | Supports campus-specific and location-aware referrals. | Campus-specific services, nearby support, accessibility. | Avoid exact address collection in the MVP. |
 | `language_preference` | What language would you prefer for support? | Yes | English; French; English or French; another language; no preference | Supports accessible referrals and wording. | Match language or source notes where available. | Do not ask why the language is needed. |
-| `delivery_preference` | How would you prefer to start? | Yes | Online; phone; in person; email or web form; no preference; unsure | Helps order results by access method. | Tie-breaking and result emphasis. | Preference only, not a guarantee of availability. |
-| `coverage_context` | If this is about healthcare or insurance, what coverage context applies? | Yes | McGill IHI; RAMQ; private insurance; out-of-province Canadian coverage; no coverage; unsure; not about healthcare or insurance | Helps route healthcare and insurance pages. | Insurance-specific recommendations and limitations. | Do not decide coverage or reimbursement. |
+| `delivery_preference` | How would you prefer to start? | Yes | Online; phone; in person; email or web form; no preference; unsure | Comes from the product definition intake fields and improves usability. | Access-method ranking, result emphasis, and source-link presentation. | Preference only, not a guarantee of availability or service access. |
 
-### Conditional Follow-Up Questions
+Delivery preference stays in Stage 1 because the product definition explicitly
+lists it as part of the intake. It should help rank and format access routes
+such as online, phone, in person, email, or web form. It must not be used to
+claim service availability, approval, or official eligibility.
 
-Conditional questions should appear only when they help route safely and do not
-collect sensitive detail.
+### Question Rationale And Scrutiny
 
-| Trigger | Follow-up label | Allowed values | Purpose | Do not ask |
+The table below documents why each universal question exists and what it must
+not decide. This is intended to make the questionnaire easier for the team to
+review before implementation.
+
+| Question ID | Why it exists | Appears when | Affects | Must not decide |
 | --- | --- | --- | --- | --- |
-| `main_need = health_care` | What kind of healthcare navigation do you need? | Find where to start; campus care; care outside campus hours; family doctor or regular provider; nearby facility; unsure | Routes to McGill, Quebec, or facility-context records. | Symptoms, diagnosis, medication, medical history. |
-| `main_need = mental_health` | What kind of support are you looking for? | Immediate support; routine wellness support; community resource; online option; unsure | Routes to urgent or routine mental-health resources. | Detailed mental-health disclosure or risk narrative. |
-| `main_need = insurance` | What insurance topic are you trying to navigate? | Activate coverage; understand where to find benefits; claims or contact route; RAMQ or public coverage; unsure | Routes to IHI, RAMQ, or official contact records. | Policy numbers or claim details. |
-| `main_need = immigration_status` | What kind of official information do you need? | McGill international student support; government information; legal referral; unsure | Routes to official resources and limitation wording. | Document images, permit numbers, passport numbers, or status interpretation. |
-| `main_need = tax` | What tax topic are you trying to navigate? | General student tax information; whether to learn about filing; tax clinic help; residency information; unsure | Routes to CRA or tax clinic records. | Income details, SIN, account details, or residency decision facts. |
-| `main_need = work_career` | What work or career topic do you need? | Career advising; on-campus work information; off-campus work information; job search support; unsure | Routes to CaPS or official work guidance. | Permit interpretation or employment authorization decision. |
-| `main_need = housing` | What housing support do you need? | Find housing; off-campus housing support; tenant issue information; basic needs; unsure | Routes to housing and basic-needs records. | Exact home address or landlord details. |
-| `main_need = documents_admin` | What campus administration topic do you need? | Service Point; student account; enrolment or records; ID or documents; unsure | Routes to administrative services. | Student number or account credentials. |
+| `mcgill_relationship` | Distinguishes McGill-owned services from external or general resources. | Every intake. | Intended-user fit and McGill service priority. | Student status, enrolment validity, or access rights. |
+| `academic_level` | Separates undergraduate/graduate routing from newcomer or immigration context. | Every intake. | Academic, funding, advising, and service wording. | Academic standing, program eligibility, or records access. |
+| `newcomer_context` | Supports newcomer-specific routing without requiring proof. | Every intake. | Immigration, settlement, insurance, and source-authority context. | Legal status, immigration status, or document interpretation. |
+| `current_stage` | Changes the likely next step for pre-arrival, arrival, first-term, continuing, or leaving students. | Every intake. | Result ordering and wording. | Deadlines, status validity, or eligibility windows. |
+| `main_need` | Maps the student to one locked taxonomy. | Every intake. | Taxonomy selection and Stage 2 question set. | Professional judgment or service approval. |
+| `jurisdiction_context` | Captures the source system the student thinks is relevant, while allowing unsure. | Every intake. | RAG chunk jurisdiction filtering or ranking. | Legal jurisdiction, official responsibility, or service ownership. |
+| `urgency_level` | Determines whether safety guidance must appear before ordinary results. | Every intake. | Safety interrupt, high-risk notice, and ranking. | Medical or crisis triage. |
+| `campus_location` | Supports campus-aware and location-aware routing without exact addresses. | Every intake. | Campus-specific services and nearby support. | Residence, address, or jurisdictional eligibility. |
+| `language_preference` | Helps surface accessible sources or contact routes where available. | Every intake. | Result wording and language-aware presentation. | Language entitlement or guaranteed service language. |
+| `delivery_preference` | Improves usability by preferring access methods the student can start with. | Every intake. | Access-method ranking and result layout. | Availability, appointment access, or eligibility. |
+
+### Stage 2 And Optional Stage 3 Questionnaire Matrix
+
+Stage 2 is a taxonomy-specific questionnaire. Only the row for the mapped
+taxonomy is shown. Stage 3 is skipped unless the taxonomy is listed with a
+pre-written route-narrowing question below. Simple categories remain two-stage
+flows unless later project evidence proves more coverage is needed.
+
+| Taxonomy | Stage 2 question | Stage 2 allowed values | Optional Stage 3 trigger | Stage 3 question | Stage 3 allowed values | Routing/applicability use | Do not ask |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `health_care` | What kind of healthcare navigation do you need? | Find where to start; campus care; care outside campus hours; family doctor or regular provider; nearby facility; unsure | Always after Stage 2 because healthcare records may split across McGill care, Quebec access routes, facility context, and cost/coverage caveats. | Which healthcare access context should results account for? | McGill IHI; RAMQ; private insurance; out-of-province Canadian coverage; no coverage; unsure | Narrows McGill, Quebec, facility, and source caveat routing without deciding coverage. | Symptoms, diagnosis, medication, medical history, policy numbers, claim details. |
+| `mental_health` | What kind of support are you looking for? | Immediate support; routine wellness support; community resource; online option; unsure | Not used in MVP. | Not shown. | Not applicable. | Distinguishes urgent support, routine wellness, community resources, and online options. | Detailed mental-health disclosure, diagnosis, self-harm narrative, or risk assessment details. |
+| `insurance` | What insurance topic are you trying to navigate? | Activate coverage; find benefits information; claims or contact route; RAMQ or public coverage; unsure | Always after Stage 2 because insurance records depend heavily on coverage context. | Which coverage context best fits this question? | McGill IHI; RAMQ; private insurance; out-of-province Canadian coverage; no coverage; unsure | Narrows likely insurance records and flags official confirmation needs. | Policy numbers, claim details, medical details, reimbursement decisions, or policy interpretation. |
+| `immigration_status` | What kind of official information do you need? | McGill international student support; government information; legal referral; document/process starting point; unsure | When Stage 2 is not simply McGill international student support. | What starting route would help most? | McGill office or advisor; official government page; legal/referral resource; document or process checklist; unsure | Narrows official office, government, referral, or process-starting records. | Document images, permit numbers, passport numbers, legal facts, or status interpretation. |
+| `housing` | What housing or basic-needs support do you need? | Find housing; off-campus housing support; tenant issue information; emergency/basic needs; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to housing search, tenant-information, off-campus support, or basic-needs records. | Exact home address, landlord details, legal dispute narrative. |
+| `academics` | What academic support do you need? | Advising; course or program planning; study support; library/research help; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to advising, academic support, or library records. | Grades, transcripts, disciplinary details, or private academic record contents. |
+| `finances` | What financial support are you trying to find? | Scholarships or awards; financial aid advising; emergency aid/basic needs; budgeting or affordability information; unsure | When Stage 2 is scholarships/awards, financial aid advising, or emergency aid/basic needs. | What starting route do you need? | Application or requirement information; advising/contact route; emergency support route; budgeting or affordability resource; unsure | Narrows funding, advising, emergency, or affordability records without deciding aid outcomes. | Exact income, bank details, account numbers, award amounts, application outcomes. |
+| `work_career` | What work or career topic do you need? | Career advising; job search support; on-campus work information; off-campus work information; unsure | When Stage 2 is on-campus work, off-campus work, or job search support. | What starting route would help most? | Advising appointment; official work-rule information; job-search resource; workshop or event; unsure | Narrows CaPS, work-guidance, job-search, or event/workshop records. | Permit interpretation, work authorization decision, employer-specific legal details. |
+| `tax` | What tax topic are you trying to navigate? | General student tax information; learning about filing; tax clinic help; residency information; unsure | When Stage 2 is learning about filing, tax clinic help, or residency information. | What kind of tax starting point do you need? | Official information page; tax clinic or help service; checklist or preparation route; contact route; unsure | Narrows CRA information, tax-clinic, checklist, or contact records without deciding obligations. | SIN, income details, account details, residency decision facts, filing obligation decisions. |
+| `documents_admin` | What campus administration task do you need help with? | Service Point; student account; enrolment or records; ID or documents; fees or billing; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to Service Point, Student Accounts, or administrative records. | Student number, login credentials, account screenshots, private record contents. |
+| `language_integration` | What language or integration support are you looking for? | Campus orientation; language learning; peer/community connection; settlement or newcomer integration; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to campus life, language, or community integration records. | Immigration-status proof, detailed personal history, or sensitive settlement narrative. |
+| `safety_urgent` | What kind of urgent help should be prioritized? | Emergency or immediate danger; crisis support; urgent healthcare; urgent mental-health support; unsure | Not used in MVP; safety routing overrides ordinary narrowing. | Not shown. | Not applicable. | Triggers safety-first routing before normal recommendations. | Detailed incident narrative, symptom details, risk assessment details. |
+
+Stage 3 narrows the route only. It must not determine coverage, tax obligation,
+immigration status, work authorization, diagnosis, aid eligibility, service
+approval, or any other official decision.
+
+### Taxonomy-Level Rationale And Scrutiny
+
+| Taxonomy | Why Stage 2 exists | Why Stage 3 may or may not appear | Affects | Must not decide |
+| --- | --- | --- | --- | --- |
+| `health_care` | Healthcare needs split across campus care, Quebec access routes, facilities, and regular-provider questions. | Stage 3 appears because access context affects safe routing and caveat wording. | Healthcare service route and safety limitation. | Diagnosis, urgency triage, treatment, or coverage. |
+| `mental_health` | Support type determines whether safety-first or routine wellness resources appear. | Stage 3 is skipped to avoid probing sensitive details. | Safety notice and wellness/community routing. | Risk level, diagnosis, or clinical need. |
+| `insurance` | Insurance topic separates activation, benefits, claims/contact, and RAMQ/public coverage. | Stage 3 appears because coverage context is necessary for useful routing. | Insurance source selection and confirmation wording. | Coverage, reimbursement, exemption, or claim outcome. |
+| `immigration_status` | Topic separates McGill support, government information, legal referrals, and process starting points. | Stage 3 appears when the route still needs office/government/referral/checklist narrowing. | Source authority and referral type. | Status, document interpretation, or legal advice. |
+| `housing` | Housing subtype separates search, off-campus support, tenant information, and basic needs. | Stage 3 is skipped for smoothness and privacy. | Housing support category and limitation wording. | Legal dispute outcome or tenant-rights advice. |
+| `academics` | Academic subtype separates advising, planning, study support, and library help. | Stage 3 is skipped because the subtype usually identifies the route. | Academic support route. | Academic standing, records, or program decisions. |
+| `finances` | Financial subtype separates scholarships, aid advising, emergency support, and budgeting. | Stage 3 appears when source route differs by application, advising, emergency, or affordability support. | Funding-support route and confirmation wording. | Aid eligibility, award amount, or application outcome. |
+| `work_career` | Work/career subtype separates career advising, job search, and work-rule information. | Stage 3 appears when the route differs between advising, official rules, resources, and events. | Career/work support route and limitation wording. | Work authorization or permit interpretation. |
+| `tax` | Tax subtype separates general information, filing learning, clinics, and residency information. | Stage 3 appears when the route differs between official info, clinic help, checklist, and contact route. | Tax resource type and limitation wording. | Filing obligation, residency, deductions, credits, or refunds. |
+| `documents_admin` | Task subtype separates Service Point, accounts, records, ID/documents, and billing. | Stage 3 is skipped because the task usually identifies the route. | Administrative service route. | Records access, account changes, or credential verification. |
+| `language_integration` | Integration subtype separates orientation, language learning, peer connection, and settlement integration. | Stage 3 is skipped to keep the flow light. | Integration or community route. | Immigration status or service entitlement. |
+| `safety_urgent` | Safety subtype determines whether urgent guidance must appear first. | Stage 3 is skipped because safety routing should be immediate. | Emergency/crisis ordering and secondary resources. | Emergency determination or risk assessment. |
+
+### Applicability And Profile Fit
+
+The questionnaire supports applicability/profile fit, not official eligibility
+determination. The navigator may narrow records based on structured answers, but
+high-risk areas must still direct the student to the responsible source for
+confirmation.
+
+| Applicability status | Meaning | User-facing handling |
+| --- | --- | --- |
+| `clearly_applicable` | The curated record matches the taxonomy, need subtype, and available profile signals. | Show as a strong starting point with source and limitations. |
+| `possibly_applicable` | The record may fit, but one or more profile details are broad, unknown, or source-dependent. | Show as a backup or lower-ranked option with confirmation wording. |
+| `not_applicable` | The selected answers clearly point away from the record. | Do not show as a recommendation. |
+| `needs_official_confirmation` | The record appears relevant, but eligibility, coverage, status, cost, or authorization requires a responsible office or official source. | Show the record with a clear confirmation notice. |
+| `insufficient_information` | The intake does not provide enough structured context for confident narrowing. | Ask the user to adjust intake or show a no-match/broad-start fallback. |
+
+High-risk categories include healthcare, mental health, insurance, immigration,
+tax, finances, work/career, housing disputes, and urgent safety. In those areas,
+the result should say "appears relevant" or "may be a starting point," not that
+the student qualifies, is approved, has confirmed coverage, or has a
+legal/tax/medical outcome.
+
+### Agent User Profile JSON Template
+
+The agent-facing JSON profile should align with Muhammad's `rag_chunks.csv`
+metadata table. It should not repeat the full questionnaire configuration,
+because the Stage 1, Stage 2, and Stage 3 answer options are already documented
+in the questionnaire tables above.
+
+The JSON profile stores only the answers selected in one session plus the RAG
+filters derived from those answers. The shared questionnaire-to-RAG fields are
+`category_id`, `need_type`, `student_type`, `jurisdiction`, `language`, and
+derived `risk_level`. The UI should ask the student about urgency, but it should
+not ask whether their issue is high-risk. `risk_level` is derived from the
+mapped taxonomy and chunk metadata.
+
+`need_type` is not a standalone column in the chunk table. It maps to
+`info_type_tags` and the matching boolean metadata fields, such as
+`has_contact_info`, `has_required_docs`, `has_eligibility`,
+`has_costs_coverage`, `has_booking_steps`, and `has_emergency_info`.
+
+```json
+{
+  "version": "2026-06-21",
+  "selected_answers": {
+    "stage_1_universal": {
+      "mcgill_relationship": "current_student",
+      "academic_level": "graduate",
+      "newcomer_context": "international_student",
+      "current_stage": "newly_arrived",
+      "main_need": "insurance",
+      "jurisdiction_context": "mcgill",
+      "urgency_level": "routine",
+      "campus_location": "downtown",
+      "language_preference": "en",
+      "delivery_preference": "online"
+    },
+    "stage_2_taxonomy": {
+      "category_id": "insurance",
+      "question_id": "insurance_need_type",
+      "answer": "understand_coverage_or_plan",
+      "need_type": "costs_coverage"
+    },
+    "stage_3_route_narrowing": {
+      "shown": true,
+      "question_id": "coverage_context",
+      "answer": "ihi"
+    }
+  },
+  "derived_rag_filters": {
+    "category_id": "insurance",
+    "student_type": "international_student",
+    "jurisdiction": "mcgill",
+    "language": "en",
+    "risk_level": "high_risk",
+    "info_type_tags": ["costs_coverage"],
+    "has_contact_info": false,
+    "has_required_docs": false,
+    "has_eligibility": false,
+    "has_costs_coverage": true,
+    "has_location": false,
+    "has_deadlines": false,
+    "has_booking_steps": false,
+    "has_emergency_info": false
+  },
+  "retrieval_plan": {
+    "metadata_filter_before_vector_search": {
+      "category_id": "insurance",
+      "student_type": "international_student",
+      "jurisdiction": "mcgill",
+      "language": "en",
+      "risk_level": "high_risk",
+      "info_type_tags_contains": ["costs_coverage"],
+      "has_costs_coverage": true
+    },
+    "ranking_preferences": {
+      "authority_level": ["official_university", "official_government", "official_health_authority"],
+      "source_priority_rank": "lower_is_better",
+      "freshness_score": "higher_is_better"
+    },
+    "vector_search_field": "embedding_text",
+    "user_grounding_field": "chunk_text",
+    "citation_fields": [
+      "chunk_id",
+      "canonical_url",
+      "section_heading",
+      "heading_path",
+      "source_publisher",
+      "retrieved_at"
+    ]
+  }
+}
+```
+
+#### User Profile Field Roles
+
+| Profile area | Purpose | RAG/chunk-metadata use | Boundary |
+| --- | --- | --- | --- |
+| `selected_answers.stage_1_universal` | Stores the universal answers selected by the student. | Provides profile signals such as student type, jurisdiction, language, urgency, and location. | Stores stable answer IDs, not sensitive free text or private identifiers. |
+| `selected_answers.stage_2_taxonomy` | Stores the one taxonomy questionnaire answer shown after category mapping. | Provides `category_id` and `need_type`. | Must not include answers from unrelated taxonomy question sets. |
+| `selected_answers.stage_3_route_narrowing` | Stores the optional route-narrowing answer for complex categories. | Adds context such as insurance/coverage route, government route, or contact/checklist route. | Narrows route only; it does not determine approval, coverage, legal status, tax obligation, diagnosis, aid outcomes, or work authorization. |
+| `derived_rag_filters` | Converts selected answers into chunk-aligned metadata fields. | Filters chunks before vector search. | `risk_level` is derived by the system, not selected directly by the user. |
+| `retrieval_plan` | Shows how the retriever should use metadata and text fields. | Filters first, searches `embedding_text`, and cites from `chunk_text` plus source metadata. | Must not bypass official-source, safety, and citation constraints. |
+
+#### Need-Type Mapping To RAG Chunk Metadata
+
+| User/profile `need_type` | Chunk `info_type_tags` value | Chunk boolean filter |
+| --- | --- | --- |
+| `contact` | `contact` | `has_contact_info` |
+| `required_docs` | `required_docs` | `has_required_docs` |
+| `eligibility` | `eligibility` | `has_eligibility` |
+| `costs_coverage` | `costs_coverage` | `has_costs_coverage` |
+| `location` | `location` | `has_location` |
+| `deadlines` | `deadlines` | `has_deadlines` |
+| `booking_steps` | `booking_steps` | `has_booking_steps` |
+| `emergency_info` | `emergency_info` | `has_emergency_info` |
+| `general_navigation` | No required tag | No required boolean filter; use category and semantic search. |
+
+#### Metadata Alignment
+
+The derived RAG profile should use metadata fields that exist in
+`rag_chunks.csv`:
+
+- `category_id`
+- `student_type`
+- `jurisdiction`
+- `language`
+- `risk_level`
+- `info_type_tags`
+- `has_contact_info`
+- `has_required_docs`
+- `has_eligibility`
+- `has_costs_coverage`
+- `has_location`
+- `has_deadlines`
+- `has_booking_steps`
+- `has_emergency_info`
+
+The retriever should filter chunks by metadata before semantic search. It should
+then run vector search against `embedding_text`, because that field includes the
+heading context plus the chunk text. User-facing citations and summaries should
+come from `chunk_text` and source metadata, including:
+
+- `chunk_id`
+- `canonical_url`
+- `section_heading`
+- `heading_path`
+- `nearby_links`
+- `domain`
+- `source_group`
+- `source_owner`
+- `source_publisher`
+- `authority_level`
+- `terms_url`
+- `licence_or_terms`
+- `retrieved_at`
+- `source_updated_at`
+- `source_priority_rank`
+- `freshness_score`
+
+Fields such as `url_hash`, `content_hash`, `section_hash`, `chunk_index`, and
+`token_count` are useful for deduplication, drift monitoring, and debugging, but
+they should not be shown as recommendation content.
+
+#### Applicability Logic For Retrieval
+
+The profile supports applicability/profile fit rather than official eligibility
+determination. The agent may use questionnaire answers, normalized tags, and
+chunk metadata to assign internal narrowing statuses:
+
+- `clearly_applicable`: the retrieved chunks match taxonomy, information type,
+  and available profile signals.
+- `possibly_applicable`: the chunks may fit, but some details are broad,
+  unknown, or source-dependent.
+- `not_applicable`: the selected answers clearly point away from the chunk or
+  service.
+- `needs_official_confirmation`: the source appears relevant, but the outcome
+  depends on a responsible office, official source, or qualified professional.
+- `insufficient_information`: the structured intake does not provide enough
+  context for confident narrowing.
+
+For high-risk domains such as health, immigration, tax, insurance, employment
+authorization, and financial aid, retrieved chunks should default to
+`needs_official_confirmation` unless the source contract later proves that a
+more specific non-professional routing status is safe. The user-facing output
+should explain where to confirm the next step; it should not present the
+profile as an official decision.
 
 ### Intake Review Before Submit
 
-Before showing results, the prototype should show a short review block:
+Before showing results, the prototype should show a short review block using the
+universal answers plus the Stage 2 taxonomy questionnaire and optional Stage 3 route-narrowing question that were shown:
 
 ```text
 You selected:
-- Student context: International student
+- McGill relationship: Current McGill student
+- Academic level: Graduate
+- Newcomer context: International student
 - Stage: Newly arrived
 - Main need: Healthcare access
+- System/source context: McGill
 - Urgency: Routine
 - Location: Downtown campus
 - Language: English
 - Start preference: Online
-- Coverage context: McGill IHI
+- Stage 2 shown: Healthcare questionnaire only
+- Healthcare navigation type: Campus care
+- Stage 3 shown: Healthcare access context
+- Healthcare access context: McGill IHI
 
 The navigator will use these structured choices to find source-linked services.
+It will not show follow-up questions from unrelated categories.
 Do not enter private identifiers or detailed personal information.
 ```
 
@@ -321,32 +631,39 @@ Do not enter private identifiers or detailed personal information.
 
 ### Screen Sequence
 
-1. Start and intake screen.
-2. Conditional safety interrupt, if urgency or category requires it.
-3. Intake review and submit.
-4. Results screen.
-5. Source/details expansion inside each result.
-6. No-match or unsupported fallback when needed.
+1. Stage 1 universal intake screen.
+2. Taxonomy mapping from the selected main need.
+3. Stage 2 taxonomy questionnaire for the mapped taxonomy only.
+4. Optional Stage 3 route-narrowing question for complex taxonomies only.
+5. Conditional safety interrupt, if urgency or category requires it.
+6. Intake review and submit.
+7. Results screen.
+8. Source/details expansion inside each result.
+9. No-match or unsupported fallback when needed.
 
 ### Screen Flow Diagram
 
 ```mermaid
 flowchart TD
-    A[Start screen] --> B[Intake questions]
-    B --> C[Conditional follow-up questions]
-    C --> D{Emergency or high-risk?}
-    D -->|Emergency| E[Safety interrupt]
-    E --> F[Continue to official resources]
-    D -->|High-risk but not emergency| G[Show limitation note]
-    D -->|Routine| H[Intake review]
-    F --> H
-    G --> H
-    H --> I[Submit]
-    I --> J{Matching result state}
-    J -->|Curated matches| K[Results screen]
-    J -->|No curated match| L[No-match fallback]
-    J -->|Unsupported| M[Unsupported fallback]
-    K --> N[Expand source details]
+    A[Start screen] --> B[Stage 1 universal intake questions]
+    B --> C[Map main need to one taxonomy]
+    C --> D{Supported taxonomy?}
+    D -->|No| E[Unsupported fallback]
+    D -->|Yes| F[Stage 2 taxonomy questionnaire]
+    F --> F2{Optional Stage 3 needed?}
+    F2 -->|Yes| F3[Stage 3 route-narrowing question]
+    F2 -->|No| G{Emergency or high-risk?}
+    F3 --> G
+    G -->|Emergency| H[Safety interrupt]
+    G -->|High-risk but not emergency| I[Show limitation note]
+    G -->|Routine| J[Intake review]
+    H --> J
+    I --> J
+    J --> K[Submit]
+    K --> L{Matching result state}
+    L -->|Curated matches| M[Results screen]
+    L -->|No curated match| N[No-match fallback]
+    M --> O[Expand source details]
 ```
 
 ### Result-State Routing Diagram
@@ -373,33 +690,23 @@ flowchart LR
 | McGill Care Compass                                         |
 | Source-grounded newcomer service navigator                  |
 +-------------------------------------------------------------+
-| What do you need help navigating first?                     |
-| [ Healthcare access v ]                                     |
+| Universal profile                                           |
+| McGill relationship     [ Current McGill student v ]         |
+| Academic level          [ Graduate v ]                       |
+| Newcomer context        [ International student v ]          |
+| Current stage           [ Newly arrived v ]                  |
+| Campus/location         [ Downtown campus v ]                |
+| Language preference     [ English v ]                        |
+| Start preference        [ Online v ]                         |
 |                                                             |
-| Which student context best describes you?                   |
-| [ International student v ]                                 |
+| Main need               [ Healthcare access v ]              |
+| Urgency                 [ Routine v ]                        |
 |                                                             |
-| Where are you in your McGill journey?                       |
-| [ Newly arrived v ]                                         |
+| Stage 2: Healthcare questionnaire                          |
+| Healthcare type         [ Campus care v ]                    |
 |                                                             |
-| How urgent is this?                                         |
-| ( ) Emergency or immediate danger                           |
-| ( ) Urgent but not emergency                                |
-| (x) Routine                                                 |
-| ( ) Planning ahead                                          |
-| ( ) Unsure                                                  |
-|                                                             |
-| Which location is most relevant?                            |
-| [ Downtown campus v ]                                       |
-|                                                             |
-| Language preference                                         |
-| [ English v ]                                               |
-|                                                             |
-| How would you prefer to start?                              |
-| [ Online v ]                                                |
-|                                                             |
-| Coverage context                                            |
-| [ McGill IHI v ]                                            |
+| Stage 3: Route narrowing                                    |
+| Access context          [ McGill IHI v ]                     |
 |                                                             |
 | [Review choices]                                            |
 +-------------------------------------------------------------+
@@ -430,13 +737,13 @@ flowchart LR
 ```text
 +-------------------------------------------------------------+
 | Recommended starting points                                 |
-| Based on: Healthcare access, routine, Downtown campus, IHI   |
+| Based on: Healthcare access, routine, Downtown, IHI context  |
 +-------------------------------------------------------------+
 | Primary starting point                                      |
 | [Service name]                                              |
 | Category: Healthcare access                                 |
-| Why this matched: Matches your healthcare need, student      |
-| context, and selected coverage context.                     |
+| Why this matched: Matches your healthcare need, profile     |
+| fields, and selected access context.                        |
 | Next step: [Conservative official next step from record]    |
 | Access: [Access method from record]                         |
 | Limitations: [Limitations from record]                      |
@@ -529,7 +836,7 @@ curated service record:
 | --- | --- | --- |
 | Service name | `service_name` | Use as the card title. |
 | Category | `category_label` | Show near the title for scanning. |
-| Why this matched | Derived from intake plus `student_need`, `intended_users`, and `category_id` | Explain the match without overclaiming. |
+| Why this matched | Derived from universal intake, taxonomy follow-up, `student_need`, `intended_users`, and `category_id` | Explain the match without overclaiming. |
 | Intended users | `intended_users` | Show when it clarifies fit. |
 | Access method | `access_method` | Show before the source link when it is actionable. |
 | Recommended next step | `recommended_next_step` | Use as the main action sentence. |
@@ -541,7 +848,7 @@ curated service record:
 
 ### Primary Result
 
-The primary result is the best official starting point for the selected intake.
+The primary result is the best official starting point for the selected intake and one taxonomy-specific follow-up path.
 It should be visually first and should include:
 
 - service name;
@@ -618,11 +925,11 @@ Prefer:
 
 Avoid:
 
-- "you are eligible";
+- "you qualify" or any definitive applicability claim;
 - "you should receive";
 - "this diagnosis";
-- "this is covered";
-- "you must file taxes";
+- "coverage is confirmed";
+- "tax filing is mandatory";
 - "this guarantees";
 - "the correct answer is";
 - "approved by a human reviewer for your case".
@@ -630,8 +937,8 @@ Avoid:
 ### Standard Match Reason Pattern
 
 ```text
-This matched because you selected [main need], [student context], and
-[urgency/location/preference]. It is an official [publisher/category] starting
+This matched because you selected [main need], [profile fields], and the
+[taxonomy-specific follow-up]. It is an official [publisher/category] starting
 point for [service purpose].
 ```
 
@@ -686,20 +993,28 @@ layout structure.
 | McGill Care Compass                                         |
 | Find an official starting point for newcomer student needs. |
 +-------------------------------------------------------------+
-| Step 1: Your context                                        |
-| Student context        [ International student v ]           |
+| Step 1: Universal profile                                   |
+| McGill relationship    [ Current McGill student v ]          |
+| Academic level         [ Graduate v ]                        |
+| Newcomer context       [ International student v ]           |
 | Current stage          [ Newly arrived v ]                   |
 | Campus/location        [ Downtown campus v ]                 |
 | Language preference    [ English v ]                         |
 | Start preference       [ Online v ]                          |
 +-------------------------------------------------------------+
-| Step 2: What you need                                       |
+| Step 2: Main need                                           |
 | Main need              [ Healthcare access v ]               |
 | Urgency                [ Routine v ]                         |
-| Coverage context       [ McGill IHI v ]                      |
+| Taxonomy mapped        [ health_care ]                       |
 +-------------------------------------------------------------+
-| Step 3: Review                                              |
-| The navigator will use structured choices only. Do not enter |
+| Step 3: Healthcare questionnaire                            |
+| Healthcare type        [ Campus care v ]                     |
++-------------------------------------------------------------+
+| Step 4: Optional route narrowing                             |
+| Access context         [ McGill IHI v ]                      |
++-------------------------------------------------------------+
+| Step 5: Review                                              |
+| Only healthcare route questions were shown. Do not enter     |
 | private identifiers or detailed personal information.        |
 |                                                             |
 | [Find starting points]                                      |
@@ -712,15 +1027,16 @@ layout structure.
 +-------------------------------------------------------------+
 | Recommended starting points                                 |
 +-------------------------------------------------------------+
-| Based on your choices: International student, newly arrived, |
-| healthcare access, routine, Downtown campus, McGill IHI.     |
+| Based on your choices: current graduate student,             |
+| international newcomer context, healthcare access, routine,  |
+| Downtown campus, Stage 2 campus care, Stage 3 McGill IHI.    |
 +-------------------------------------------------------------+
 | PRIMARY STARTING POINT                                      |
 | Access Health and Wellness Care                             |
 | Category: Healthcare access                                 |
-| Why this matched: You selected healthcare access and a       |
-| McGill student context. This is an official McGill starting |
-| point for health and wellness care navigation.               |
+| Why this matched: You selected healthcare access with        |
+| campus care and IHI context. This is an official McGill     |
+| starting point for health and wellness care navigation.      |
 | Recommended next step: Use the listed access route to      |
 | start with the appropriate service, then verify details in   |
 | the official source.                                         |
@@ -732,7 +1048,7 @@ layout structure.
 | [Source details]                                             |
 +-------------------------------------------------------------+
 | BACKUP OPTIONS                                              |
-| 1. International Health Insurance - useful for IHI context.  |
+| 1. International Health Insurance - relevant to IHI context. |
 | 2. Primary Care Access Point - useful for Quebec healthcare  |
 |    navigation context.                                       |
 +-------------------------------------------------------------+
@@ -780,7 +1096,7 @@ case in this format.
 
 | Field | Example |
 | --- | --- |
-| Sample intake | International student; newly arrived; healthcare access; routine; Downtown campus; English; online; McGill IHI |
+| Sample intake | Current McGill student; graduate; international student; newly arrived; healthcare access; routine; Downtown campus; English; online; Stage 2: healthcare type = campus care; Stage 3: access context = McGill IHI |
 | Expected category | `health_care` |
 | Candidate service types from Issue 1 | Access Health and Wellness Care, Primary Care Access Point, Quebec Family Doctor Finder |
 | Primary result shape | Official healthcare starting point with match reason, next step, limitation, source link, publisher, and last verified date. |
@@ -791,9 +1107,9 @@ Example response:
 
 ```text
 Primary starting point: Access Health and Wellness Care
-Why this matched: You selected healthcare access as a newly arrived McGill
-student. This is an official McGill starting point for health and wellness care
-navigation.
+Why this matched: You selected healthcare access, campus care, and IHI context
+as a newly arrived McGill student. This is an official McGill starting point
+for health and wellness care navigation.
 Recommended next step: Use the listed access route to start with the
 appropriate care-navigation service, then verify details in the official source.
 Important limit: This navigator cannot diagnose symptoms, recommend treatment,
@@ -806,7 +1122,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | International student; first term; immigration and legal status; routine; online; English; no healthcare coverage context |
+| Sample intake | Current McGill student; graduate; international student; first term; immigration and legal status; routine; online/remote; English; Stage 2: immigration topic = McGill international student support; Stage 3: not shown |
 | Expected category | `immigration_status` |
 | Candidate service types from Issue 1 | International Student Services, immigration guidance |
 | Primary result shape | Official McGill or government starting point with limitation against status interpretation. |
@@ -817,9 +1133,9 @@ Example response:
 
 ```text
 Primary starting point: International Student Services
-Why this matched: You selected immigration and legal status as an international
-student. This is an official McGill starting point for international student
-navigation.
+Why this matched: You selected immigration and legal status with an
+international newcomer profile. This is an official McGill starting point for
+international student navigation.
 Recommended next step: Contact the responsible student-service or official
 information channel for case-specific guidance, then use the source link to
 verify current instructions.
@@ -833,7 +1149,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | International student; newly arrived; health insurance and coverage; planning ahead; online; English; McGill IHI |
+| Sample intake | Current McGill student; graduate; international student; newly arrived; health insurance and coverage; planning ahead; online/remote; English; Stage 2: insurance topic = activate coverage; Stage 3: coverage context = McGill IHI |
 | Expected category | `insurance` |
 | Candidate service types from Issue 1 | International Health Insurance, Activate your Coverage, Access HealthCare |
 | Primary result shape | Insurance source record with coverage limitation and official link. |
@@ -844,8 +1160,9 @@ Example response:
 
 ```text
 Primary starting point: International Health Insurance
-Why this matched: You selected health insurance and McGill IHI. This is an
-official McGill source for international health insurance navigation.
+Why this matched: You selected health insurance, activation support, and McGill
+IHI context. This is an official McGill source for international health
+insurance navigation.
 Recommended next step: Use the listed insurance activation or contact route,
 then verify coverage details in the official source.
 Important limit: Confirm coverage, exemptions, claims, and costs with the
@@ -858,7 +1175,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | Graduate student; first term; mental health and wellbeing; urgent but not emergency; Downtown campus; English; online; not about healthcare or insurance |
+| Sample intake | Current McGill student; graduate; newcomer context: unsure; first term; mental health and wellbeing; urgent but not emergency; Downtown campus; English; online; Stage 2: support type = routine wellness support; Stage 3: not shown |
 | Expected category | `mental_health` |
 | Candidate service types from Issue 1 | Student Wellness Hub, I need help now, community resources |
 | Primary result shape | Wellness or support record with urgent-but-not-emergency limitation. |
@@ -884,7 +1201,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | International student; first term; tax filing and residency information; planning ahead; online; English; not about healthcare or insurance |
+| Sample intake | Current McGill student; graduate; international student; first term; tax filing and residency information; planning ahead; online/remote; English; Stage 2: tax topic = general student tax information; Stage 3: official information page |
 | Expected category | `tax` |
 | Candidate service types from Issue 1 | Who has to file a return, free tax clinics, residency-status information |
 | Primary result shape | CRA source record with tax limitation. |
@@ -909,7 +1226,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | Undergraduate student; continuing student; financial aid and affordability; urgent but not emergency; Downtown campus; English; email or web form |
+| Sample intake | Current McGill student; undergraduate; newcomer context: unsure; continuing student; financial aid and affordability; urgent but not emergency; Downtown campus; English; email or web form; Stage 2: finance topic = financial aid advising; Stage 3: advising/contact route |
 | Expected category | `finances` |
 | Candidate service types from Issue 1 | McGill Financial Aid, Scholarships and Student Aid, International Student Funding |
 | Primary result shape | McGill funding support record with financial-aid limitation. |
@@ -935,7 +1252,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | International student; continuing student; work and career support; routine; Downtown campus; English; in person; not about healthcare or insurance |
+| Sample intake | Current McGill student; undergraduate; international student; continuing student; work and career support; routine; Downtown campus; English; in person; Stage 2: work/career topic = career advising; Stage 3: advising appointment |
 | Expected category | `work_career` |
 | Candidate service types from Issue 1 | Career Planning Service, on-campus work, off-campus work |
 | Primary result shape | Career or work-guidance source with employment limitation. |
@@ -946,8 +1263,9 @@ Example response:
 
 ```text
 Primary starting point: Career Planning Service
-Why this matched: You selected work and career support and a McGill student
-context. This is an official McGill starting point for career navigation.
+Why this matched: You selected work and career support with career advising as
+the follow-up topic. This is an official McGill starting point for career
+navigation.
 Recommended next step: Use the listed booking or contact route to start with
 career support, then verify current service details in the official source.
 Important limit: This navigator cannot interpret permit conditions or decide
@@ -960,7 +1278,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | Exchange student; newly arrived; campus documents and administration; routine; Downtown campus; English; in person |
+| Sample intake | Exchange or visiting student; exchange/visiting level; international student; newly arrived; campus documents and administration; routine; Downtown campus; English; in person; Stage 2: documents/admin task = ID or documents; Stage 3: not shown |
 | Expected category | `documents_admin` |
 | Candidate service types from Issue 1 | Service Point, Student Accounts |
 | Primary result shape | Administrative service record with next step and source link. |
@@ -984,7 +1302,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | Graduate student; newly arrived; housing and basic needs; routine; off campus in Montreal; English; online |
+| Sample intake | Current McGill student; graduate; newcomer context: unsure; newly arrived; housing and basic needs; routine; off campus in Montreal; English; online; Stage 2: housing topic = find housing; Stage 3: not shown |
 | Expected category | `housing` |
 | Candidate service types from Issue 1 | Off-Campus Housing, finding housing, refusal-to-rent guidance |
 | Primary result shape | Housing support source with legal-advice limitation when relevant. |
@@ -1009,7 +1327,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | Permanent resident student; first term; language and integration; planning ahead; Downtown campus; French; in person |
+| Sample intake | Current McGill student; undergraduate; permanent resident or new Canadian; first term; language and integration; planning ahead; Downtown campus; French; in person; Stage 2: integration topic = language learning; Stage 3: not shown |
 | Expected category | `language_integration` |
 | Candidate service types from Issue 1 | Campus Life and Engagement |
 | Primary result shape | Integration or campus-life source with accessible next step. |
@@ -1035,7 +1353,7 @@ Last verified: 2026-06-19
 
 | Field | Example |
 | --- | --- |
-| Sample intake | Any student context; urgent or safety-related help; emergency or immediate danger; any location |
+| Sample intake | Any McGill relationship; any academic level; any newcomer context; urgent or safety-related help; emergency or immediate danger; any location; Stage 2: safety type = emergency or immediate danger; Stage 3: not shown |
 | Expected category | `safety_urgent` |
 | Candidate service types from Issue 1 | Emergency or crisis instructions when curated; regular services only as secondary follow-up |
 | Primary result shape | Emergency guidance first, then source-linked support if available. |
@@ -1097,6 +1415,33 @@ It will not invent a service.
 Try broadening your choices, or start with an official McGill student-service
 contact point.
 ```
+
+
+## Current Iteration Assumptions
+
+These assumptions apply to the Issue 2 questionnaire and response-format
+contract. They should be revisited during Issue 4 implementation and team review.
+
+- All intake questions are pre-written in the current iteration. The system does
+  not generate new questions dynamically from a student's wording.
+- The user sees Stage 1 universal intake questions first, then exactly one Stage
+  2 taxonomy questionnaire after `main_need` maps to a locked taxonomy.
+- Stage 3 is optional and appears only for the six complex taxonomies documented
+  in the stage matrix: `health_care`, `insurance`, `immigration_status`,
+  `finances`, `work_career`, and `tax`.
+- Simple taxonomies remain two-stage flows unless later evidence shows that a
+  third route-narrowing question is necessary.
+- Delivery preference remains a Stage 1 usability field because the product
+  definition includes it; it affects access-method ranking and presentation, not
+  eligibility or service availability.
+- Applicability/profile fit is used to narrow and rank records, not to make
+  official eligibility, coverage, tax, immigration, medical, financial-aid, or
+  work-authorization decisions.
+- The MVP avoids open-ended sensitive free text, private identifiers, detailed
+  symptoms, exact income, document numbers, and account credentials.
+- The questionnaire assumes the curated service directory contains enough record
+  fields to support routing by taxonomy, need subtype, intended users, access
+  method, limitations, source URL, and verification date.
 
 ## Team Review Checklist
 
