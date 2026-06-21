@@ -83,3 +83,51 @@ Validate the June 21 acceptance checks:
 ```bash
 uv run python scripts/data/validate_curated_service_records.py
 ```
+
+## Actionable Enrichment (v1)
+
+The curated directory above is the stable base. A second, *enriched* dataset adds
+source-grounded "useful info" so recommendations can give a concrete next step
+instead of only linking out. It is produced by a re-runnable pipeline.
+
+- Enriched dataset: `data/datasets/actionable_service_records.csv` (+ `.json` mirror)
+- Pipeline report: `data/reports/actionable_service_pipeline_report.md`
+
+It keeps every base field and adds:
+
+| Field | Purpose |
+| --- | --- |
+| `actionable_summary` | Plain-language description of the service, from the official page. |
+| `actionable_next_step` | Concrete next step composed from extracted specifics (never "visit the website"). |
+| `eligibility_or_requirements` | Eligibility / requirement snippets quoted from the page. |
+| `access_steps` | How to access, book, or apply, quoted from the page. |
+| `costs_or_coverage` | Cost, fee, or coverage details, where stated. |
+| `contact_or_location` | Phone, email, or contact links extracted from the page. |
+| `source_evidence_excerpt` | The supporting snippet the fields are grounded in. |
+| `extraction_status` | `enriched`, `partial`, `fetch_failed`, or `not_targeted`. |
+| `content_last_checked_at` | UTC timestamp of the last fetch. |
+| `source_content_hash` | Hash of page content for change detection on re-runs. |
+
+`extraction_status` values:
+
+- `enriched` — useful summary + concrete steps + at least one of contact / eligibility / cost.
+- `partial` — reachable but thin (often a generic landing page); summary/contact only.
+- `fetch_failed` — the page could not be fetched.
+- `not_targeted` — deferred for v1 (currently the CRA / tax records: canada.ca blocks automated fetching).
+
+Contract for the recommendation / UX layer (Issue 5): prefer `actionable_next_step`,
+`access_steps`, `eligibility_or_requirements`, `costs_or_coverage`, and
+`contact_or_location`, and always show `official_source_url`, `last_verified_date`,
+and `limitations`. Treat these as source-grounded facts, not advice — final wording is
+composed by the agent / Responses layer. For records that are not `enriched`, fall
+back to the base curated next step.
+
+Reusable refresh (re-fetches, re-extracts, and flags pages that changed):
+
+```bash
+uv run python scripts/data/build_actionable_service_records.py
+uv run python scripts/data/validate_actionable_service_records.py
+```
+
+> v1 note: extraction is deterministic and source-grounded (no LLM). Output structure
+> is stable across runs; `content_last_checked_at` changes each run by design.
