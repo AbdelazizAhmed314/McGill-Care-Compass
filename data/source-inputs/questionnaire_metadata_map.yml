@@ -1,0 +1,403 @@
+version: 2
+description: >
+  Shared stable metadata IDs for Mustafa's questionnaire and Muhammad's RAG
+  chunk-tagging pipeline. UI labels can change without changing these IDs.
+  The active chunk-aligned retrieval fields are category_id, need_type,
+  student_type, jurisdiction, language, and derived risk_level.
+
+category_id:
+  health_care:
+    label: Healthcare access
+  mental_health:
+    label: Mental health and wellbeing
+  insurance:
+    label: Health insurance and coverage
+  immigration_status:
+    label: Immigration and legal status
+  housing:
+    label: Housing and basic needs
+  academics:
+    label: Academic and advising support
+  finances:
+    label: Financial aid and affordability
+  work_career:
+    label: Work and career support
+  tax:
+    label: Tax filing and residency information
+  documents_admin:
+    label: Campus documents and administration
+  language_integration:
+    label: Language and integration
+  safety_urgent:
+    label: Urgent or safety-related help
+
+need_type:
+  eligibility:
+    label: Eligibility
+    chunk_boolean: has_eligibility
+    keywords:
+      - eligible
+      - eligibility
+      - who can
+      - who is eligible
+      - requirements
+      - qualify
+      - available to
+  required_docs:
+    label: Required documents
+    chunk_boolean: has_required_docs
+    keywords:
+      - document
+      - documents
+      - proof
+      - form
+      - permit
+      - passport
+      - id
+      - required
+      - submit
+  costs_coverage:
+    label: Costs and coverage
+    chunk_boolean: has_costs_coverage
+    keywords:
+      - cost
+      - costs
+      - fee
+      - fees
+      - free
+      - no charge
+      - coverage
+      - covered
+      - insurance
+      - premium
+      - reimbursement
+      - payment
+  contact:
+    label: Contact information
+    chunk_boolean: has_contact_info
+    keywords:
+      - contact
+      - phone
+      - email
+      - call
+      - office
+      - advisor
+      - adviser
+      - appointment
+  location:
+    label: Location
+    chunk_boolean: has_location
+    keywords:
+      - location
+      - address
+      - campus
+      - building
+      - room
+      - montreal
+      - downtown
+      - macdonald
+  deadlines:
+    label: Deadlines
+    chunk_boolean: has_deadlines
+    keywords:
+      - deadline
+      - deadlines
+      - due
+      - before
+      - by
+      - date
+      - term
+      - semester
+  booking_steps:
+    label: Booking or access steps
+    chunk_boolean: has_booking_steps
+    keywords:
+      - book
+      - booking
+      - register
+      - registration
+      - apply
+      - application
+      - how to
+      - access
+      - appointment
+      - steps
+      - sign up
+  emergency_info:
+    label: Emergency or urgent help
+    chunk_boolean: has_emergency_info
+    keywords:
+      - emergency
+      - urgent
+      - crisis
+      - 911
+      - immediate
+      - danger
+      - safety
+  general_navigation:
+    label: General navigation
+    chunk_boolean: null
+    keywords: []
+
+stage_1_universal:
+  mcgill_relationship:
+    label: What is your relationship to McGill right now?
+    derives_chunk_field: null
+    values:
+      admitted_incoming:
+        label: Admitted or incoming student
+      current_student:
+        label: Current McGill student
+      exchange_visiting:
+        label: Exchange or visiting student
+      recently_graduated_leaving:
+        label: Recently graduated or leaving soon
+      supporting_student:
+        label: Supporting a McGill student
+      unsure:
+        label: Unsure
+  academic_level:
+    label: What academic level best fits you?
+    derives_chunk_field: null
+    values:
+      undergraduate:
+        label: Undergraduate
+      graduate:
+        label: Graduate
+      exchange_visiting:
+        label: Exchange or visiting
+      not_sure:
+        label: Not sure
+      not_applicable:
+        label: Not applicable
+  newcomer_context:
+    label: Which newcomer context best fits your situation?
+    derives_chunk_field: student_type
+    values:
+      international_student:
+        label: International student
+        maps_to_student_type: international_student
+      permanent_resident_new_canadian:
+        label: Permanent resident or new Canadian
+        maps_to_student_type: newcomer
+      canadian_new_to_quebec_montreal:
+        label: Canadian student new to Quebec or Montreal
+        maps_to_student_type: domestic_student
+      refugee_asylum_context:
+        label: Refugee or asylum-seeker context
+        maps_to_student_type: newcomer
+      unsure:
+        label: Unsure
+        maps_to_student_type: ""
+      prefer_not_to_say:
+        label: Prefer not to say
+        maps_to_student_type: ""
+  current_stage:
+    label: Where are you in your McGill journey?
+    derives_chunk_field: null
+    values:
+      pre_arrival:
+        label: Pre-arrival
+      newly_arrived:
+        label: Newly arrived
+      first_term:
+        label: First term
+      continuing_student:
+        label: Continuing student
+      graduating_leaving_soon:
+        label: Graduating or leaving soon
+      unsure:
+        label: Unsure
+  main_need:
+    label: What do you need help navigating first?
+    derives_chunk_field: category_id
+    values:
+      health_care:
+        label: Healthcare access
+        maps_to_category_id: health_care
+      mental_health:
+        label: Mental health and wellbeing
+        maps_to_category_id: mental_health
+      insurance:
+        label: Health insurance and coverage
+        maps_to_category_id: insurance
+      immigration_status:
+        label: Immigration and legal status
+        maps_to_category_id: immigration_status
+      housing:
+        label: Housing and basic needs
+        maps_to_category_id: housing
+      academics:
+        label: Academic and advising support
+        maps_to_category_id: academics
+      finances:
+        label: Financial aid and affordability
+        maps_to_category_id: finances
+      work_career:
+        label: Work and career support
+        maps_to_category_id: work_career
+      tax:
+        label: Tax filing and residency information
+        maps_to_category_id: tax
+      documents_admin:
+        label: Campus documents and administration
+        maps_to_category_id: documents_admin
+      language_integration:
+        label: Language and integration
+        maps_to_category_id: language_integration
+      safety_urgent:
+        label: Urgent or safety-related help
+        maps_to_category_id: safety_urgent
+      something_else:
+        label: Something else
+        maps_to_category_id: ""
+  jurisdiction_context:
+    label: Which system do you think this is about?
+    derives_chunk_field: jurisdiction
+    values:
+      mcgill:
+        label: McGill
+        maps_to_jurisdiction: mcgill
+      quebec:
+        label: Quebec
+        maps_to_jurisdiction: quebec
+      canada:
+        label: Canada
+        maps_to_jurisdiction: canada
+      community_external:
+        label: Community or external provider
+        maps_to_jurisdiction: ""
+      not_sure:
+        label: Not sure
+        maps_to_jurisdiction: ""
+  urgency_level:
+    label: How urgent is this?
+    derives_chunk_field: risk_level
+    values:
+      emergency_immediate_danger:
+        label: Emergency or immediate danger
+        maps_to_need_type: emergency_info
+      urgent_not_emergency:
+        label: Urgent but not emergency
+      routine:
+        label: Routine
+      planning_ahead:
+        label: Planning ahead
+      unsure:
+        label: Unsure
+  campus_location:
+    label: Which location is most relevant?
+    derives_chunk_field: null
+    values:
+      downtown:
+        label: Downtown campus
+      macdonald:
+        label: Macdonald campus
+      off_campus_montreal:
+        label: Off campus in Montreal
+      outside_montreal:
+        label: Outside Montreal
+      online_remote:
+        label: Online or remote
+      unsure:
+        label: Unsure
+  language_preference:
+    label: What language would you prefer for support?
+    derives_chunk_field: language
+    values:
+      en:
+        label: English
+        maps_to_language: en
+      fr:
+        label: French
+        maps_to_language: fr
+      en_or_fr:
+        label: English or French
+        maps_to_language: ""
+      another_language:
+        label: Another language
+        maps_to_language: ""
+      no_preference:
+        label: No preference
+        maps_to_language: ""
+  delivery_preference:
+    label: How would you prefer to start?
+    derives_chunk_field: null
+    values:
+      online:
+        label: Online
+      phone:
+        label: Phone
+      in_person:
+        label: In person
+      email_web_form:
+        label: Email or web form
+      no_preference:
+        label: No preference
+      unsure:
+        label: Unsure
+
+student_type:
+  international_student:
+    label: International student
+    keywords:
+      - international student
+      - international students
+      - study permit
+      - exchange student
+      - visiting student
+  newcomer:
+    label: Newcomer
+    keywords:
+      - newcomer
+      - newcomers
+      - immigrant
+      - immigrants
+      - settle
+      - integration
+  exchange_student:
+    label: Exchange student
+    keywords:
+      - exchange student
+      - exchange students
+      - visiting student
+  domestic_student:
+    label: Domestic student
+    keywords:
+      - domestic student
+      - canadian student
+      - quebec student
+
+jurisdiction:
+  mcgill:
+    label: McGill
+    keywords:
+      - mcgill
+      - campus
+      - student services
+  quebec:
+    label: Quebec
+    keywords:
+      - quebec
+      - québec
+      - ramq
+      - gouvernement du québec
+  canada:
+    label: Canada
+    keywords:
+      - canada
+      - federal
+      - cra
+      - ircc
+
+language:
+  en:
+    label: English
+  fr:
+    label: French
+
+risk_level:
+  normal:
+    label: Normal navigation
+  high_risk:
+    label: High-risk topic

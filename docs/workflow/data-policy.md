@@ -1,15 +1,67 @@
 # Data Policy
 
-The curated service directory is the source of truth for recommendations. Broad scraped candidates, source manifests, and raw facility/location datasets are evidence or support layers until they are curated into approved records.
+The active data layer is the v1 local RAG corpus. The project no longer keeps
+the previous static record artifacts in the repository.
 
-## Rules
+## Medallion Policy
 
-- Recommendations must include official source links.
-- Curated records must include last-verified dates.
-- ODHF-derived facility records must include source and license/terms provenance when surfaced.
+- Bronze stores unprocessed source capture: `data/bronze/raw/rag_pages/`.
+- Silver stores processed/generated RAG outputs: `data/silver/processed/`,
+  `data/silver/datasets/`, `data/silver/rag/`,
+  `data/silver/vector_store/`, and `data/silver/reports/`.
+- Gold is reserved for reviewed, release-ready data: `data/gold/`. The current
+  version has no Gold dataset.
+- `data/source-inputs/` is configuration, not a medallion data layer.
+
+## Source Policy
+
+- Recommendations must cite official source links.
+- Chunks must preserve canonical source URL, section heading, retrieval time,
+  source-updated time where available, source terms, and taxonomy metadata.
+- Chunks must preserve source group, source owner, source priority rank,
+  freshness score, `terms_url`, and `licence_or_terms`.
+- Retrieval should prefer primary source groups in this order for same-topic
+  evidence: Canada, Quebec, official healthcare systems, McGill, then other
+  approved sources.
+- Within the same source tier, retrieval should prefer fresher source-updated
+  dates when available.
+- The response layer must not convert retrieved chunks into medical, legal,
+  immigration, tax, insurance, financial, or eligibility decisions.
+
+## Version Policy
+
+Every active Silver row must include:
+
+- `pipeline_version`
+- `pipeline_run_id`
+- `artifact_schema_version`
+- `generated_at`
+- `questionnaire_metadata_version`
+- `seed_config_hash`
+- `questionnaire_config_hash`
+- `crawl_config_hash`
+- `chunking_config_version`
+- `link_priority_config_version`
+- `embedding_model`
+
+`data/silver/reports/rag_run_manifest.json` must match the generated CSVs,
+SQLite DB, report, and vector store count. Validation fails if the manifest and
+artifacts disagree.
+
+## Storage Policy
+
+- Bronze raw HTML, Silver cleaned page text, Silver SQLite files, and Silver
+  Chroma indexes are generated locally and ignored by git.
+- `data/silver/datasets/rag_pages.csv`,
+  `data/silver/datasets/rag_links.csv`,
+  `data/silver/datasets/rag_chunks.csv`,
+  `data/silver/reports/rag_pipeline_report.md`, and
+  `data/silver/reports/rag_run_manifest.json` are reviewable Silver artifacts.
 - Do not store sensitive personal identifiers or detailed health descriptions.
-- Raw source inputs are not committed by default; document how to retrieve them from official sources.
+- Do not use user-specific browsing at answer time.
 
-## Review
+## Change Policy
 
-Changes to service-record schema, taxonomy, source authority, or matching fields require pull-request review.
+Changes to taxonomy, RAG metadata fields, source authority, questionnaire stable
+IDs, crawl rules, chunking logic, link-priority logic, embedding model, or
+retrieval filters require pull-request review.

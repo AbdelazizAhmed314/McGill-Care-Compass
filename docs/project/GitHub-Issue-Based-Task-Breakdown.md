@@ -26,7 +26,7 @@ gantt
     axisFormat  %b %d
 
     section Directory Milestone / Progress Report 1
-    Issue 1 - Curate and validate priority service records       :i1, 2026-06-13, 2026-06-21
+    Issue 1 - Build and validate v1 RAG data corpus              :i1, 2026-06-13, 2026-06-21
     Issue 2 - Define user journey and response format            :i2, 2026-06-13, 2026-06-21
     Issue 3 - Set up repo workflow and PR1 tracking              :i3, 2026-06-13, 2026-06-21
     Directory milestone / Progress Report 1                      :milestone, m1, 2026-06-21, 0d
@@ -61,7 +61,7 @@ gantt
 
 | GitHub Milestone | Due Date | Purpose |
 | --- | --- | --- |
-| Directory Milestone / Progress Report 1 | June 21 | Curated service directory, schema, quality checks, first progress evidence |
+| Data Corpus Milestone / Progress Report 1 | June 21 | v1 RAG corpus, schema, quality checks, first progress evidence |
 | Working Prototype / Progress Report 2 | July 5 | Intake flow, rule-based matching, grounded results, integrated prototype |
 | Evaluation Package / Progress Report 3 | July 19 | Guardrails, maintenance reports, scenario evaluation, internal deployment |
 | Usability Assessment / Progress Report 4 | July 26 | Usability sessions, findings, priority fixes, documentation |
@@ -89,30 +89,32 @@ Use labels to make the board scannable:
 
 ## Milestone: Directory Milestone / Progress Report 1
 
-### Issue 1: Curate and validate priority service records
+### Issue 1: Build and validate v1 RAG data corpus
 
 **Due:** June 21  
 **Primary owners:** Muhammad, with Abdelaziz review and Mustafa input  
 **Maps to:** `MH-01`, `MH-02`, `MH-03`, `MH-04`  
 **Suggested labels:** `data`, `matching`, `documentation`, `progress-report`
 
-**Goal:** Produce the first complete service-directory milestone: a curated, validated dataset that can support prototype matching and Progress Report 1.
+**Goal:** Produce the first complete v1 RAG data milestone: a validated, version-governed corpus that can support prototype retrieval and Progress Report 1.
 
 **Detailed tasks:**
 
-- [ ] Confirm the production service-record schema.
+- [ ] Confirm the production RAG artifact schema.
 - [ ] Lock the canonical service-category taxonomy.
 - [ ] Define source-authority rules and required fields.
-- [ ] Add or confirm fields for source URL, source name, source publisher, license/terms reference, retrieved date, last-verified date, limitations, contact/access details, and matching fields.
-- [ ] Expand the priority service directory from existing investigation outputs.
-- [ ] Prioritize McGill, healthcare/wellness, government, and trusted community services.
-- [ ] Reach at least 40 curated records.
+- [ ] Add or confirm fields for source URL, source owner, source publisher, license/terms reference, retrieved date, source-updated date, limitations, section headings, and retrieval fields.
+- [ ] Build the reusable RAG corpus from official source seeds.
+- [ ] Prioritize McGill, healthcare/wellness, Canada, and Quebec sources.
+- [ ] Reach at least 500 processed pages.
+- [ ] Reach at least 4,000 chunks.
 - [ ] Include at least eight service categories.
-- [ ] Include at least 20 McGill records.
-- [ ] Include at least 10 healthcare or wellness records.
+- [ ] Include McGill, Canada, and Quebec source groups.
+- [ ] Include healthcare, insurance, and wellness chunks.
 - [ ] Build or refine validation checks for missing required fields.
-- [ ] Check duplicate record IDs.
+- [ ] Check duplicate canonical URLs and chunk IDs.
 - [ ] Check invalid or missing URLs.
+- [ ] Check manifest hashes and version stamps.
 - [ ] Check category consistency against the locked taxonomy.
 - [ ] Check stale verification dates.
 - [ ] Create a quality-summary report.
@@ -207,18 +209,18 @@ Use labels to make the board scannable:
 - [ ] Define filters for unsupported or out-of-scope cases.
 - [ ] Define tie-breaking logic.
 - [ ] Define high-risk routing behavior.
-- [ ] Implement ranked retrieval against the curated directory.
-- [ ] Return match reasons for recommended records.
+- [ ] Implement ranked retrieval against the RAG corpus.
+- [ ] Return match reasons for retrieved chunks/results.
 - [ ] Return backup options when appropriate.
 - [ ] Handle empty-result cases.
 - [ ] Build the structured intake interface.
 - [ ] Build the first results interface with placeholders or live matched records.
-- [ ] Confirm the prototype uses production-format records.
+- [ ] Confirm the prototype uses production-format chunks and metadata.
 
 **Acceptance check:**
 
 - [ ] User can complete the intake.
-- [ ] Prototype returns ranked records.
+- [ ] Prototype returns ranked source-grounded results.
 - [ ] Each result includes a traceable match explanation.
 - [ ] Empty and unsupported cases are handled gracefully.
 
@@ -229,7 +231,7 @@ Use labels to make the board scannable:
 **Maps to:** `MY-04`  
 **Suggested labels:** `ux`, `guardrails`, `matching`
 
-**Goal:** Convert matched records into concise user-facing explanations grounded only in approved service-record content.
+**Goal:** Convert retrieved chunks/results into concise user-facing explanations grounded only in approved source content.
 
 **Detailed tasks:**
 
@@ -238,7 +240,7 @@ Use labels to make the board scannable:
 - [ ] Ensure explanations do not make unsupported eligibility, medical, immigration, tax, or financial-aid claims.
 - [ ] Include backup-option wording where the matcher returns a secondary path.
 - [ ] Include source and verification-date display.
-- [ ] Confirm healthcare facility explanations show ODHF provenance when the record comes from ODHF.
+- [ ] Confirm explanations show source URL, source date, and terms metadata.
 - [ ] Test explanations on common scenarios.
 - [ ] Test explanations on high-risk and unsupported scenarios.
 

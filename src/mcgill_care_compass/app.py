@@ -38,7 +38,7 @@ def main() -> None:
         st.error(notice)
 
     st.info(
-        "Prototype scaffold ready. Issue 4 will connect this intake to curated records "
+        "Prototype scaffold ready. Issue 4 will connect this intake to the v1 RAG corpus "
         "and matching rules."
     )
     st.write({"selected_need": main_need, "urgency": urgency})

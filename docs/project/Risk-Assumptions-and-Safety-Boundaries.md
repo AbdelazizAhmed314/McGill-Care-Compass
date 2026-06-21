@@ -12,12 +12,12 @@ The navigator provides grounded service navigation, not professional advice. It 
 
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
-| Official pages change, become unavailable, or lack structured fields. | Medium | High | Curate priority records, retain official links, display last-verified dates, monitor broken links, and provide manual-update procedures. |
-| Curated official sources provide conflicting information about eligibility, fees, hours, or procedures. | Medium | High | Establish a source-authority hierarchy, record each claim's source and date, flag unresolved conflicts, explain uncertainty, and direct users to the responsible service for confirmation. |
-| The tool produces unsupported or overly definitive guidance on high-risk topics. | Medium | High | Use deterministic routing and safety messages, ground generated explanations in approved records, prohibit definitive eligibility decisions, and refer users to qualified services. |
+| Official pages change, become unavailable, or lack structured fields. | Medium | High | Retain official links, store content hashes, display source dates, monitor drift/broken links, and provide manual-update procedures. |
+| Official sources provide conflicting information about eligibility, fees, hours, or procedures. | Medium | High | Establish a source-authority hierarchy, record each chunk's source and date, flag unresolved conflicts, explain uncertainty, and direct users to the responsible service for confirmation. |
+| The tool produces unsupported or overly definitive guidance on high-risk topics. | Medium | High | Use deterministic routing and safety messages, ground generated explanations in retrieved chunks, prohibit definitive eligibility decisions, and refer users to qualified services. |
 | Scope exceeds the available timeline. | Medium | High | Prioritize highest-value service categories, defer lower-priority features, freeze the presentation-ready build by July 27, and reserve July 28-29 for contingency fixes. |
 | Recruitment from upcoming McGill newcomer cohorts is lower than expected. | Medium | Medium | Recruit early, use short predefined testing sessions, and supplement with proxy users only if participation is insufficient. |
-| Healthcare facility data is misunderstood as clinical advice or service availability. | Medium | High | Present ODHF facility data as location/provenance context only; include source, license/terms, retrieval date, and limitations. |
+| Retrieved healthcare content is misunderstood as clinical advice or service availability. | Medium | High | Present healthcare chunks as source-linked navigation context only; include limitations and direct users to qualified services. |
 | Matching rules produce ties or unstable rankings. | Medium | Medium | Use deterministic tie-breakers and test repeated runs against fixed scenarios. |
 
 ## Source Authority Rules
@@ -26,7 +26,7 @@ When sources conflict or overlap, the product should use this authority order:
 
 1. Emergency and crisis instructions for immediate safety.
 2. Official McGill service pages for McGill-owned student services.
-3. Official Quebec, federal, RAMQ, health-system, and ODHF sources for government, healthcare, insurance, and facility records.
+3. Official Quebec, federal, RAMQ, health-system, and McGill sources for government, healthcare, insurance, and student-service information.
 4. Trusted community or settlement organizations for community referrals.
 5. General informational pages only when no more authoritative source exists.
 
@@ -57,7 +57,7 @@ Do not say that every recommendation "requires human review" if that could imply
 
 Use this framing instead:
 
-> The navigator uses curated and approved service records, provides limitation notices, avoids definitive eligibility or professional judgments, and directs users to qualified services for individual decisions.
+> The navigator uses approved source-grounded chunks, provides limitation notices, avoids definitive eligibility or professional judgments, and directs users to qualified services for individual decisions.
 
 ## High-Risk Topic Boundaries
 
@@ -75,15 +75,14 @@ Use this framing instead:
 - The MVP should not collect sensitive identifiers such as student ID, SIN, passport number, medical record number, or financial account details.
 - The MVP should avoid storing free-text descriptions that may contain sensitive personal information.
 - Logged events should be minimized and should not include sensitive identifiers.
-- Source records must include official URLs and last-verified dates.
-- ODHF-derived healthcare records must include source and license/terms provenance when surfaced.
+- Source chunks must include official URLs, retrieved dates, source-updated dates where available, and source terms metadata.
 
 ## Scope Control
 
 Lower-priority features are deferred until all required milestones pass. This includes:
 
 - French interface text beyond basic labels.
-- Broad coverage beyond the 40-record MVP directory.
+- Broad coverage beyond the approved v1 source scope.
 - Advanced personalization.
 - General chatbot behavior.
 - Full production hosting beyond the course deliverable.
@@ -96,6 +95,6 @@ Before final release, verify:
 - Unsupported scenarios fail gracefully.
 - Empty-result cases do not invent services.
 - Every recommendation includes source links.
-- ODHF-derived facility records include source/license provenance.
+- Retrieved chunks include source and terms metadata.
 - Matching uses documented routing precedence and tie-breakers.
 - The app can be run from documented commands.

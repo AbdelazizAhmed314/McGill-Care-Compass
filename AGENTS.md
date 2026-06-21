@@ -23,8 +23,8 @@ Use these documents before making behavior or scope changes:
 
 - Do not implement open-ended advice generation.
 - Do not invent services, eligibility rules, medical guidance, immigration advice, tax advice, or insurance decisions.
-- Recommendations must come from curated records or clearly marked evidence datasets.
-- Healthcare facility records derived from ODHF must carry source/license provenance when surfaced.
+- Recommendations must come from retrieved source chunks in the governed RAG corpus or clearly marked evidence datasets.
+- Healthcare facility evidence must carry source/license provenance when surfaced.
 - Do not collect student ID, SIN, passport number, medical record number, or detailed health descriptions.
 
 ## Expected Checks
@@ -34,6 +34,7 @@ Run before opening or updating a pull request:
 ```powershell
 uv run ruff check .
 uv run pytest
+uv run python scripts/data/validate_rag_corpus.py
 ```
 
 ## Agent Notes
