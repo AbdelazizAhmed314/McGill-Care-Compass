@@ -1116,26 +1116,22 @@ evidence details, not in the user-facing source-details expansion.
 
 ## Response Examples
 
-These examples define the expected response shape. Retrieval ranking will be
-owned by Issue 4, but each category example should be answerable from a top-k
-evidence set, not from one best chunk or a pre-selected service row. The examples
-show at most one response per category. User-facing provenance may include
-multiple official source links and multiple source-detail rows. Chunk-level
-metadata stays in developer-only evidence details.
+These examples are selected directly from `Recommended-Next-Step-Examples.md`. This section includes no more than one example per category; supported categories that do not yet have a selected approved example in that notes file are intentionally not shown here.
 
-### Example 1: Health Insurance
+Retrieval ranking will be owned by Issue 4, but each example should be answerable from a top-k evidence set rather than a single forced chunk. The user-facing provenance can list more than one official source when the response combines evidence from multiple retrieved chunks. Developer-only evidence details remain separate from the user-facing answer.
 
+### Example 1: Activate International Health Insurance
 **Expected category:** `insurance`
 
-**Primary starting point:** McGill International Student Services - Activate IHI Coverage
+**Primary starting point:** McGill International Student Services - Activate IHI Coverage.
 
-**Backup option:** IHI exemption or insurance contact route if activation does not work.
+**Backup option:** Contact the International Student Services health insurance team or Medavie Blue Cross if Minerva confirmation does not work.
 
-**Why this matched:** You selected health insurance and activation support, and the retrieved evidence set includes activation steps plus insurance source details.
+**Why this matched:** You asked how to start using McGill International Health Insurance, and the retrieved source route explains the Minerva activation process.
 
-**Recommended next step:** Log in to Minerva, open the Student tab, choose the International Health Insurance Menu, select Confirm IHI Coverage, and then print your IHI card. Have your McGill student ID ready.
+**Recommended next step:** Log in to Minerva with your student ID, open the Student tab, choose the International Health Insurance Menu, select Confirm IHI Coverage, and then print your IHI card. Have your McGill student ID ready. This should take about 10 minutes. For more information, visit the official page or call 555-0101.
 
-**Important limit:** This navigator cannot decide coverage, reimbursement, exemptions, or claim outcomes.
+**Important limit:** This does not decide whether every health expense is covered. Confirm coverage details with the official source or insurer.
 
 **Official sources:**
 
@@ -1149,63 +1145,29 @@ metadata stays in developer-only evidence details.
 | --- | --- | --- | --- |
 | Activate IHI Coverage | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
 
-**Developer-only evidence details:** (not shown to users)
+**Developer-only evidence details (not shown to users):**
 
 | Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
 | ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_insurance_001_a | ex_insurance_001_a | International Student Services > Health Insurance > Activate Your Coverage | silver_unreviewed | deterministic_keyword | 0.93 |
-| 2 | ex_insurance_001_b | ex_insurance_001_b | International Student Services > Health Insurance > IHI Card | silver_unreviewed | deterministic_keyword | 0.88 |
+| 1 | rec_ihi_activate_001_a | rec_ihi_activate_001_a | International Student Services > Health Insurance > Activate Your Coverage | silver_unreviewed | deterministic_keyword | 0.93 |
+| 2 | rec_ihi_activate_001_b | rec_ihi_activate_001_b | International Student Services > Health Insurance > IHI Card | silver_unreviewed | deterministic_keyword | 0.88 |
 
-### Example 2: Healthcare Access
-
-**Expected category:** `health_care`
-
-**Primary starting point:** McGill Student Wellness Hub - healthcare appointment route
-
-**Backup option:** CLSC or off-campus clinic route if the Hub is not the right fit.
-
-**Why this matched:** You selected healthcare access, and the retrieved evidence set includes appointment, insurance, and community-care route information.
-
-**Recommended next step:** Use the booking route listed by the Hub, then bring your student ID and insurance information. If the source supports direct billing, note that billing may go to McGill IHI or a Canadian provincial plan.
-
-**Important limit:** This navigator cannot diagnose symptoms, recommend treatment, or decide whether care is urgent.
-
-**Official sources:**
-
-- https://www.mcgill.ca/wellness-hub/get-support/find-community-resources/navigatinghealthcare
-
-**Last verified:** 2026-06-24
-
-**Source details:**
-
-| Source | Publisher | Terms | Last retrieved |
-| --- | --- | --- | --- |
-| Healthcare Navigation | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
-
-**Developer-only evidence details:** (not shown to users)
-
-| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
-| ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_health_002_a | ex_health_002_a | Student Wellness Hub > Healthcare Navigation > Health Clinics | silver_unreviewed | deterministic_keyword | 0.86 |
-| 2 | ex_health_002_b | ex_health_002_b | Student Wellness Hub > Healthcare Navigation > Billing and Insurance | silver_unreviewed | deterministic_keyword | 0.82 |
-
-### Example 3: Immigration Or Status Navigation
-
+### Example 4: Apply For An eTA
 **Expected category:** `immigration_status`
 
-**Primary starting point:** McGill International Student Services - TRV or study-permit guidance
+**Primary starting point:** McGill International Student Services - Electronic Travel Authorization guidance.
 
-**Backup option:** International Student Services advisor or linked government application page.
+**Backup option:** Use the official Government of Canada eTA application page if McGill links out to the federal form.
 
-**Why this matched:** You selected immigration/status navigation, and the retrieved evidence set includes official document steps and required-document guidance.
+**Why this matched:** You asked about entering Canada as a study-permit-exempt student, and the retrieved source route explains eTA application requirements.
 
-**Recommended next step:** Use the retrieved source to identify the responsible office, checklist, application page, or contact channel. Ask that office to confirm how the official criteria apply to your situation.
+**Recommended next step:** Apply online using the official eTA application form. Have a valid passport, credit card, and email address ready. The application should only take a few minutes. For more information, visit the official page or call 555-0104.
 
-**Important limit:** This navigator cannot interpret documents, decide status, or provide legal advice.
+**Important limit:** The app cannot decide whether you are study-permit exempt or eTA-eligible. Confirm your situation with the official source.
 
 **Official sources:**
 
-- https://www.mcgill.ca/internationalstudents/immigration-documents/renewing-documents/renewing-temporary-resident-visa-trv
+- https://www.mcgill.ca/internationalstudents/immigration-documents/documents/eta
 
 **Last verified:** 2026-06-24
 
@@ -1213,129 +1175,27 @@ metadata stays in developer-only evidence details.
 
 | Source | Publisher | Terms | Last retrieved |
 | --- | --- | --- | --- |
-| TRV Renewal | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+| Electronic Travel Authorization | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
 
-**Developer-only evidence details:** (not shown to users)
-
-| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
-| ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_immigration_003_a | ex_immigration_003_a | Immigration Documents > Renewing Visitor Visa > Step-by-step Guide | silver_unreviewed | deterministic_keyword | 0.87 |
-| 2 | ex_immigration_003_b | ex_immigration_003_b | Immigration Documents > Renewing Visitor Visa > Required Documents | silver_unreviewed | deterministic_keyword | 0.84 |
-
-### Example 4: Mental Health And Wellbeing
-
-**Expected category:** `mental_health`
-
-**Primary starting point:** McGill Student Wellness Hub - support route
-
-**Backup option:** Crisis or urgent support route if the student indicates immediate danger.
-
-**Why this matched:** You selected mental health and wellbeing, and the retrieved evidence set includes support-routing and limitation information.
-
-**Recommended next step:** Use the booking, phone, crisis, or campus-support route stated in the retrieved source. If the student indicates immediate danger, bypass normal ranking and show emergency guidance first.
-
-**Important limit:** This navigator cannot assess risk, diagnose, or replace crisis or clinical support.
-
-**Official sources:**
-
-- https://www.mcgill.ca/wellness-hub/contact/hub-policies
-
-**Last verified:** 2026-06-24
-
-**Source details:**
-
-| Source | Publisher | Terms | Last retrieved |
-| --- | --- | --- | --- |
-| Hub Policies | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
-
-**Developer-only evidence details:** (not shown to users)
+**Developer-only evidence details (not shown to users):**
 
 | Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
 | ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_mental_004_a | ex_mental_004_a | Student Wellness Hub > Hub Policies > Eligibility | silver_unreviewed | deterministic_keyword | 0.89 |
-| 2 | ex_mental_004_b | ex_mental_004_b | Student Wellness Hub > Hub Policies > Telehealth Options | silver_unreviewed | deterministic_keyword | 0.81 |
+| 1 | rec_eta_apply_004_a | rec_eta_apply_004_a | Immigration Documents > Electronic Travel Authorizations > How To Apply | silver_unreviewed | deterministic_keyword | 0.90 |
+| 2 | rec_eta_apply_004_b | rec_eta_apply_004_b | Immigration Documents > Electronic Travel Authorizations > Required Items | silver_unreviewed | deterministic_keyword | 0.86 |
 
-### Example 5: Financial Aid
-
-**Expected category:** `finances`
-
-**Primary starting point:** McGill Scholarships and Student Aid - In-Course Financial Aid
-
-**Backup option:** Fee Deferral route if the issue is delayed funding.
-
-**Why this matched:** You selected financial aid and affordability, and the retrieved evidence set includes application, appointment, and deferral routes.
-
-**Recommended next step:** Submit or update your In-Course Financial Aid profile or application. After submitting, make an appointment with a Financial Aid Counsellor if the application tells you to do so.
-
-**Important limit:** This navigator cannot decide financial-aid eligibility, award amounts, or application outcomes.
-
-**Official sources:**
-
-- https://www.mcgill.ca/studentaid/scholarships-aid/international-students
-
-**Last verified:** 2026-06-24
-
-**Source details:**
-
-| Source | Publisher | Terms | Last retrieved |
-| --- | --- | --- | --- |
-| International Student Funding | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
-
-**Developer-only evidence details:** (not shown to users)
-
-| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
-| ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_finances_005_a | ex_finances_005_a | Scholarships and Student Aid > International Student Funding > McGill Financial Aid | silver_unreviewed | deterministic_keyword | 0.88 |
-| 2 | ex_finances_005_b | ex_finances_005_b | Scholarships and Student Aid > Fee Deferral | silver_unreviewed | deterministic_keyword | 0.82 |
-
-### Example 6: Tax Filing Information
-
-**Expected category:** `tax`
-
-**Primary starting point:** Canada Revenue Agency - free tax clinic finder
-
-**Backup option:** CRA student tax information for document preparation.
-
-**Why this matched:** You selected tax filing information, and the retrieved evidence set includes clinic, student-tax, and required-document guidance.
-
-**Recommended next step:** Use the CRA free tax clinic page to find a clinic, then prepare tax slips, tuition documents, identification, and income records before the appointment.
-
-**Important limit:** This navigator cannot decide tax residency, filing obligations, credits, deductions, or refunds.
-
-**Official sources:**
-
-- https://www.canada.ca/en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html
-- https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html
-
-**Last verified:** 2026-06-24
-
-**Source details:**
-
-| Source | Publisher | Terms | Last retrieved |
-| --- | --- | --- | --- |
-| Free Tax Clinics | Canada Revenue Agency | https://www.canada.ca/en/transparency/terms.html | 2026-06-24T07:40:10+00:00 |
-| CRA Student Tax Information | Canada Revenue Agency | https://www.canada.ca/en/transparency/terms.html | 2026-06-24T07:40:10+00:00 |
-
-**Developer-only evidence details:** (not shown to users)
-
-| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
-| ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_tax_006_a | ex_tax_006_a | Free Tax Clinics > Community Volunteer Income Tax Program | silver_unreviewed | deterministic_keyword | 0.86 |
-| 2 | ex_tax_006_b | ex_tax_006_b | Students > Documents and Records | silver_unreviewed | deterministic_keyword | 0.80 |
-
-### Example 7: Work And Career Support
-
+### Example 9: Get A SIN Before Working
 **Expected category:** `work_career`
 
-**Primary starting point:** McGill International Student Services - SIN and work authorization guidance
+**Primary starting point:** McGill International Student Services - Social Insurance Number before work.
 
-**Backup option:** Career Planning Service if the need is career advising rather than work authorization.
+**Backup option:** Contact Service Canada or an ISS advisor if your Study Permit does not include work authorization wording.
 
-**Why this matched:** You selected work and career support, and the retrieved evidence set includes work-rule and required-document guidance.
+**Why this matched:** You asked how to start working in Canada, and the retrieved source route says a SIN is needed before work begins.
 
-**Recommended next step:** Check whether your Study Permit includes work authorization wording before starting work. If you need a SIN, prepare your valid Study Permit and valid passport and use the official SIN route.
+**Recommended next step:** Check whether your Study Permit includes a condition or remark that allows on-campus or off-campus work. If it does not, request an amendment before applying for a SIN. Have your valid Study Permit and valid passport ready. For more information, visit the official page or call 555-0109.
 
-**Important limit:** This navigator cannot interpret permit conditions or decide work authorization.
+**Important limit:** The app cannot decide whether you are authorized to work. Confirm your Study Permit wording and official criteria.
 
 **Official sources:**
 
@@ -1351,30 +1211,29 @@ metadata stays in developer-only evidence details.
 | Social Insurance Number | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
 | Work Authorization Cheat Sheet | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
 
-**Developer-only evidence details:** (not shown to users)
+**Developer-only evidence details (not shown to users):**
 
 | Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
 | ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_work_007_a | ex_work_007_a | Work In Canada > Social Insurance Number > Required Documents | silver_unreviewed | deterministic_keyword | 0.92 |
-| 2 | ex_work_007_b | ex_work_007_b | Work In Canada as a Student > Work Authorization Conditions | silver_unreviewed | deterministic_keyword | 0.88 |
+| 1 | rec_sin_work_009_a | rec_sin_work_009_a | Work In Canada > Social Insurance Number > Required Documents | silver_unreviewed | deterministic_keyword | 0.92 |
+| 2 | rec_sin_work_009_b | rec_sin_work_009_b | Work In Canada as a Student > Work Authorization Conditions | silver_unreviewed | deterministic_keyword | 0.88 |
 
-### Example 8: Campus Documents Or Administration
+### Example 11: Book A Wellness Hub Appointment
+**Expected category:** `health_care`
 
-**Expected category:** `documents_admin`
+**Primary starting point:** McGill Student Wellness Hub - healthcare appointment route.
 
-**Primary starting point:** McGill Service Point - document or hold support
+**Backup option:** Use CLSC or off-campus clinic routes if the Hub is not the right fit or appointment availability is limited.
 
-**Backup option:** Student Accounts route if the question is about fees or billing.
+**Why this matched:** You asked where to start for a non-emergency health concern, and the retrieved source route explains appointment-based Hub access.
 
-**Why this matched:** You selected campus documents and administration, and the retrieved evidence set includes administrative processing and contact-route information.
+**Recommended next step:** Use the booking route listed on the Hub page, then bring your student ID and insurance information. If direct billing applies, your medical acts or lab tests may be billed to McGill IHI or a Canadian provincial plan. For more information, visit the official page or call 555-0111.
 
-**Recommended next step:** Use the request, office, form, or contact route stated in the retrieved source. If the issue is a document hold, check the stated processing window before following up.
-
-**Important limit:** This navigator cannot access or change your student record.
+**Important limit:** This is not medical advice and does not assess symptoms. If the issue is urgent or dangerous, use emergency or crisis routes first.
 
 **Official sources:**
 
-- https://www.mcgill.ca/servicepoint/holds
+- https://www.mcgill.ca/wellness-hub/get-support/find-community-resources/navigatinghealthcare
 
 **Last verified:** 2026-06-24
 
@@ -1382,28 +1241,125 @@ metadata stays in developer-only evidence details.
 
 | Source | Publisher | Terms | Last retrieved |
 | --- | --- | --- | --- |
-| Service Point Holds | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+| Healthcare Navigation | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
 
-**Developer-only evidence details:** (not shown to users)
+**Developer-only evidence details (not shown to users):**
 
 | Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
 | ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_documents_008_a | ex_documents_008_a | Service Point > Holds > Processing Times | silver_unreviewed | deterministic_keyword | 0.83 |
-| 2 | ex_documents_008_b | ex_documents_008_b | Service Point > Holds > Contact Route | silver_unreviewed | deterministic_keyword | 0.78 |
+| 1 | rec_wellness_booking_011_a | rec_wellness_booking_011_a | Student Wellness Hub > Healthcare Navigation > Health Clinics | silver_unreviewed | deterministic_keyword | 0.86 |
+| 2 | rec_wellness_booking_011_b | rec_wellness_booking_011_b | Student Wellness Hub > Healthcare Navigation > Billing and Insurance | silver_unreviewed | deterministic_keyword | 0.82 |
 
-### Example 9: Housing Or Basic Needs
+### Example 12: Check Wellness Hub Criteria
+**Expected category:** `mental_health`
 
+**Primary starting point:** McGill Student Wellness Hub - eligibility and appointment criteria.
+
+**Backup option:** Use McGill-supported telehealth options if you are not physically located in Quebec.
+
+**Why this matched:** You asked whether Wellness Hub services may apply to you, and the retrieved source route lists service criteria.
+
+**Recommended next step:** The official source lists eligibility criteria that may apply to your situation. Check whether you are a full-time or part-time student at the downtown or Macdonald campus, physically located in Quebec at the time of appointment, able to consent to the appointment, covered by insurance, and have paid the Student Services fee. For more information, visit the official page or call 555-0112.
+
+**Important limit:** The app cannot confirm clinical eligibility or appointment availability. The official Hub route decides access.
+
+**Official sources:**
+
+- https://www.mcgill.ca/wellness-hub/contact/hub-policies
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Hub Policies | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details (not shown to users):**
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | rec_wellness_criteria_012_a | rec_wellness_criteria_012_a | Student Wellness Hub > Hub Policies > Eligibility | silver_unreviewed | deterministic_keyword | 0.89 |
+| 2 | rec_wellness_criteria_012_b | rec_wellness_criteria_012_b | Student Wellness Hub > Hub Policies > Telehealth Options | silver_unreviewed | deterministic_keyword | 0.81 |
+
+### Example 14: Apply For In-Course Financial Aid
+**Expected category:** `finances`
+
+**Primary starting point:** McGill Scholarships and Student Aid - In-Course Financial Aid.
+
+**Backup option:** Use the Fee Deferral route in Minerva if the main issue is delayed funding.
+
+**Why this matched:** You asked for help covering costs, and the retrieved source route discusses financial aid applications, appointments, and deferrals.
+
+**Recommended next step:** Submit or update your In-Course Financial Aid profile or application. After submitting, make an appointment with a Financial Aid Counsellor if the application tells you to do so. Have your budget, expected funding, expenses, and student ID ready before starting. For more information, visit the official page or call 555-0114.
+
+**Important limit:** The app cannot decide financial-aid eligibility, award amount, or application outcome.
+
+**Official sources:**
+
+- https://www.mcgill.ca/studentaid/scholarships-aid/international-students
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| International Student Funding | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details (not shown to users):**
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | rec_financial_aid_014_a | rec_financial_aid_014_a | Scholarships and Student Aid > International Student Funding > McGill Financial Aid | silver_unreviewed | deterministic_keyword | 0.88 |
+| 2 | rec_financial_aid_014_b | rec_financial_aid_014_b | Scholarships and Student Aid > Fee Deferral | silver_unreviewed | deterministic_keyword | 0.82 |
+
+### Example 18: Use A Free Tax Clinic
+**Expected category:** `tax`
+
+**Primary starting point:** Canada Revenue Agency - free tax clinic finder.
+
+**Backup option:** Use CRA student tax guidance to prepare documents before booking or attending a clinic.
+
+**Why this matched:** You asked for tax filing help, and the retrieved source route is about free tax clinics for people with modest income and a simple tax situation.
+
+**Recommended next step:** The official source lists eligibility criteria that may apply to your situation. Use the CRA free tax clinic page to find a clinic, then prepare your tax slips, tuition documents, identification, and income records before the appointment. For more information, visit the official page or call the listed clinic at 555-0118.
+
+**Important limit:** The app cannot decide whether your tax situation is simple or whether a clinic will accept your case.
+
+**Official sources:**
+
+- https://www.canada.ca/en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html
+- https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Free Tax Clinics | Canada Revenue Agency | https://www.canada.ca/en/transparency/terms.html | 2026-06-24T07:40:10+00:00 |
+| CRA Student Tax Information | Canada Revenue Agency | https://www.canada.ca/en/transparency/terms.html | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details (not shown to users):**
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | rec_tax_clinic_018_a | rec_tax_clinic_018_a | Free Tax Clinics > Community Volunteer Income Tax Program | silver_unreviewed | deterministic_keyword | 0.86 |
+| 2 | rec_tax_clinic_018_b | rec_tax_clinic_018_b | Students > Documents and Records | silver_unreviewed | deterministic_keyword | 0.80 |
+
+### Example 19: Start Looking For Housing
 **Expected category:** `housing`
 
-**Primary starting point:** Gouvernement du Quebec - newcomer housing search guidance
+**Primary starting point:** Gouvernement du Quebec - newcomer housing search guidance.
 
-**Backup option:** Accompagnement Quebec or community organization support.
+**Backup option:** Register for Accompagnement Quebec or contact a community organization that helps immigrants with housing search.
 
-**Why this matched:** You selected housing and basic needs, and the retrieved evidence set includes housing search, temporary housing, and lease-check guidance.
+**Why this matched:** You asked how to start looking for housing after arriving, and the retrieved source route gives search actions and lease-check reminders.
 
-**Recommended next step:** Find temporary housing first so you have time to assess your needs. Check weekly or monthly rentals, budget fit, and central locations. Before signing a lease, check rent, exact address, owner information, and tenant responsibilities.
+**Recommended next step:** Find temporary housing first so you have time to assess your needs. Start with housing rented by the week or month, within your budget, and in a central area. Check online classifieds, join housing search groups, walk around to identify rentals, and consider registering for Accompagnement Quebec. Before signing a lease, check the rent amount, exact address, owner information, and tenant responsibilities. For more information, visit the official page or call 555-0119.
 
-**Important limit:** This navigator cannot provide legal advice or decide a housing dispute.
+**Important limit:** The app cannot provide legal advice or decide a housing dispute.
 
 **Official sources:**
 
@@ -1417,24 +1373,23 @@ metadata stays in developer-only evidence details.
 | --- | --- | --- | --- |
 | Quebec Newcomer Housing | Gouvernement du Quebec | https://www.quebec.ca/en/copyright | 2026-06-21T19:13:49+00:00 |
 
-**Developer-only evidence details:** (not shown to users)
+**Developer-only evidence details (not shown to users):**
 
 | Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
 | ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_housing_009_a | ex_housing_009_a | Settle and Integrate in Quebec > Housing | silver_unreviewed | deterministic_keyword | 0.84 |
-| 2 | ex_housing_009_b | ex_housing_009_b | Settle and Integrate in Quebec > Housing > Renting Accommodation | silver_unreviewed | deterministic_keyword | 0.79 |
+| 1 | rec_housing_start_019_a | rec_housing_start_019_a | Settle and Integrate in Quebec > Housing | silver_unreviewed | deterministic_keyword | 0.84 |
+| 2 | rec_housing_start_019_b | rec_housing_start_019_b | Settle and Integrate in Quebec > Housing > Renting Accommodation | silver_unreviewed | deterministic_keyword | 0.79 |
 
-### Example 10: Academic And Advising Support
-
+### Example 20: Ask A Librarian
 **Expected category:** `academics`
 
-**Primary starting point:** McGill Libraries - Ask a Librarian
+**Primary starting point:** McGill Libraries - Ask a Librarian.
 
-**Backup option:** Academic advising route if the question is program-planning rather than research help.
+**Backup option:** Contact your liaison librarian if the question is subject-specific.
 
-**Why this matched:** You selected academic and advising support, and the retrieved evidence set includes library help and subject-support routes.
+**Why this matched:** You asked for help finding academic sources, and the retrieved source route gives library chat, text, and liaison options.
 
-**Recommended next step:** Chat with a librarian during listed service hours or text the library help number. If the question is subject-specific, contact the liaison librarian and prepare your course name, research topic, and source type.
+**Recommended next step:** Chat with a librarian during the listed service hours or text the library help number. If your question is about a specific subject, contact your liaison librarian. Have your course name, research topic, and the type of source you need ready before contacting them. For more information, visit the official page or text 514-600-6325.
 
 **Important limit:** Service hours and response times can change. Check the official page before relying on availability.
 
@@ -1450,110 +1405,54 @@ metadata stays in developer-only evidence details.
 | --- | --- | --- | --- |
 | Ask a Librarian | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
 
-**Developer-only evidence details:** (not shown to users)
+**Developer-only evidence details (not shown to users):**
 
 | Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
 | ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_academics_010_a | ex_academics_010_a | McGill Libraries > Contact Us > Ask A Librarian | silver_unreviewed | deterministic_keyword | 0.90 |
-| 2 | ex_academics_010_b | ex_academics_010_b | McGill Libraries > Contact Us > Text a Librarian | silver_unreviewed | deterministic_keyword | 0.86 |
+| 1 | rec_library_help_020_a | rec_library_help_020_a | McGill Libraries > Contact Us > Ask A Librarian | silver_unreviewed | deterministic_keyword | 0.90 |
+| 2 | rec_library_help_020_b | rec_library_help_020_b | McGill Libraries > Contact Us > Text a Librarian | silver_unreviewed | deterministic_keyword | 0.86 |
 
-### Example 11: Language And Community Integration
+## Fallback Behavior
 
-**Expected category:** `language_integration`
+These cases are fallback behavior examples, not category examples. They describe what the app should do when a request is outside the project scope or when retrieval cannot produce enough official evidence for a grounded answer.
 
-**Primary starting point:** McGill International Student Services - pre-arrival orientation and integration route
+### Unsupported Request
 
-**Backup option:** Campus Life and Engagement if the need is peer or campus-community connection.
+**User need:** The user asks: "Can you diagnose this chest pain?"
 
-**Why this matched:** You selected language and integration support, and the retrieved evidence set includes orientation, community, and event routes.
+**Expected routing:** Safety or medical-emergency guardrail.
 
-**Recommended next step:** Use the orientation, peer, language, event, or community route stated in the retrieved source. Confirm current availability, format, and language options with the listed source.
+**Prototype response:**
 
-**Important limit:** Availability and language options can change. The navigator cannot guarantee a seat or service language.
+- **Primary starting point:** I cannot diagnose symptoms or replace emergency care.
+- **Backup option:** If this may be urgent, contact emergency services or a licensed clinician immediately.
+- **Why this matched:** The request asks for medical diagnosis rather than newcomer navigation.
+- **Recommended next step:** Use official emergency or clinical channels instead of relying on this app for diagnosis.
+- **Important limit:** This app can help navigate official resources, but it cannot provide emergency, legal, medical, tax, or financial advice.
+- **Official sources:** Emergency or official healthcare resources should be displayed only when available in the retrieved evidence.
+- **Last verified:** Use the latest available source timestamp from the evidence set.
+- **Source details:** Show publisher, terms, and retrieval timestamp for any official emergency or healthcare source used.
 
-**Official sources:**
+### No Source-Grounded Match
 
-- https://www.mcgill.ca/internationalstudents/pre-arrival/pre-arrival-orientation-webinars-0
+**User need:** The user asks for a specific process, but retrieval returns weak or unrelated evidence.
 
-**Last verified:** 2026-06-24
+**Expected routing:** No grounded recommendation.
 
-**Source details:**
+**Prototype response:**
 
-| Source | Publisher | Terms | Last retrieved |
-| --- | --- | --- | --- |
-| Pre-Arrival Orientation Webinars | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
-
-**Developer-only evidence details:** (not shown to users)
-
-| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
-| ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_language_011_a | ex_language_011_a | Pre-Arrival Orientation Webinars > International Student Guide | silver_unreviewed | deterministic_keyword | 0.83 |
-| 2 | ex_language_011_b | ex_language_011_b | Pre-Arrival Orientation Webinars > Registration Links | silver_unreviewed | deterministic_keyword | 0.80 |
-
-### Example 12: Urgent Or Safety-Related Help
-
-**Expected category:** `safety_urgent`
-
-**Primary starting point:** Emergency guidance first
-
-**Backup option:** Official urgent-care, crisis, or campus support resources as secondary follow-up.
-
-**Why this matched:** You selected emergency or immediate danger, so guardrail-first safety handling overrides ordinary ranking.
-
-**Recommended next step:** If this is an emergency or immediate danger, call 911 or go to the nearest emergency department. Show normal navigator resources only as secondary follow-up.
-
-**Important limit:** The navigator cannot decide whether a situation is an emergency or replace emergency, crisis, or clinical support.
-
-**Official sources:**
-
-- https://www.mcgill.ca/wellness-hub/get-support/resources-available-247
-
-**Last verified:** 2026-06-24
-
-**Source details:**
-
-| Source | Publisher | Terms | Last retrieved |
-| --- | --- | --- | --- |
-| Emergency Guidance | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
-
-**Developer-only evidence details:** (not shown to users)
-
-| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
-| ---: | --- | --- | --- | --- | --- | ---: |
-| 1 | ex_safety_012_a | ex_safety_012_a | Student Wellness Hub > Resources Available 24/7 | silver_unreviewed | deterministic_keyword | 0.86 |
-| 2 | ex_safety_012_b | ex_safety_012_b | Student Wellness Hub > Emergency and Crisis Support | silver_unreviewed | deterministic_keyword | 0.82 |
-
-### Fallback: Unsupported Request
-
-| Field | Example |
-| --- | --- |
-| Trigger | Student selects `something else` or asks for a professional decision outside supported categories. |
-| Primary starting point | Unsupported request fallback. |
-| Backup option | Broad official McGill student-service contact point, only if source-grounded and safe. |
-| Why this matched | The request does not match a supported newcomer service-navigation category, or it asks for a decision the navigator cannot make. |
-| Recommended next step | Ask the student to select a broader supported need or start with an official McGill student-service contact point. |
-| Important limit | The navigator will not invent a recommendation when the request is outside scope. |
-| Official sources | None required unless a broad fallback source is shown. |
-| Last verified | Not applicable. |
-| Source details | Not applicable unless a broad fallback source is shown. |
-
-### Fallback: No Source-Grounded Match
-
-| Field | Example |
-| --- | --- |
-| Trigger | Student selects a supported category, but no retrieved evidence set safely supports a concrete next step for the full context. |
-| Primary starting point | No source-grounded match found. |
-| Backup option | Edit intake choices or broaden the selected category. |
-| Why this matched | No top-k evidence set passed the evidence check with sufficient confidence. |
-| Recommended next step | Tell the student that no retrieved evidence safely matched the choices and that the navigator will not invent a service. |
-| Important limit | Show a general official source only if the retrieved evidence supports it. |
-| Official sources | None required unless a broad fallback source is shown. |
-| Last verified | Not applicable. |
-| Source details | Not applicable unless a broad fallback source is shown. |
-
+- **Primary starting point:** I could not find enough official source evidence to recommend a specific next step.
+- **Backup option:** Try rephrasing the request with the institution, program, or location involved.
+- **Why this matched:** The available retrieved chunks do not clearly support the requested action.
+- **Recommended next step:** Do not guess. Ask for one clarifying detail or direct the user to the broadest official source only if that source is present in the retrieved evidence.
+- **Important limit:** The app should not invent eligibility, deadlines, documents, or contact details when the evidence is missing.
+- **Official sources:** Show only the sources actually retrieved.
+- **Last verified:** Use the latest available source timestamp from the evidence set.
+- **Source details:** Show publisher, terms, and retrieval timestamp for each source used.
 
 ## Current Iteration Assumptions
 
+- Response examples in this document are selected from `Recommended-Next-Step-Examples.md`; not every supported category has a category example yet.
 These assumptions apply to the Issue 2 questionnaire and response-format
 contract. They should be revisited during Issue 4 implementation and team review.
 
