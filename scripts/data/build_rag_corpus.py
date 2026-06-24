@@ -55,6 +55,7 @@ LINKS_CSV = DATASETS / "rag_links.csv"
 CHUNKS_CSV = DATASETS / "rag_chunks.csv"
 SQLITE_DB = RAG_DIR / "rag_metadata.sqlite"
 REPORT = REPORTS / "rag_pipeline_report.md"
+QUALITY_REPORT = REPORTS / "rag_corpus_quality_report.md"
 MANIFEST = REPORTS / "rag_run_manifest.json"
 
 SRC = ROOT / "src"
@@ -70,7 +71,7 @@ Records = list[dict[str, str]]
 PipelineResult = tuple[Records, Records, Records, dict[str, Any]]
 
 PIPELINE_VERSION = "1.0.0"
-ARTIFACT_SCHEMA_VERSION = "1"
+ARTIFACT_SCHEMA_VERSION = "2"
 CHUNKING_CONFIG_VERSION = "1"
 LINK_PRIORITY_CONFIG_VERSION = "1"
 COLLECTION_NAME = "mcgill_care_compass_rag"
@@ -193,6 +194,15 @@ DEFAULT_TERMS_BY_SOURCE_GROUP = {
 }
 PHONE_RE = re.compile(r"(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}")
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
+WORD_RE = re.compile(r"[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)?")
+ACTIONABLE_TERMS_RE = re.compile(
+    r"\b("
+    r"apply|application|appointment|book|booking|bring|call|contact|covered|coverage|"
+    r"deadline|document|eligible|eligibility|fee|fees|form|hours|insurance|location|"
+    r"proof|required|requirements|submit|visit"
+    r")\b",
+    re.IGNORECASE,
+)
 
 RUN_FIELDS = [
     "pipeline_version",
@@ -299,6 +309,10 @@ CHUNK_FIELDS = [
     "has_deadlines",
     "has_booking_steps",
     "has_emergency_info",
+    "review_status",
+    "label_method",
+    "label_confidence",
+    "vector_id",
     "student_type",
     "jurisdiction",
     "language",
@@ -423,7 +437,7 @@ def make_run_id(generated_at: str) -> str:
 
 def relative_path(path: Path) -> str:
     try:
-        return str(path.relative_to(ROOT))
+        return path.relative_to(ROOT).as_posix()
     except ValueError:
         return str(path)
 
@@ -993,6 +1007,12 @@ def tag_chunk(chunk: dict[str, str], questionnaire: dict[str, Any]) -> dict[str,
         risk_level = "high_risk"
     else:
         risk_level = chunk.get("risk_level", "normal") or "normal"
+    if len(tags) >= 2:
+        label_confidence = "high"
+    elif len(tags) == 1:
+        label_confidence = "medium"
+    else:
+        label_confidence = "low"
 
     return {
         "info_type_tags": "|".join(sorted(tags)),
@@ -1004,6 +1024,10 @@ def tag_chunk(chunk: dict[str, str], questionnaire: dict[str, Any]) -> dict[str,
         "has_deadlines": str("deadlines" in tags).lower(),
         "has_booking_steps": str("booking_steps" in tags).lower(),
         "has_emergency_info": str("emergency_info" in tags).lower(),
+        "review_status": chunk.get("review_status", "") or "silver_unreviewed",
+        "label_method": chunk.get("label_method", "") or "deterministic_keyword",
+        "label_confidence": chunk.get("label_confidence", "") or label_confidence,
+        "vector_id": chunk.get("vector_id", "") or chunk.get("chunk_id", ""),
         "risk_level": risk_level,
     }
 
@@ -1037,7 +1061,7 @@ def write_text(path: Path, content: str) -> None:
 
 
 def relative(path: Path) -> str:
-    return str(path.relative_to(ROOT))
+    return path.relative_to(ROOT).as_posix()
 
 
 def fetch_url(url: str, session: requests.Session, timeout: int) -> FetchResult:
@@ -1347,7 +1371,7 @@ def refresh_metadata_only(args: argparse.Namespace) -> PipelineResult:
 def write_csv(path: Path, records: list[dict[str, str]], fields: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
         writer.writeheader()
         writer.writerows(records)
 
@@ -1400,12 +1424,174 @@ def rebuild_chroma(chunks: list[dict[str, str]], model_name: str, persist_dir: P
         texts = [chunk["embedding_text"] for chunk in batch]
         embeddings = model.encode(texts, normalize_embeddings=True).tolist()
         collection.add(
-            ids=[chunk["chunk_id"] for chunk in batch],
+            ids=[chunk.get("vector_id") or chunk["chunk_id"] for chunk in batch],
             documents=[chunk["chunk_text"] for chunk in batch],
             embeddings=embeddings,
             metadatas=[chroma_metadata(chunk) for chunk in batch],
         )
     return f"rebuilt:{collection.count()}"
+
+
+def word_count(text: str) -> int:
+    return len(WORD_RE.findall(text or ""))
+
+
+def normalized_text(text: str) -> str:
+    text = (text or "").casefold()
+    text = re.sub(r"https?://\S+", " url ", text)
+    text = re.sub(r"\b\d{4}-\d{2}-\d{2}\b", " date ", text)
+    text = re.sub(r"\b\d+\b", " num ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return normalize_ws(text)
+
+
+def is_actionable_chunk(chunk: dict[str, str]) -> bool:
+    if ACTIONABLE_TERMS_RE.search(chunk.get("chunk_text", "")):
+        return True
+    actionable_flags = {
+        "has_contact_info",
+        "has_required_docs",
+        "has_eligibility",
+        "has_costs_coverage",
+        "has_location",
+        "has_deadlines",
+        "has_booking_steps",
+    }
+    return any(str(chunk.get(flag, "")).casefold() == "true" for flag in actionable_flags)
+
+
+def quality_findings(chunks: list[dict[str, str]]) -> dict[str, Any]:
+    word_counts = [word_count(chunk.get("chunk_text", "")) for chunk in chunks]
+    normalized_counts = Counter()
+    for chunk in chunks:
+        normalized = normalized_text(chunk.get("chunk_text", ""))
+        if normalized:
+            normalized_counts[normalized] += 1
+    boilerplate_chunks = []
+    navigation_chunks = []
+    very_short_non_actionable = []
+    for chunk in chunks:
+        text = chunk.get("chunk_text", "")
+        folded = text.casefold()
+        words = word_count(text)
+        if any(pattern in folded for pattern in BOILERPLATE_PATTERNS) or any(
+            term in folded
+            for term in ("column 1", "faculty & staff", "join our team", "related services")
+        ):
+            boilerplate_chunks.append(chunk)
+        nearby_links = str(chunk.get("nearby_links", ""))
+        if words < 120 and (
+            nearby_links.count("http") >= 5
+            or any(term in folded for term in ("column 1", "related services", "quick links"))
+        ):
+            navigation_chunks.append(chunk)
+        if words < 15 and not is_actionable_chunk(chunk):
+            very_short_non_actionable.append(chunk)
+    duplicate_group_count = sum(1 for count in normalized_counts.values() if count > 1)
+    duplicate_chunk_count = sum(count for count in normalized_counts.values() if count > 1)
+    return {
+        "total_chunks": len(chunks),
+        "very_short_chunks": sum(1 for count in word_counts if count < 15),
+        "very_short_non_actionable": len(very_short_non_actionable),
+        "short_review_band": sum(1 for count in word_counts if 15 <= count <= 34),
+        "split_candidates": sum(1 for count in word_counts if count > 350),
+        "very_long_chunks": sum(1 for count in word_counts if count > 600),
+        "duplicate_groups": duplicate_group_count,
+        "duplicate_chunks": duplicate_chunk_count,
+        "boilerplate_chunks": len(boilerplate_chunks),
+        "navigation_heavy_chunks": len(navigation_chunks),
+        "no_info_type_tags": sum(1 for chunk in chunks if not chunk.get("info_type_tags", "")),
+        "label_confidence": dict(
+            sorted(Counter(chunk.get("label_confidence", "") for chunk in chunks).items())
+        ),
+        "review_status": dict(
+            sorted(Counter(chunk.get("review_status", "") for chunk in chunks).items())
+        ),
+    }
+
+
+def quality_warning_rows(findings: dict[str, Any]) -> str:
+    checks = [
+        (
+            "Very short non-actionable chunks",
+            findings["very_short_non_actionable"],
+            "Review for headings, breadcrumbs, and fragments.",
+        ),
+        (
+            "Split candidates over 350 words",
+            findings["split_candidates"],
+            "Inspect for mixed eligibility, documents, application, and contact content.",
+        ),
+        (
+            "Duplicate normalized chunks",
+            findings["duplicate_chunks"],
+            "Deduplicate after preserving provenance where source pages differ.",
+        ),
+        (
+            "Boilerplate-pattern chunks",
+            findings["boilerplate_chunks"],
+            "Tune parser rules for footer, sidebar, and repeated navigation text.",
+        ),
+        (
+            "Navigation-heavy chunks",
+            findings["navigation_heavy_chunks"],
+            "Review link-heavy chunks before using them in user-facing answers.",
+        ),
+    ]
+    return "\n".join(f"| {name} | {count} | {note} |" for name, count, note in checks)
+
+
+def render_quality_report(chunks: list[dict[str, str]]) -> str:
+    findings = quality_findings(chunks)
+    confidence_rows = "\n".join(
+        f"| `{key or 'missing'}` | {value} |"
+        for key, value in findings["label_confidence"].items()
+    )
+    review_rows = "\n".join(
+        f"| `{key or 'missing'}` | {value} |"
+        for key, value in findings["review_status"].items()
+    )
+    return f"""# RAG Corpus Quality Report
+
+Generated: `{now_iso()}`
+
+## Summary
+
+- Total chunks: **{findings["total_chunks"]}**
+- Very short chunks `<15 words`: **{findings["very_short_chunks"]}**
+- Very short non-actionable chunks: **{findings["very_short_non_actionable"]}**
+- Short review-band chunks `15-34 words`: **{findings["short_review_band"]}**
+- Split candidates `>350 words`: **{findings["split_candidates"]}**
+- Very long chunks `>600 words`: **{findings["very_long_chunks"]}**
+- Duplicate normalized chunks: **{findings["duplicate_chunks"]}** across **{findings["duplicate_groups"]}** groups
+- Boilerplate-pattern chunks: **{findings["boilerplate_chunks"]}**
+- Navigation-heavy chunks: **{findings["navigation_heavy_chunks"]}**
+- Chunks without info-type tags: **{findings["no_info_type_tags"]}**
+
+## Quality Warnings
+
+| Check | Count | Follow-up |
+| --- | ---: | --- |
+{quality_warning_rows(findings)}
+
+## Label Confidence
+
+| label_confidence | chunks |
+| --- | ---: |
+{confidence_rows or "| `missing` | 0 |"}
+
+## Review Status
+
+| review_status | chunks |
+| --- | ---: |
+{review_rows or "| `missing` | 0 |"}
+
+## Cleaning Guidance
+
+- Do not delete short chunks by length alone.
+- Protect short chunks that contain contact, booking, eligibility, required-document, fee, deadline, or location information.
+- Review very short non-actionable chunks, repeated boilerplate, duplicate normalized text, and long mixed-purpose sections before using Silver data for user-facing recommendations.
+"""
 
 
 def artifact_summary(path: Path, rows: int | None = None) -> dict[str, Any]:
@@ -1489,6 +1675,7 @@ def render_manifest(
             "chunks_csv": artifact_summary(CHUNKS_CSV, len(chunks)),
             "sqlite_db": artifact_summary(SQLITE_DB),
             "report_md": artifact_summary(REPORT),
+            "quality_report_md": artifact_summary(QUALITY_REPORT),
         },
     }
 
@@ -1670,6 +1857,7 @@ Freshness is scored from source-modified dates when available, otherwise retriev
 - Silver link CSV: `data/silver/datasets/rag_links.csv`
 - Silver chunk CSV: `data/silver/datasets/rag_chunks.csv`
 - Silver Chroma vector DB: `data/silver/vector_store/chroma/`
+- Silver quality report: `data/silver/reports/rag_corpus_quality_report.md`
 
 ## Rebuild Commands
 
@@ -1709,6 +1897,7 @@ def write_outputs(
         render_report(pages, links, chunks, stats, vector_status, args, context),
         encoding="utf-8",
     )
+    QUALITY_REPORT.write_text(render_quality_report(chunks), encoding="utf-8")
     MANIFEST.write_text(
         json.dumps(
             render_manifest(pages, links, chunks, stats, vector_status, args, context),
@@ -1756,6 +1945,7 @@ def main() -> None:
     print(f"Wrote SQLite metadata to {SQLITE_DB.relative_to(ROOT)}")
     print(f"Vector store: {vector_status}")
     print(f"Wrote report to {REPORT.relative_to(ROOT)}")
+    print(f"Wrote quality report to {QUALITY_REPORT.relative_to(ROOT)}")
     print(f"Wrote manifest to {MANIFEST.relative_to(ROOT)}")
 
 

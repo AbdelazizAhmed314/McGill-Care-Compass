@@ -36,7 +36,7 @@ If the conflict cannot be resolved, the tool should show uncertainty and direct 
 
 1. If the intake indicates emergency, immediate danger, or severe symptoms, route first to urgent/safety guidance and show regular services only as secondary follow-up.
 2. If the need falls under a McGill-owned student service, rank the McGill service above external services unless the case requires public healthcare, legal, government, or emergency authority.
-3. If the need requires official government, healthcare, insurance, tax, immigration, or eligibility information, rank official source-backed records above general support pages.
+3. If the need requires official government, healthcare, insurance, tax, immigration, or eligibility information, rank official source-backed chunks above general support pages.
 4. If two services match the same need with equal authority, break the tie by specificity to the student's situation, then accessibility/location, then most recently verified source.
 
 ## Tie-Breaking Rules
@@ -48,8 +48,8 @@ Use this deterministic tie-break order:
 3. Authority level.
 4. Student eligibility/context fit.
 5. Distance or accessibility fit, if available.
-6. Most recently verified record.
-7. Stable alphabetical order or record ID.
+6. Most recently verified source chunk.
+7. Stable source/chunk ID ordering.
 
 ## No Live Human Review Claim
 

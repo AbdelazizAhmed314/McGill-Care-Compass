@@ -15,7 +15,7 @@ Related documents:
 | Deliverable | Format | Due date | Acceptance criterion |
 | --- | --- | --- | --- |
 | v1 RAG data corpus | Bronze/Silver RAG artifacts with documented schema, report, and manifest | June 21 | At least 500 processed pages, 4,000 chunks, eight locked taxonomy categories, source URLs, source terms, drift hashes, Chroma vectors, and version-governed artifacts. |
-| Intake and recommendation prototype | Working Streamlit or lightweight web-app prototype | July 5 | A user can complete structured intake and receive ranked rule-based recommendations with match reasons, official links, source provenance, and limitation wording. |
+| Intake and recommendation prototype | Working Streamlit or lightweight web-app prototype | July 5 | A user can complete structured intake and receive ranked source-backed recommendations with match reasons, official links, source provenance, and limitation wording. |
 | Recommendation evaluation package | Fixed scenario set, repeatable tests, and evaluation-results report | July 19 | At least 90% of predefined scenarios return a relevant service in the top three results according to a labeled pass/fail rubric. Tests cover empty results, source-link presence, safety messages, and unsupported scenarios. |
 | Usability and community-impact assessment | Anonymized test results and findings report | July 26 | At least five participants complete testing, with proxy users used only if recruitment is insufficient. The assessment records completion time, relevance, explanation clarity, confidence change, and usefulness ratings. |
 | Presentation-ready navigator and maintenance package | Deployed app, source-freshness dashboard, documented repository, and run/update instructions | July 27 | App loads without errors, handles unsupported scenarios gracefully, grounds recommendations in retrieved RAG chunks, displays official links and source dates, and can be run or updated from documentation. |
@@ -39,7 +39,7 @@ gantt
     Data corpus milestone / Progress Report 1                    :milestone, m1, 2026-06-21, 0d
 
     section Working Prototype / Progress Report 2
-    Issue 4 - Build intake and rule-based matching prototype     :i4, 2026-06-22, 2026-07-05
+    Issue 4 - Build intake and filtered retrieval prototype     :i4, 2026-06-22, 2026-07-05
     Issue 5 - Implement grounded recommendation explanations     :i5, 2026-06-27, 2026-07-05
     Issue 6 - Integrate working prototype and prepare PR2        :i6, 2026-07-03, 2026-07-05
     Working prototype / Progress Report 2                        :milestone, m2, 2026-07-05, 0d
@@ -71,8 +71,8 @@ The repository should use 13 milestone-based GitHub Issues rather than one issue
 | Issue 1: Build and validate v1 RAG data corpus | June 21 | RAG corpus, schema, taxonomy, source governance, validation, PR1 evidence. |
 | Issue 2: Define user journey and prototype response format | June 21 | Intake flow, response examples, limitation/source-link format. |
 | Issue 3: Set up repo workflow and PR1 tracking | June 21 | GitHub board, labels, milestones, repo workflow, PR1 tracking. |
-| Issue 4: Build intake and rule-based matching prototype | July 5 | Intake form, matching rules, routing precedence, tie-breaking, ranked records. |
-| Issue 5: Implement grounded recommendation explanations | July 5 | User-facing explanations grounded in matched records. |
+| Issue 4: Build intake and filtered retrieval prototype | July 5 | Intake form, metadata filters, routing precedence, tie-breaking, ranked chunks/results. |
+| Issue 5: Implement grounded recommendation explanations | July 5 | User-facing explanations grounded in retrieved chunks. |
 | Issue 6: Integrate working prototype and prepare PR2 | July 5 | Complete prototype integration and Progress Report 2 evidence. |
 | Issue 7: Add guardrails and maintenance reports | July 19 | High-risk handling, unsupported-case handling, freshness/broken-link reports, internal deployment. |
 | Issue 8: Create and run recommendation evaluation | July 19 | Fixed scenario set, relevance rubric, evaluation results. |

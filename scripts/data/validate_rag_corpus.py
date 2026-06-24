@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -31,8 +32,16 @@ CHUNKS_CSV = DATASETS / "rag_chunks.csv"
 QUESTIONNAIRE_MAP = SOURCE_INPUTS / "questionnaire_metadata_map.yml"
 SEED_CSV = SOURCE_INPUTS / "rag_seed_urls.csv"
 REPORT = REPORTS / "rag_pipeline_report.md"
+QUALITY_REPORT = REPORTS / "rag_corpus_quality_report.md"
 MANIFEST = REPORTS / "rag_run_manifest.json"
 COLLECTION_NAME = "mcgill_care_compass_rag"
+WORD_RE = re.compile(r"[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)?")
+ALLOWED_REVIEW_STATUS = {"silver_unreviewed", "silver_reviewed", "gold_approved", "rejected"}
+ALLOWED_LABEL_METHOD = {"deterministic_keyword"}
+ALLOWED_LABEL_CONFIDENCE = {"low", "medium", "high"}
+
+def relative_path(path: Path) -> str:
+    return path.relative_to(ROOT).as_posix()
 
 RUN_REQUIRED = {
     "pipeline_version",
@@ -108,6 +117,10 @@ CHUNK_REQUIRED = {
     "source_priority_rank",
     "freshness_score",
     "info_type_tags",
+    "review_status",
+    "label_method",
+    "label_confidence",
+    "vector_id",
     "risk_level",
 } | RUN_REQUIRED
 ALLOWED_DRIFT = {"new", "unchanged", "changed", "fetch_failed", "skipped"}
@@ -145,6 +158,82 @@ def read_manifest(errors: list[str]) -> dict[str, object]:
     except json.JSONDecodeError as exc:
         errors.append(f"Invalid JSON in {MANIFEST.relative_to(ROOT)}: {exc}")
         return {}
+
+
+def chunk_word_count(text: str) -> int:
+    return len(WORD_RE.findall(str(text or "")))
+
+
+def truthy_series(frame: pd.DataFrame, column: str) -> pd.Series:
+    return frame[column].astype(str).str.casefold().eq("true")
+
+
+def collect_local_artifact_warnings(pages: pd.DataFrame) -> list[str]:
+    warnings: list[str] = []
+    if pages.empty:
+        return warnings
+    missing_raw = []
+    missing_clean = []
+    for row in pages.itertuples(index=False):
+        if str(row.http_status) == "200":
+            raw_path = ROOT / str(row.raw_html_path)
+            clean_path = ROOT / str(row.clean_text_path)
+            if not raw_path.exists():
+                missing_raw.append(row.canonical_url)
+            if not clean_path.exists():
+                missing_clean.append(row.canonical_url)
+    if missing_raw:
+        warnings.append(
+            f"Local raw HTML debug files missing for {len(missing_raw)} fetched pages"
+        )
+    if missing_clean:
+        warnings.append(
+            f"Local clean-text debug files missing for {len(missing_clean)} fetched pages"
+        )
+    return warnings
+
+
+def collect_quality_warnings(chunks: pd.DataFrame) -> list[str]:
+    warnings: list[str] = []
+    if chunks.empty:
+        return warnings
+    chunk_text = chunks["chunk_text"].astype(str)
+    word_counts = chunk_text.map(chunk_word_count)
+    actionable = (
+        truthy_series(chunks, "has_contact_info")
+        | truthy_series(chunks, "has_required_docs")
+        | truthy_series(chunks, "has_eligibility")
+        | truthy_series(chunks, "has_costs_coverage")
+        | truthy_series(chunks, "has_location")
+        | truthy_series(chunks, "has_deadlines")
+        | truthy_series(chunks, "has_booking_steps")
+    )
+    very_short_non_actionable = chunks[(word_counts < 15) & ~actionable]
+    long_chunks = chunks[word_counts > 350]
+    normalized = chunk_text.str.lower().str.replace(r"[^a-z0-9]+", " ", regex=True).str.strip()
+    duplicate_chunks = int(normalized[normalized.duplicated(keep=False) & normalized.ne("")].shape[0])
+    boilerplate = chunk_text.str.contains(
+        r"column 1|faculty & staff|join our team|related services|quick links",
+        case=False,
+        regex=True,
+        na=False,
+    )
+    navigation_heavy = boilerplate | (
+        chunks["nearby_links"].astype(str).str.count("http") >= 5
+    ) & (word_counts < 120)
+    if len(very_short_non_actionable):
+        warnings.append(
+            f"Very short non-actionable chunks need review: {len(very_short_non_actionable)}"
+        )
+    if len(long_chunks):
+        warnings.append(f"Chunks over 350 words should be reviewed/split: {len(long_chunks)}")
+    if duplicate_chunks:
+        warnings.append(f"Duplicate normalized chunk text needs review: {duplicate_chunks}")
+    if int(boilerplate.sum()):
+        warnings.append(f"Boilerplate-pattern chunks need parser tuning: {int(boilerplate.sum())}")
+    if int(navigation_heavy.sum()):
+        warnings.append(f"Navigation-heavy chunks need review: {int(navigation_heavy.sum())}")
+    return warnings
 
 
 def require_single_value(
@@ -242,6 +331,7 @@ def validate_manifest(
         "chunks_csv": (CHUNKS_CSV, len(chunks)),
         "sqlite_db": (SQLITE_DB, None),
         "report_md": (REPORT, None),
+        "quality_report_md": (QUALITY_REPORT, None),
     }
     for artifact_name, (path, expected_rows) in artifact_expectations.items():
         artifact = artifacts.get(artifact_name, {})
@@ -249,7 +339,7 @@ def validate_manifest(
             errors.append(f"Manifest artifact {artifact_name} must be an object")
             continue
         require(
-            artifact.get("path") == str(path.relative_to(ROOT)),
+            artifact.get("path") == relative_path(path),
             f"Manifest artifact path mismatch for {artifact_name}",
             errors,
         )
@@ -274,6 +364,7 @@ def validate() -> list[str]:
     manifest = read_manifest(errors)
     require(SQLITE_DB.exists(), f"Missing {SQLITE_DB.relative_to(ROOT)}", errors)
     require(QUESTIONNAIRE_MAP.exists(), f"Missing {QUESTIONNAIRE_MAP.relative_to(ROOT)}", errors)
+    require(QUALITY_REPORT.exists(), f"Missing {QUALITY_REPORT.relative_to(ROOT)}", errors)
     if errors:
         return errors
 
@@ -293,6 +384,22 @@ def validate() -> list[str]:
     require(len(chunks) > 0, "No chunks recorded", errors)
     require(pages["canonical_url"].is_unique, "Duplicate canonical_url values in pages", errors)
     require(chunks["chunk_id"].is_unique, "Duplicate chunk_id values", errors)
+    require(chunks["vector_id"].is_unique, "Duplicate vector_id values", errors)
+    require(
+        (chunks["vector_id"] == chunks["chunk_id"]).all(),
+        "v1 vector_id must match chunk_id",
+        errors,
+    )
+    bad_review_status = sorted(set(chunks["review_status"]) - ALLOWED_REVIEW_STATUS)
+    require(not bad_review_status, f"Invalid review_status values: {bad_review_status}", errors)
+    bad_label_method = sorted(set(chunks["label_method"]) - ALLOWED_LABEL_METHOD)
+    require(not bad_label_method, f"Invalid label_method values: {bad_label_method}", errors)
+    bad_label_confidence = sorted(set(chunks["label_confidence"]) - ALLOWED_LABEL_CONFIDENCE)
+    require(
+        not bad_label_confidence,
+        f"Invalid label_confidence values: {bad_label_confidence}",
+        errors,
+    )
     require(
         pages["terms_url"].str.startswith(("http://", "https://")).all(),
         "Every page must have an http(s) terms_url",
@@ -315,23 +422,6 @@ def validate() -> list[str]:
     require(not bad_links, f"Invalid link_type values: {bad_links}", errors)
     link_priority_scores = pd.to_numeric(links["link_priority_score"], errors="coerce")
     require(link_priority_scores.notna().all(), "Link priority scores must be numeric", errors)
-
-    missing_raw = []
-    missing_clean = []
-    for row in pages.itertuples(index=False):
-        if str(row.http_status) == "200":
-            raw_path = ROOT / str(row.raw_html_path)
-            clean_path = ROOT / str(row.clean_text_path)
-            if not raw_path.exists():
-                missing_raw.append(row.canonical_url)
-            if not clean_path.exists():
-                missing_clean.append(row.canonical_url)
-    require(not missing_raw, f"Fetched pages missing raw HTML files: {missing_raw[:10]}", errors)
-    require(
-        not missing_clean,
-        f"Fetched pages missing clean text files: {missing_clean[:10]}",
-        errors,
-    )
 
     token_counts = pd.to_numeric(chunks["token_count"], errors="coerce")
     oversized = chunks[token_counts > 512]["chunk_id"].tolist()
@@ -414,12 +504,17 @@ def main() -> None:
         for error in errors:
             print(f"- {error}")
         raise SystemExit(1)
-    chunks = pd.read_csv(CHUNKS_CSV).fillna("")
+    chunks = pd.read_csv(CHUNKS_CSV).fillna("").astype(str)
     pages = pd.read_csv(PAGES_CSV).fillna("")
     print("RAG corpus validation passed.")
     print(f"Pages: {len(pages)}")
     print(f"Chunks: {len(chunks)}")
     print(f"Categories: {chunks['category_id'].nunique()}")
+    warnings = collect_local_artifact_warnings(pages) + collect_quality_warnings(chunks)
+    if warnings:
+        print("Warnings:")
+        for warning in warnings:
+            print(f"- {warning}")
 
 
 if __name__ == "__main__":

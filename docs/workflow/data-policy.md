@@ -51,11 +51,13 @@ artifacts disagree.
 ## Storage Policy
 
 - Bronze raw HTML, Silver cleaned page text, Silver SQLite files, and Silver
-  Chroma indexes are generated locally and ignored by git.
+  Chroma indexes are generated locally and ignored by git. Chroma must be rebuilt
+  from committed `data/silver/datasets/rag_chunks.csv` during deployment/startup.
 - `data/silver/datasets/rag_pages.csv`,
   `data/silver/datasets/rag_links.csv`,
   `data/silver/datasets/rag_chunks.csv`,
-  `data/silver/reports/rag_pipeline_report.md`, and
+  `data/silver/reports/rag_pipeline_report.md`,
+  `data/silver/reports/rag_corpus_quality_report.md`, and
   `data/silver/reports/rag_run_manifest.json` are reviewable Silver artifacts.
 - Do not store sensitive personal identifiers or detailed health descriptions.
 - Do not use user-specific browsing at answer time.

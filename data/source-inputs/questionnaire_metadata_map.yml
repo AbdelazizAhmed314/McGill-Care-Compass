@@ -3,7 +3,7 @@ description: >
   Shared stable metadata IDs for Mustafa's questionnaire and Muhammad's RAG
   chunk-tagging pipeline. UI labels can change without changing these IDs.
   The active chunk-aligned retrieval fields are category_id, need_type,
-  student_type, jurisdiction, language, and derived risk_level.
+  student_type, jurisdiction, language, and legacy risk_level topic-sensitivity metadata.
 
 category_id:
   health_care:

@@ -1,6 +1,6 @@
 # RAG Data Pipeline Report
 
-Generated: `2026-06-21T19:54:18+00:00`
+Generated: `2026-06-24T07:29:46+00:00`
 
 ## Summary
 
@@ -102,11 +102,11 @@ No LLM assigns metadata in v1.
 ## Version Governance
 
 - Pipeline version: `1.0.0`
-- Pipeline run ID: `20260621T195343Z`
-- Artifact schema version: `1`
+- Pipeline run ID: `20260624T072038Z`
+- Artifact schema version: `2`
 - Questionnaire metadata version: `2`
-- Seed config hash: `a2858cb02a78ac24c244efe1f4b6b9a7cdc7801c914c1381a1917f1fd12ec3b8`
-- Questionnaire config hash: `1414b763f53deab28100010b2e51dbeffdcae719d1bd4485d04d9d4faea4ead4`
+- Seed config hash: `fa0d64b45385a55498aba24cfedd2b16579532eaf36da71e0092f1e00d39c693`
+- Questionnaire config hash: `edf7353d73278ef885a30bb447e69e4c7322225769fae824ca4b10a4f9f49345`
 - Crawl config hash: `2c774104781ff52e68c13b6dd36cb1048005621267e6632b8e4a11134b85e9f3`
 - Chunking config version: `1`
 - Link priority config version: `1`
@@ -168,6 +168,7 @@ Freshness is scored from source-modified dates when available, otherwise retriev
 - Silver link CSV: `data/silver/datasets/rag_links.csv`
 - Silver chunk CSV: `data/silver/datasets/rag_chunks.csv`
 - Silver Chroma vector DB: `data/silver/vector_store/chroma/`
+- Silver quality report: `data/silver/reports/rag_corpus_quality_report.md`
 
 ## Rebuild Commands
 

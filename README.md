@@ -21,7 +21,7 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 | `tests/` | Unit and behavior tests for app scaffolding and core rules. |
 | `data/source-inputs/` | Seed URL and questionnaire metadata configuration shared by the pipeline and UI. |
 | `data/bronze/` | Raw unprocessed source captures generated locally and ignored by git. |
-| `data/silver/` | Processed v1 RAG artifacts: reviewable CSVs/reports plus local ignored text, SQLite, and Chroma outputs. |
+| `data/silver/` | Processed v1 RAG artifacts: reviewable CSVs/reports plus local ignored text, SQLite, and rebuildable Chroma outputs. |
 | `data/gold/` | Reserved for reviewed, release-ready data; no Gold dataset exists yet. |
 | `scripts/data/` | RAG corpus build, query, and validation scripts. |
 | `docs/project/` | Finalized course/project documents. |

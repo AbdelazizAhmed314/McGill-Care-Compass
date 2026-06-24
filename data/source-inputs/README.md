@@ -21,7 +21,7 @@ Each seed row defines:
 - `allowed_domains` and `allowed_path_prefixes`
 - `allowed_to_crawl`, `max_depth`, and `max_pages_from_seed`
 - `category_id` and `category_label`
-- `student_type`, `jurisdiction`, `language`, and `risk_level`
+- `student_type`, `jurisdiction`, `language`, and legacy `risk_level` topic-sensitivity metadata
 - `terms_url` and `licence_or_terms`
 
 The crawler inherits this metadata onto pages and chunks.
@@ -46,6 +46,8 @@ uv run python scripts/data/build_rag_corpus.py --force-rechunk
 ```
 
 ## Version Governance
+
+`risk_level` is kept for v1 compatibility, but it should be read as topic sensitivity, not actual chunk-level danger. Future work may rename it to `topic_sensitivity` or let the app derive sensitive-topic behavior directly from the taxonomy.
 
 Both source-input files are hashed into
 `data/silver/reports/rag_run_manifest.json` and stamped onto every generated

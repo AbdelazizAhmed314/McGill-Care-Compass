@@ -40,8 +40,10 @@ allowlist, max-depth, and max-pages guardrails in
 | `data/silver/datasets/rag_pages.csv` | Silver reviewable page manifest and drift state. |
 | `data/silver/datasets/rag_links.csv` | Silver reviewable sublink graph and crawl decisions. |
 | `data/silver/datasets/rag_chunks.csv` | Silver reviewable chunk table used to rebuild vectors. |
-| `data/silver/vector_store/chroma/` | Silver local Chroma vector index, rebuildable from chunks and ignored by git. |
+| `data/silver/vector_store/chroma/` | Silver local Chroma vector index, rebuilt from committed chunks and ignored by git. |
 | `data/silver/reports/rag_pipeline_report.md` | Silver progress-report summary of the latest run. |
+| `data/silver/reports/rag_corpus_quality_report.md` | Silver chunk-quality warnings and cleaning metrics. |
+| `data/silver/reports/rag_retrieval_examples.md` | Handoff examples showing filters, retrieved chunks, and evidence checks. |
 | `data/silver/reports/rag_run_manifest.json` | Machine-readable run manifest tying artifacts to the pipeline version and config hashes. |
 | `data/gold/` | Reserved for future reviewed, release-ready data; empty in the current version. |
 
@@ -121,7 +123,7 @@ Current v1 values:
 | Field | Value |
 | --- | --- |
 | `pipeline_version` | `1.0.0` |
-| `artifact_schema_version` | `1` |
+| `artifact_schema_version` | `2` |
 | `questionnaire_metadata_version` | `2` |
 | `chunking_config_version` | `1` |
 | `link_priority_config_version` | `1` |
@@ -155,7 +157,7 @@ retrieval. The shared chunk-aligned fields are:
 - `student_type`
 - `jurisdiction`
 - `language`
-- derived `risk_level`
+- legacy `risk_level` topic-sensitivity metadata
 
 `need_type` is not stored as one standalone chunk column. It maps to `info_type_tags`
 and the boolean fields `has_contact_info`, `has_required_docs`, `has_eligibility`,
@@ -169,7 +171,7 @@ If Mustafa adds a new option, update the YAML and rerun:
 uv run python scripts/data/build_rag_corpus.py --metadata-only
 ```
 
-This refreshes chunk metadata without refetching websites.
+This refreshes chunk metadata without refetching websites. `risk_level` is retained for v1 compatibility, but the app should treat sensitive topics from the taxonomy rather than reading it as actual chunk-level danger.
 
 ## Drift Monitoring
 
@@ -182,7 +184,7 @@ Each page stores raw HTML, clean text, link, and section hashes. On rerun:
 
 Changed pages are re-parsed, re-chunked, and re-vectorized. Unchanged pages can
 be skipped in later optimizations; the current MVP rebuilds the local Chroma
-index from the active chunk table for reliability.
+index from the committed active chunk table for reliability. Deployment/startup should rebuild Chroma from `data/silver/datasets/rag_chunks.csv`.
 
 ## Commands
 

@@ -16,8 +16,10 @@ creates source-grounded chunks, and builds a local vector index.
 | Silver | `silver/datasets/rag_pages.csv` | Page manifest, source metadata, drift hashes, and run stamp. | Commit-ready. |
 | Silver | `silver/datasets/rag_links.csv` | Discovered-link graph, priority scores, crawl decisions, and run stamp. | Commit-ready. |
 | Silver | `silver/datasets/rag_chunks.csv` | Header-aware retrieval chunks, metadata tags, provenance, and run stamp. | Commit-ready. |
-| Silver | `silver/vector_store/chroma/` | Local Chroma vector index rebuilt from chunks. | Ignored by git. |
+| Silver | `silver/vector_store/chroma/` | Local Chroma vector index rebuilt from committed chunks. | Ignored by git. |
 | Silver | `silver/reports/rag_pipeline_report.md` | Human-readable v1 pipeline report. | Commit-ready. |
+| Silver | `silver/reports/rag_corpus_quality_report.md` | Chunk-quality warnings and cleaning metrics. | Commit-ready. |
+| Silver | `silver/reports/rag_retrieval_examples.md` | Handoff retrieval examples for Issues #4/#5. | Commit-ready. |
 | Silver | `silver/reports/rag_run_manifest.json` | Machine-readable manifest with version, config hashes, artifact hashes, and counts. | Commit-ready. |
 | Gold | `gold/` | Reserved for reviewed, release-ready data. | README only for now. |
 
@@ -53,11 +55,13 @@ source-inputs/rag_seed_urls.csv
   -> silver/rag/rag_metadata.sqlite
   -> silver/vector_store/chroma/
   -> silver/reports/rag_pipeline_report.md
+  -> silver/reports/rag_corpus_quality_report.md
+  -> silver/reports/rag_retrieval_examples.md
   -> silver/reports/rag_run_manifest.json
 ```
 
-The CSV and SQLite outputs are the reproducible data layer. Chroma is rebuildable
-from `silver/datasets/rag_chunks.csv`.
+The committed CSV outputs are the reviewable source of truth. Chroma is rebuilt
+from `silver/datasets/rag_chunks.csv`; SQLite, raw HTML, and clean text are local debug/runtime artifacts.
 
 ## Version Governance
 
@@ -75,8 +79,8 @@ Every page, link, and chunk row carries:
 - `link_priority_config_version`
 - `embedding_model`
 
-`silver/reports/rag_run_manifest.json` verifies that the CSVs, SQLite DB, report,
-and vector store belong to the same generated corpus.
+`silver/reports/rag_run_manifest.json` verifies that the CSVs, SQLite DB, reports,
+and vector store belong to the same generated corpus after a local rebuild.
 
 ## Commands
 

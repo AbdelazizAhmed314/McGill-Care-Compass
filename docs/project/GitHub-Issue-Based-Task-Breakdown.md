@@ -32,7 +32,7 @@ gantt
     Directory milestone / Progress Report 1                      :milestone, m1, 2026-06-21, 0d
 
     section Working Prototype / Progress Report 2
-    Issue 4 - Build intake and rule-based matching prototype     :i4, 2026-06-22, 2026-07-05
+    Issue 4 - Build intake and filtered retrieval prototype     :i4, 2026-06-22, 2026-07-05
     Issue 5 - Implement grounded recommendation explanations     :i5, 2026-06-27, 2026-07-05
     Issue 6 - Integrate working prototype and prepare PR2        :i6, 2026-07-03, 2026-07-05
     Working prototype / Progress Report 2                        :milestone, m2, 2026-07-05, 0d
@@ -62,7 +62,7 @@ gantt
 | GitHub Milestone | Due Date | Purpose |
 | --- | --- | --- |
 | Data Corpus Milestone / Progress Report 1 | June 21 | v1 RAG corpus, schema, quality checks, first progress evidence |
-| Working Prototype / Progress Report 2 | July 5 | Intake flow, rule-based matching, grounded results, integrated prototype |
+| Working Prototype / Progress Report 2 | July 5 | Intake flow, metadata-filtered retrieval, grounded results, integrated prototype |
 | Evaluation Package / Progress Report 3 | July 19 | Guardrails, maintenance reports, scenario evaluation, internal deployment |
 | Usability Assessment / Progress Report 4 | July 26 | Usability sessions, findings, priority fixes, documentation |
 | Presentation-Ready Release | July 27 | Feature freeze, deployed app, maintenance package |
@@ -74,7 +74,7 @@ Use labels to make the board scannable:
 
 | Label | Use |
 | --- | --- |
-| `data` | Service records, schema, source metadata, data validation |
+| `data` | RAG chunks, schema, source metadata, data validation |
 | `matching` | Routing logic, scoring, tie handling, recommendation behavior |
 | `ux` | Intake flow, interface, response layout, usability wording |
 | `guardrails` | High-risk handling, unsupported cases, safety limitations |
@@ -122,7 +122,7 @@ Use labels to make the board scannable:
 
 **Acceptance check:**
 
-- [ ] Clean directory dataset exists.
+- [ ] Validated Silver RAG corpus exists.
 - [ ] Schema documentation exists.
 - [ ] Quality summary exists.
 - [ ] Reproducible build/update commands are documented.
@@ -191,30 +191,30 @@ Use labels to make the board scannable:
 
 ## Milestone: Working Prototype / Progress Report 2
 
-### Issue 4: Build intake and rule-based matching prototype
+### Issue 4: Build intake and filtered retrieval prototype
 
 **Due:** July 5  
 **Primary owners:** Muhammad and Mustafa  
 **Maps to:** `MH-05`, `MH-06`, `MY-03`  
 **Suggested labels:** `matching`, `ux`, `data`
 
-**Goal:** Build the first working intake-to-ranked-results path using transparent rule-based matching.
+**Goal:** Build the first working intake-to-ranked-results path using metadata filters, vector retrieval, and transparent ranking.
 
 **Detailed tasks:**
 
-- [ ] Define matching features from intake fields.
+- [ ] Define retrieval/filtering features from intake fields.
 - [ ] Include need category, student type, urgency, location, language, and access preference where available.
 - [ ] Write the routing precedence in clear if-then form.
-- [ ] Define matching weights or rule priorities.
+- [ ] Define filter, ranking, and tie-breaking priorities.
 - [ ] Define filters for unsupported or out-of-scope cases.
 - [ ] Define tie-breaking logic.
-- [ ] Define high-risk routing behavior.
+- [ ] Define sensitive-topic and guardrail routing behavior.
 - [ ] Implement ranked retrieval against the RAG corpus.
 - [ ] Return match reasons for retrieved chunks/results.
 - [ ] Return backup options when appropriate.
 - [ ] Handle empty-result cases.
 - [ ] Build the structured intake interface.
-- [ ] Build the first results interface with placeholders or live matched records.
+- [ ] Build the first results interface with placeholders or live retrieved chunks/results.
 - [ ] Confirm the prototype uses production-format chunks and metadata.
 
 **Acceptance check:**
@@ -238,7 +238,7 @@ Use labels to make the board scannable:
 - [ ] Define the explanation template.
 - [ ] Include service name, why it matched, official next step, source link, and limitation wording.
 - [ ] Ensure explanations do not make unsupported eligibility, medical, immigration, tax, or financial-aid claims.
-- [ ] Include backup-option wording where the matcher returns a secondary path.
+- [ ] Include backup-option wording where retrieval returns a secondary path.
 - [ ] Include source and verification-date display.
 - [ ] Confirm explanations show source URL, source date, and terms metadata.
 - [ ] Test explanations on common scenarios.
@@ -246,7 +246,7 @@ Use labels to make the board scannable:
 
 **Acceptance check:**
 
-- [ ] Explanations use retrieved record content.
+- [ ] Explanations use retrieved chunk content.
 - [ ] Explanations include official links and limitations.
 - [ ] Explanations make no unsupported claims.
 
@@ -257,12 +257,12 @@ Use labels to make the board scannable:
 **Maps to:** `MH-07`, `MY-05`, `AA-05`  
 **Suggested labels:** `deployment`, `matching`, `ux`, `progress-report`, `qa`
 
-**Goal:** Merge the directory, matcher, interface, and explanation layer into a demonstrable prototype by the July 5 milestone.
+**Goal:** Merge the RAG corpus, retrieval/ranking layer, interface, and explanation layer into a demonstrable prototype by the July 5 milestone.
 
 **Detailed tasks:**
 
-- [ ] Define or confirm the data/interface contract between the directory, matcher, and UI.
-- [ ] Integrate the production-format directory with the matcher.
+- [ ] Define or confirm the data/interface contract between the RAG corpus, retrieval/ranking layer, and UI.
+- [ ] Integrate the production-format RAG chunks/vector retrieval with the prototype.
 - [ ] Integrate matched results with the explanation layer.
 - [ ] Integrate the full flow into the prototype app.
 - [ ] Confirm the app does not require manual data changes to return results.
@@ -274,7 +274,7 @@ Use labels to make the board scannable:
 
 **Acceptance check:**
 
-- [ ] Prototype reads production-format records.
+- [ ] Prototype reads production-format chunks and metadata.
 - [ ] User receives ranked recommendations, match reasons, next steps, backup options, and source links.
 - [ ] Working prototype is demonstrated or ready to demonstrate by July 5.
 

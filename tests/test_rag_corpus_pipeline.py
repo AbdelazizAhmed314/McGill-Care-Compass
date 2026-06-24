@@ -114,6 +114,10 @@ def test_chunker_prepends_heading_to_embedding_text_and_keeps_clean_chunk_text()
     assert chunks[0]["has_costs_coverage"] == "true"
     assert chunks[0]["source_group"] == "mcgill"
     assert chunks[0]["licence_or_terms"] == DEFAULT_LICENCE_OR_TERMS
+    assert chunks[0]["review_status"] == "silver_unreviewed"
+    assert chunks[0]["label_method"] == "deterministic_keyword"
+    assert chunks[0]["label_confidence"] == "medium"
+    assert chunks[0]["vector_id"] == chunks[0]["chunk_id"]
     assert json.loads(chunks[0]["nearby_links"]) == ["https://www.mcgill.ca/contact"]
 
 
@@ -256,7 +260,56 @@ def test_tag_refresh_changes_metadata_without_rechunking() -> None:
 
     assert tags["has_required_docs"] == "true"
     assert tags["has_costs_coverage"] == "false"
+    assert tags["review_status"] == "silver_unreviewed"
+    assert tags["label_method"] == "deterministic_keyword"
+    assert tags["label_confidence"] == "high"
+    assert tags["vector_id"] == ""
     assert "required_docs" in tags["info_type_tags"]
+
+
+def test_quality_findings_flags_noise_without_deleting_actionable_short_chunks() -> None:
+    chunks = [
+        {
+            "chunk_id": "a",
+            "chunk_text": "Column 1 Related Services Service Point",
+            "nearby_links": "[]",
+            "info_type_tags": "",
+            "label_confidence": "low",
+            "review_status": "silver_unreviewed",
+        },
+        {
+            "chunk_id": "b",
+            "chunk_text": "Call 514-398-7992.",
+            "nearby_links": "[]",
+            "has_contact_info": "true",
+            "info_type_tags": "contact",
+            "label_confidence": "medium",
+            "review_status": "silver_unreviewed",
+        },
+        {
+            "chunk_id": "c",
+            "chunk_text": "This paragraph repeats for duplicate testing.",
+            "nearby_links": "[]",
+            "info_type_tags": "",
+            "label_confidence": "low",
+            "review_status": "silver_unreviewed",
+        },
+        {
+            "chunk_id": "d",
+            "chunk_text": "This paragraph repeats for duplicate testing.",
+            "nearby_links": "[]",
+            "info_type_tags": "",
+            "label_confidence": "low",
+            "review_status": "silver_unreviewed",
+        },
+    ]
+
+    findings = pipeline.quality_findings(chunks)
+
+    assert findings["very_short_chunks"] == 4
+    assert findings["very_short_non_actionable"] == 3
+    assert findings["duplicate_chunks"] == 2
+    assert findings["boilerplate_chunks"] == 1
 
 
 def test_source_priority_prefers_canada_quebec_healthcare_then_mcgill() -> None:

@@ -77,7 +77,7 @@ The fixed scenario set should cover:
 | Matching | Supported scenarios return ranked results with match reasons. |
 | Routing precedence | Emergency/high-risk and official-authority rules are applied before lower-priority matching rules. |
 | Tie-breaking | Repeated runs produce stable ordering for tied services. |
-| Empty result | No service is invented when no record matches. |
+| Empty result | No service or next step is invented when retrieved evidence is missing. |
 | Unsupported case | Unsupported needs return a useful fallback and source-linked next step where possible. |
 | Source link | Every recommendation includes at least one official or trusted source URL. |
 | Safety wording | Medical, immigration, tax, insurance, financial-aid, and employment-authorization outputs include limitations. |

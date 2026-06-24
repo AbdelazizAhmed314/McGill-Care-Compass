@@ -23,7 +23,7 @@ The repo should use the 13 milestone-based GitHub Issues from the issue-based br
 | Issue 1: Build and validate v1 RAG data corpus | June 21 | `MH-01`, `MH-02`, `MH-03`, `MH-04` |
 | Issue 2: Define user journey and prototype response format | June 21 | `MY-01`, `MY-02` |
 | Issue 3: Set up repo workflow and Progress Report 1 tracking | June 21 | `AA-01`, `AA-02`, `AA-03`, part of `AA-04` |
-| Issue 4: Build intake and rule-based matching prototype | July 5 | `MH-05`, `MH-06`, `MY-03` |
+| Issue 4: Build intake and filtered retrieval prototype | July 5 | `MH-05`, `MH-06`, `MY-03` |
 | Issue 5: Implement grounded recommendation explanations | July 5 | `MY-04` |
 | Issue 6: Integrate working prototype and prepare Progress Report 2 | July 5 | `MH-07`, `MY-05`, `AA-05` |
 | Issue 7: Add guardrails and maintenance reports | July 19 | `MY-06`, `MH-08`, `AA-06` |
@@ -85,7 +85,7 @@ The repo should use the 13 milestone-based GitHub Issues from the issue-based br
 | `MY-01` | Issue 2 | Define the primary user journey, intake questions, interface flow, recommendation layout, and user-facing wording standards. | Product definition; review with team | Flow covers supported needs without collecting sensitive identifiers or detailed health information. | 6 |
 | `MY-02` | Issue 2 | Create low-fidelity interface mockups and response examples for common newcomer scenarios. | Input from Muhammad on available fields | Team approves intake, results, explanation, limitation, and official-link presentation. | 4 |
 | `MY-03` | Issue 4 | Build the structured intake and results interface in Streamlit or the selected lightweight web framework. | Data/interface contract from Muhammad | A user can complete intake, submit it, and view formatted recommendation placeholders or live matched records. | 10 |
-| `MY-04` | Issue 5 | Implement the grounded explanation layer that converts matched records into concise user-facing responses. | Ranked results from Muhammad | Explanations use retrieved record content, include official links and limitations, and make no unsupported claims. | 13 |
+| `MY-04` | Issue 5 | Implement the grounded explanation layer that converts retrieved chunks/results into concise user-facing responses. | Ranked results from Muhammad | Explanations use retrieved chunk content, include official links and limitations, and make no unsupported claims. | 13 |
 | `MY-05` | Issue 6 | Integrate and refine the complete working prototype; support Progress Report 2 evidence. | Joint work with Muhammad; merge coordinated by Abdelaziz | User receives ranked recommendations, match reasons, next steps, backup options, and source links. | 7 |
 | `MY-06` | Issue 7 | Implement guardrails and user-facing handling for high-risk, unsupported, empty-result, and system-error scenarios. | Review with Muhammad and Abdelaziz | Medical, immigration, tax, and financial-aid outputs include appropriate limitations; unsupported cases fail gracefully. | 9 |
 | `MY-07` | Issue 8 | Create the predefined evaluation-scenario set and expected-result rubric covering the major newcomer journeys, including expected categories, acceptable services or service types, and pass/fail rules for top-three relevance. | Muhammad validates matching expectations | Scenario set covers normal, high-risk, empty-result, source-link, and unsupported cases; each scenario has labeled expected outcomes and a reproducible relevance rule. | 6 |
@@ -105,9 +105,9 @@ The repo should use the 13 milestone-based GitHub Issues from the issue-based br
 | --- | --- | --- | --- | --- | ---: |
 | `AA-01` | Issue 3 | Convert the issue-based breakdown into the team issue board with milestone, owner, reviewer, due-date, dependency, and status fields. | Team confirms assignments | Every required issue is visible, assigned, dated, and linked to a milestone. | 4 |
 | `AA-02` | Issue 3 | Establish repository structure, branching rules, pull-request template, review checklist, issue labels, and definition of done. | Team agreement | Team can create, review, test, and merge changes using documented Git-flow rules. | 7 |
-| `AA-03` | Issue 3 | Coordinate scope, risks, milestone tracking, proposal-feedback incorporation, and Progress Report 1. | Evidence from Muhammad and Mustafa | PR1 accurately records progress, next goals, allocation per member, and blockers; directory milestone is signed off. | 7 |
+| `AA-03` | Issue 3 | Coordinate scope, risks, milestone tracking, proposal-feedback incorporation, and Progress Report 1. | Evidence from Muhammad and Mustafa | PR1 accurately records progress, next goals, allocation per member, and blockers; RAG corpus milestone is signed off. | 7 |
 | `AA-04` | Issue 3 | Define reproducible local setup, environment configuration, dependency management, secrets handling, and automated test commands. | Technical input from both leads | A teammate can set up and run the current project using documented commands without undocumented steps. | 8 |
-| `AA-05` | Issue 6 | Coordinate integration of the directory, matcher, explanation layer, and interface; manage review and Progress Report 2. | Muhammad and Mustafa feature branches | Working prototype is merged, tagged, tested, and demonstrated by July 5. | 12 |
+| `AA-05` | Issue 6 | Coordinate integration of the RAG corpus, retrieval/ranking layer, explanation layer, and interface; manage review and Progress Report 2. | Muhammad and Mustafa feature branches | Working prototype is merged, tagged, tested, and demonstrated by July 5. | 12 |
 | `AA-06` | Issue 7 | Create the deployment pipeline and internal deployed environment; add basic health checks and error logging. | Integrated prototype | Internal app URL loads reliably; deployment and rollback/update steps are documented. | 10 |
 | `AA-07` | Issue 9 | Maintain project board, risks, decision log, integration schedule, and Progress Report 3; remove blockers and control scope. | Whole team updates | No milestone-threatening blocker lacks an owner and action; PR3 is complete and accurate. | 7 |
 | `AA-08` | Issue 8 | Add automated test execution to the repository workflow and coordinate release-readiness checks. | Tests from Muhammad and Mustafa | Core data, matching, safety, empty-result, and source-link tests can be run through one documented workflow. | 7 |
@@ -125,8 +125,8 @@ These checkpoints are reminders for coordination. They should be reflected in th
 | Date | Required team checkpoint | Owner | Output |
 | --- | --- | --- | --- |
 | June 14 | Confirm schema, user flow, repository workflow, task assignments, and scope boundaries. | Abdelaziz | Approved execution baseline and issue board. |
-| June 20 | Run directory milestone pre-check and identify missing records or validation failures. | Muhammad | Gap list and June 21 completion plan. |
-| June 21 | Complete directory milestone and Progress Report 1. | Muhammad / Abdelaziz | Curated directory package and submitted report. |
+| June 20 | Run RAG corpus milestone pre-check and identify missing chunks, metadata gaps, or validation failures. | Muhammad | Gap list and June 21 completion plan. |
+| June 21 | Complete RAG corpus milestone and Progress Report 1. | Muhammad / Abdelaziz | RAG corpus package and submitted report. |
 | July 3 | Conduct integrated prototype pre-check. | Mustafa | Defect list and July 5 completion plan. |
 | July 5 | Complete working prototype milestone and Progress Report 2. | Mustafa / Abdelaziz | Demonstrable integrated prototype and submitted report. |
 | July 12 | Confirm deployed integration build, evaluation scenarios, and usability recruitment status. | Abdelaziz | Evaluation-ready release and recruitment plan. |
