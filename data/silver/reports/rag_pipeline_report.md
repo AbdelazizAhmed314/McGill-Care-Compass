@@ -1,13 +1,13 @@
 # RAG Data Pipeline Report
 
-Generated: `2026-06-24T07:29:46+00:00`
+Generated: `2026-06-24T07:52:50+00:00`
 
 ## Summary
 
-- Pages processed: **500**
-- Links recorded: **22727**
-- Header-aware chunks: **4228**
-- Vector store status: `rebuilt:4228`
+- Pages processed: **490**
+- Links recorded: **22548**
+- Header-aware chunks: **4239**
+- Vector store status: `rebuilt:4239`
 - Max crawl depth: **3**
 - Max pages: **500**
 - Max queued links per page: **10**, relevance-ranked before queueing
@@ -102,34 +102,35 @@ No LLM assigns metadata in v1.
 ## Version Governance
 
 - Pipeline version: `1.0.0`
-- Pipeline run ID: `20260624T072038Z`
+- Pipeline run ID: `20260624T074008Z`
 - Artifact schema version: `2`
 - Questionnaire metadata version: `2`
 - Seed config hash: `fa0d64b45385a55498aba24cfedd2b16579532eaf36da71e0092f1e00d39c693`
 - Questionnaire config hash: `edf7353d73278ef885a30bb447e69e4c7322225769fae824ca4b10a4f9f49345`
-- Crawl config hash: `2c774104781ff52e68c13b6dd36cb1048005621267e6632b8e4a11134b85e9f3`
+- Crawl config hash: `f2c2545c6d452413f90e3e514f74612ad0502847db9cafc5f9c0154c7279933e`
 - Chunking config version: `1`
 - Link priority config version: `1`
 - Run manifest: `data/silver/reports/rag_run_manifest.json`
 
 ## Drift Status
 
+- changed: **121**
 - fetch_failed: **4**
-- new: **337**
-- unchanged: **159**
+- new: **4**
+- unchanged: **361**
 
 ## Link Types
 
-- external: **2577**
+- external: **2576**
 - file: **192**
-- in_scope: **11776**
-- skipped: **8080**
+- in_scope: **11756**
+- skipped: **7922**
 - tel: **102**
 
 ## Link Crawl Decisions
 
-- not_crawled: **22248**
-- queued: **479**
+- not_crawled: **22079**
+- queued: **469**
 
 ## Chunk Coverage
 
@@ -138,14 +139,14 @@ No LLM assigns metadata in v1.
 | `academics` | 199 |
 | `documents_admin` | 55 |
 | `finances` | 657 |
-| `health_care` | 335 |
-| `housing` | 91 |
+| `health_care` | 350 |
+| `housing` | 88 |
 | `immigration_status` | 402 |
 | `insurance` | 90 |
 | `language_integration` | 2 |
 | `mental_health` | 435 |
-| `tax` | 1582 |
-| `work_career` | 380 |
+| `tax` | 1605 |
+| `work_career` | 356 |
 
 ## Source Ranking
 
@@ -155,9 +156,9 @@ Freshness is scored from source-modified dates when available, otherwise retriev
 
 | Source group | Chunks |
 | --- | ---: |
-| `canada` | 1582 |
-| `mcgill` | 2382 |
-| `quebec` | 264 |
+| `canada` | 1605 |
+| `mcgill` | 2355 |
+| `quebec` | 279 |
 
 ## Persistent Outputs
 
