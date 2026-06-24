@@ -25,8 +25,9 @@ This document depends on these project sources:
   boundaries, source authority, and privacy limits.
 - Evaluation and usability plan: scenario coverage, top-three relevance target,
   and future evaluation fields.
-- Issue 1 data contract from `origin/data/issue-01-service-records`: curated
-  service directory fields, category coverage, and source/provenance fields.
+- Issue 1 RAG corpus contract: committed source pages, link graph,
+  header-aware chunks, questionnaire metadata labels, retrieval examples,
+  and source/provenance fields.
 
 This document is not a production matching specification. It describes what the
 user should see and what information the matcher and response layer must provide
@@ -45,7 +46,7 @@ Key requirements carried into this document:
 - The user is a newcomer student who may be new to McGill, Montreal, Quebec, or
   Canada.
 - The tool should convert a student's situation into a small ranked set of
-  service options.
+  source-grounded starting points.
 - Recommendations must include official next steps, official source links,
   match reasons, limitations, and verification/provenance information.
 - The intake should use structured, low-risk questions and avoid detailed
@@ -91,67 +92,54 @@ The Issue 2 flow should therefore capture enough structured context to support:
 - empty-result handling;
 - usability testing around whether users can identify an appropriate next step.
 
-### Issue 1 Data Contract Inputs
+### Issue 1 RAG Data Contract Inputs
 
-The Issue 1 branch `origin/data/issue-01-service-records` adds the production
-service-directory shape that Issue 2 should design around.
+Issue 1 now provides the v1 Silver RAG corpus, not the old curated-directory
+model. Issue 2 should design around retrieved source chunks
+and evidence sets.
 
-Issue 1 curated directory summary:
+Active Issue 1 artifacts:
 
-| Data point | Value |
-| --- | ---: |
-| Curated service records | 44 |
-| Locked taxonomy categories represented | 11 |
-| McGill records | 31 |
-| Healthcare or wellness records | 13 |
-| Review status for milestone records | `curated_for_directory_milestone` |
-
-The production record fields from `curated_service_records.csv` are:
-
-| Field | UI use |
+| Artifact | UX / response-format use |
 | --- | --- |
-| `record_id` | Stable key for result cards and evaluation references. |
-| `service_name` | Main result title shown to the user. |
-| `category_id` | Internal category used by intake, matching, and tests. |
-| `category_label` | User-facing category shown on result cards. |
-| `student_need` | Plain-language need supported by the record. |
-| `intended_users` | Audience or student group the record appears to support. |
-| `access_method` | How the student can start, contact, book, or navigate. |
-| `recommended_next_step` | Conservative action shown as the next step. |
-| `limitations` | Safety, eligibility, freshness, or scope warning. |
-| `official_source_url` | Official link displayed to the user. |
-| `source_name` | Source page, dataset, or service page name. |
-| `source_publisher` | Source publisher shown for transparency. |
-| `source_license_or_terms` | Terms or license reference for provenance. |
-| `source_retrieved_at` | Source retrieval date or timestamp. |
-| `source_record_id` | Original source identifier when available. |
-| `last_verified_date` | Date shown in the result metadata. |
-| `review_status` | Curation status used internally and in QA. |
+| `data/source-inputs/questionnaire_metadata_map.yml` | Shared questionnaire IDs, category IDs, need types, and keyword/tag mapping. |
+| `data/source-inputs/rag_seed_urls.csv` | Official source URL inventory, source ownership, crawl boundaries, and source terms. |
+| `data/silver/datasets/rag_pages.csv` | Page-level source/provenance, freshness, and drift metadata. |
+| `data/silver/datasets/rag_links.csv` | Link graph and crawl-decision metadata for source discovery and auditing. |
+| `data/silver/datasets/rag_chunks.csv` | Primary reviewable retrieval table for filtered vector search and response grounding. |
+| `data/silver/reports/rag_pipeline_report.md` | Run summary and current corpus counts. |
+| `data/silver/reports/rag_corpus_quality_report.md` | Corpus-cleaning warnings to consider before using chunks in user-facing answers. |
+| `data/silver/reports/rag_retrieval_examples.md` | Handoff examples showing filters, retrieved chunks, source URLs, and evidence checks. |
+| `data/silver/reports/rag_run_manifest.json` | Machine-readable run manifest, config hashes, row counts, and artifact hashes. |
+| `data/silver/vector_store/chroma/` | Local ignored Chroma index rebuilt from committed `rag_chunks.csv`. |
 
-The Issue 1 branch includes these example service types by category. These are
-not all final result choices, but they show what the Issue 2 intake and response
-format should be able to display.
+The current Issue 1 output is a Silver corpus. It is processed and queryable,
+but chunks are `silver_unreviewed`; final Gold approval and evaluation are
+future work. Prototype answers may use Silver chunks for testing only when the
+response layer keeps limitation wording, source citations, and evidence checks
+visible.
 
-| Category | Example service types from Issue 1 branch |
-| --- | --- |
-| `academics` | Academic Advising, McGill Libraries |
-| `documents_admin` | Service Point, Student Accounts |
-| `finances` | McGill Scholarships and Awards, McGill Financial Aid, International Student Funding |
-| `health_care` | Quebec Family Doctor Finder, Primary Care Access Point, Access Health and Wellness Care |
-| `housing` | Finding housing, Off-Campus Housing, refusal-to-rent guidance |
-| `immigration_status` | Immigration, International Student Services |
-| `insurance` | Access HealthCare, Activate your Coverage, International Health Insurance |
-| `language_integration` | Campus Life and Engagement |
-| `mental_health` | Student Wellness Hub, I need help now, community resources |
-| `tax` | Who has to file a return, free tax clinics, residency-status information |
-| `work_career` | Career Planning Service, on-campus work, off-campus work |
+#### Request Taxonomy v0.1 / Implementation Contract Summary
 
-Only records curated into the production service directory should power
-recommendations. Broad scraped candidates can inform discovery and curation, but
-they should not be displayed as recommended services unless they have been
-normalized into the curated service-record schema.
+The intake and retrieval layers should use these shared field names.
 
-Reviewer-note update: source links should verify and support actionable, source-derived next steps rather than replace them.
+| Contract item | Canonical field or artifact | Notes |
+| --- | --- | --- |
+| Main category | `category_id` | Stable values come from `questionnaire_metadata_map.yml`. |
+| User need subtype | `need_type` | User/profile concept; maps to chunk `info_type_tags` and boolean metadata fields. |
+| Student profile | `student_type` | Examples: `international_student`, `newcomer`, or broader mapped values from the questionnaire config. |
+| Jurisdiction / source context | `jurisdiction` | Examples: `mcgill`, `quebec`, `canada`. |
+| Language | `language` | Current corpus is English-first; use stable language codes. |
+| Topic sensitivity | legacy `risk_level` | Treat as topic sensitivity, not actual chunk danger; app logic may eventually use taxonomy directly. |
+| Chunk review state | `review_status` | Current v1 default is `silver_unreviewed`. |
+| Label provenance | `label_method`, `label_confidence` | Current v1 uses deterministic keyword labels and confidence from rule strength. |
+| Vector identity | `vector_id` | Current v1 sets `vector_id = chunk_id`; Chroma is rebuilt from `rag_chunks.csv`. |
+
+The response layer should not treat a source URL as the whole answer. It should
+use retrieved chunks to form concrete, source-grounded next steps such as a
+booking route, application step, required-document list, contact path,
+deadline, cost/coverage note, or confirmation step. Source links verify and
+support the action; they do not replace the action.
 
 ## Primary User Journey
 
@@ -177,20 +165,20 @@ start with.
 9. The first result is the primary starting point.
 10. Backup results are shown below the primary result.
 11. Every result includes why it matched, the next step, limitations, official
-   source links, source publisher, and last verified date.
+   source links, source publisher, and last checked date.
 12. The student can expand source details for provenance and confidence.
-13. If no curated record fits, the tool shows a no-match fallback instead of
+13. If no evidence set fits, the tool shows a no-match fallback instead of
     inventing a service.
 
 ### Journey States
 
 | State | Trigger | User experience | Required behavior |
 | --- | --- | --- | --- |
-| Normal supported path | Intake maps to one or more curated records. | Student sees ranked results and next steps. | Show primary result, backups, source links, and limitations. |
+| Normal supported path | Intake maps to a filtered set of source chunks. | Student sees ranked results and next steps. | Show primary result, backup evidence, source links, and limitations. |
 | High-risk path | Need involves health, mental health, immigration, tax, insurance, financial aid, employment authorization, or urgent safety. | Student sees limitation wording near the top of the page and on relevant results. | Avoid professional judgment and direct the student to qualified official services. |
 | Emergency path | Urgency is emergency or immediate danger. | Student sees urgent safety guidance before other results. | Prioritize emergency/crisis instructions and make normal results secondary. |
-| Unsupported path | Need is outside the locked taxonomy or asks for a decision the tool cannot make. | Student sees a clear fallback and official next-step direction where possible. | Do not improvise advice or fabricate records. |
-| Empty or low-confidence path | No curated record matches the selected context. | Student sees a useful fallback and suggestion to contact an official McGill starting point. | Explain that no curated match is available and avoid invented services. |
+| Unsupported path | Need is outside the locked taxonomy or asks for a decision the tool cannot make. | Student sees a clear fallback and official next-step direction where possible. | Do not improvise advice or fabricate recommendations. |
+| Empty or low-confidence path | No retrieved evidence set safely matches the selected context. | Student sees a useful fallback and suggestion to contact an official McGill starting point. | Explain that no source-grounded match is available and avoid invented services. |
 
 ### Journey Flowchart
 
@@ -207,11 +195,11 @@ flowchart TD
     D --> E[Show secondary official services if available]
     C -->|No| F{Supported taxonomy need?}
     F -->|No| G[Unsupported fallback]
-    F -->|Yes| H{Curated records match?}
+    F -->|Yes| H{Evidence set passes?}
     H -->|No| I[No-match fallback]
-    H -->|Yes| J[Ranked recommendations]
-    J --> K[Primary service match]
-    J --> L[Backup service matches]
+    H -->|Yes| J[Ranked source-grounded starting points]
+    J --> K[Primary evidence-backed route]
+    J --> L[Backup evidence-backed routes]
     K --> M[Why it matched, next step, limitations, sources]
     L --> M
     M --> N[Student chooses official next step]
@@ -303,7 +291,7 @@ flowchart TD
     F -->|No| H[Skip Stage 3]
     G --> I[Determine need subtype and applicability/profile fit]
     H --> I
-    I --> J[Shortlist curated service records]
+    I --> J[Retrieve top-k source evidence chunks]
     J --> K[Format source-linked recommendations]
 ```
 
@@ -359,17 +347,17 @@ flows unless later project evidence proves more coverage is needed.
 
 | Taxonomy | Stage 2 question | Stage 2 allowed values | Optional Stage 3 trigger | Stage 3 question | Stage 3 allowed values | Routing/applicability use | Do not ask |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `health_care` | What kind of healthcare navigation do you need? | Find where to start; campus care; care outside campus hours; family doctor or regular provider; nearby facility; unsure | Always after Stage 2 because healthcare records may split across McGill care, Quebec access routes, facility context, and cost/coverage caveats. | Which healthcare access context should results account for? | McGill IHI; RAMQ; private insurance; out-of-province Canadian coverage; no coverage; unsure | Narrows McGill, Quebec, facility, and source caveat routing without deciding coverage. | Symptoms, diagnosis, medication, medical history, policy numbers, claim details. |
+| `health_care` | What kind of healthcare navigation do you need? | Find where to start; campus care; care outside campus hours; family doctor or regular provider; nearby facility; unsure | Always after Stage 2 because healthcare routes may split across McGill care, Quebec access routes, facility context, and cost/coverage caveats. | Which healthcare access context should results account for? | McGill IHI; RAMQ; private insurance; out-of-province Canadian coverage; no coverage; unsure | Narrows McGill, Quebec, facility, and source caveat routing without deciding coverage. | Symptoms, diagnosis, medication, medical history, policy numbers, claim details. |
 | `mental_health` | What kind of support are you looking for? | Immediate support; routine wellness support; community resource; online option; unsure | Not used in MVP. | Not shown. | Not applicable. | Distinguishes urgent support, routine wellness, community resources, and online options. | Detailed mental-health disclosure, diagnosis, self-harm narrative, or risk assessment details. |
-| `insurance` | What insurance topic are you trying to navigate? | Activate coverage; find benefits information; claims or contact route; RAMQ or public coverage; unsure | Always after Stage 2 because insurance records depend heavily on coverage context. | Which coverage context best fits this question? | McGill IHI; RAMQ; private insurance; out-of-province Canadian coverage; no coverage; unsure | Narrows likely insurance records and flags official confirmation needs. | Policy numbers, claim details, medical details, reimbursement decisions, or policy interpretation. |
-| `immigration_status` | What kind of official information do you need? | McGill international student support; government information; legal referral; document/process starting point; unsure | When Stage 2 is not simply McGill international student support. | What starting route would help most? | McGill office or advisor; official government page; legal/referral resource; document or process checklist; unsure | Narrows official office, government, referral, or process-starting records. | Document images, permit numbers, passport numbers, legal facts, or status interpretation. |
-| `housing` | What housing or basic-needs support do you need? | Find housing; off-campus housing support; tenant issue information; emergency/basic needs; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to housing search, tenant-information, off-campus support, or basic-needs records. | Exact home address, landlord details, legal dispute narrative. |
-| `academics` | What academic support do you need? | Advising; course or program planning; study support; library/research help; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to advising, academic support, or library records. | Grades, transcripts, disciplinary details, or private academic record contents. |
-| `finances` | What financial support are you trying to find? | Scholarships or awards; financial aid advising; emergency aid/basic needs; budgeting or affordability information; unsure | When Stage 2 is scholarships/awards, financial aid advising, or emergency aid/basic needs. | What starting route do you need? | Application or requirement information; advising/contact route; emergency support route; budgeting or affordability resource; unsure | Narrows funding, advising, emergency, or affordability records without deciding aid outcomes. | Exact income, bank details, account numbers, award amounts, application outcomes. |
-| `work_career` | What work or career topic do you need? | Career advising; job search support; on-campus work information; off-campus work information; unsure | When Stage 2 is on-campus work, off-campus work, or job search support. | What starting route would help most? | Advising appointment; official work-rule information; job-search resource; workshop or event; unsure | Narrows CaPS, work-guidance, job-search, or event/workshop records. | Permit interpretation, work authorization decision, employer-specific legal details. |
-| `tax` | What tax topic are you trying to navigate? | General student tax information; learning about filing; tax clinic help; residency information; unsure | When Stage 2 is learning about filing, tax clinic help, or residency information. | What kind of tax starting point do you need? | Official information page; tax clinic or help service; checklist or preparation route; contact route; unsure | Narrows CRA information, tax-clinic, checklist, or contact records without deciding obligations. | SIN, income details, account details, residency decision facts, filing obligation decisions. |
-| `documents_admin` | What campus administration task do you need help with? | Service Point; student account; enrolment or records; ID or documents; fees or billing; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to Service Point, Student Accounts, or administrative records. | Student number, login credentials, account screenshots, private record contents. |
-| `language_integration` | What language or integration support are you looking for? | Campus orientation; language learning; peer/community connection; settlement or newcomer integration; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to campus life, language, or community integration records. | Immigration-status proof, detailed personal history, or sensitive settlement narrative. |
+| `insurance` | What insurance topic are you trying to navigate? | Activate coverage; find benefits information; claims or contact route; RAMQ or public coverage; unsure | Always after Stage 2 because insurance routes depend heavily on coverage context. | Which coverage context best fits this question? | McGill IHI; RAMQ; private insurance; out-of-province Canadian coverage; no coverage; unsure | Narrows likely insurance evidence and flags official confirmation needs. | Policy numbers, claim details, medical details, reimbursement decisions, or policy interpretation. |
+| `immigration_status` | What kind of official information do you need? | McGill international student support; government information; legal referral; document/process starting point; unsure | When Stage 2 is not simply McGill international student support. | What starting route would help most? | McGill office or advisor; official government page; legal/referral resource; document or process checklist; unsure | Narrows official office, government, referral, or process-starting evidence. | Document images, permit numbers, passport numbers, legal facts, or status interpretation. |
+| `housing` | What housing or basic-needs support do you need? | Find housing; off-campus housing support; tenant issue information; emergency/basic needs; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to housing search, tenant-information, off-campus support, or basic-needs evidence. | Exact home address, landlord details, legal dispute narrative. |
+| `academics` | What academic support do you need? | Advising; course or program planning; study support; library/research help; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to advising, academic support, or library evidence. | Grades, transcripts, disciplinary details, or private academic record contents. |
+| `finances` | What financial support are you trying to find? | Scholarships or awards; financial aid advising; emergency aid/basic needs; budgeting or affordability information; unsure | When Stage 2 is scholarships/awards, financial aid advising, or emergency aid/basic needs. | What starting route do you need? | Application or requirement information; advising/contact route; emergency support route; budgeting or affordability resource; unsure | Narrows funding, advising, emergency, or affordability evidence without deciding aid outcomes. | Exact income, bank details, account numbers, award amounts, application outcomes. |
+| `work_career` | What work or career topic do you need? | Career advising; job search support; on-campus work information; off-campus work information; unsure | When Stage 2 is on-campus work, off-campus work, or job search support. | What starting route would help most? | Advising appointment; official work-rule information; job-search resource; workshop or event; unsure | Narrows CaPS, work-guidance, job-search, or event/workshop evidence. | Permit interpretation, work authorization decision, employer-specific legal details. |
+| `tax` | What tax topic are you trying to navigate? | General student tax information; learning about filing; tax clinic help; residency information; unsure | When Stage 2 is learning about filing, tax clinic help, or residency information. | What kind of tax starting point do you need? | Official information page; tax clinic or help service; checklist or preparation route; contact route; unsure | Narrows CRA information, tax-clinic, checklist, or contact evidence without deciding obligations. | SIN, income details, account details, residency decision facts, filing obligation decisions. |
+| `documents_admin` | What campus administration task do you need help with? | Service Point; student account; enrolment or records; ID or documents; fees or billing; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to Service Point, Student Accounts, or administrative evidence. | Student number, login credentials, account screenshots, private record contents. |
+| `language_integration` | What language or integration support are you looking for? | Campus orientation; language learning; peer/community connection; settlement or newcomer integration; unsure | Not used in MVP. | Not shown. | Not applicable. | Routes to campus life, language, or community integration evidence. | Immigration-status proof, detailed personal history, or sensitive settlement narrative. |
 | `safety_urgent` | What kind of urgent help should be prioritized? | Emergency or immediate danger; crisis support; urgent healthcare; urgent mental-health support; unsure | Not used in MVP; safety routing overrides ordinary narrowing. | Not shown. | Not applicable. | Triggers safety-first routing before normal recommendations. | Detailed incident narrative, symptom details, risk assessment details. |
 
 Stage 3 narrows the route only. It must not determine coverage, tax obligation,
@@ -396,16 +384,16 @@ approval, or any other official decision.
 ### Applicability And Profile Fit
 
 The questionnaire supports applicability/profile fit, not official eligibility
-determination. The navigator may narrow records based on structured answers, but
+determination. The navigator may narrow evidence sets based on structured answers, but
 high-risk areas must still direct the student to the responsible source for
 confirmation.
 
 | Applicability status | Meaning | User-facing handling |
 | --- | --- | --- |
-| `clearly_applicable` | The curated record matches the taxonomy, need subtype, and available profile signals. | Show as a strong starting point with source and limitations. |
-| `possibly_applicable` | The record may fit, but one or more profile details are broad, unknown, or source-dependent. | Show as a backup or lower-ranked option with confirmation wording. |
-| `not_applicable` | The selected answers clearly point away from the record. | Do not show as a recommendation. |
-| `needs_official_confirmation` | The record appears relevant, but eligibility, coverage, status, cost, or authorization requires a responsible office or official source. | Show the record with a clear confirmation notice. |
+| `clearly_applicable` | The retrieved evidence set matches the taxonomy, need subtype, and available profile signals. | Show as a strong starting point with source and limitations. |
+| `possibly_applicable` | The evidence may fit, but one or more profile details are broad, unknown, or source-dependent. | Show as a backup or lower-ranked option with confirmation wording. |
+| `not_applicable` | The selected answers clearly point away from the chunk or source route. | Do not show as a recommendation. |
+| `needs_official_confirmation` | The source appears relevant, but eligibility, coverage, status, cost, or authorization requires a responsible office or official source. | Use the phrase: "The official source lists eligibility criteria that may apply to your situation." |
 | `insufficient_information` | The intake does not provide enough structured context for confident narrowing. | Ask the user to adjust intake or show a no-match/broad-start fallback. |
 
 High-risk categories include healthcare, mental health, insurance, immigration,
@@ -426,7 +414,7 @@ filters derived from those answers. The shared questionnaire-to-RAG fields are
 `category_id`, `need_type`, `student_type`, `jurisdiction`, `language`, and
 derived `risk_level`. The UI should ask the student about urgency, but it should
 not ask whether their issue is high-risk. `risk_level` is derived from the
-mapped taxonomy and chunk metadata.
+mapped taxonomy and chunk metadata. It should be treated as legacy topic-sensitivity metadata, not a direct measure of chunk danger.
 
 `need_type` is not a standalone column in the chunk table. It maps to
 `info_type_tags` and the matching boolean metadata fields, such as
@@ -494,12 +482,21 @@ mapped taxonomy and chunk metadata.
     },
     "vector_search_field": "embedding_text",
     "user_grounding_field": "chunk_text",
+    "top_k_evidence_set": {
+      "minimum_chunks_to_consider": 3,
+      "include_adjacent_context_when_needed": true,
+      "evidence_pass_fail_required": true
+    },
     "citation_fields": [
       "chunk_id",
+      "vector_id",
       "canonical_url",
       "section_heading",
       "heading_path",
       "source_publisher",
+      "review_status",
+      "label_method",
+      "label_confidence",
       "retrieved_at"
     ]
   }
@@ -514,7 +511,7 @@ mapped taxonomy and chunk metadata.
 | `selected_answers.stage_2_taxonomy` | Stores the one taxonomy questionnaire answer shown after category mapping. | Provides `category_id` and `need_type`. | Must not include answers from unrelated taxonomy question sets. |
 | `selected_answers.stage_3_route_narrowing` | Stores the optional route-narrowing answer for complex categories. | Adds context such as insurance/coverage route, government route, or contact/checklist route. | Narrows route only; it does not determine approval, coverage, legal status, tax obligation, diagnosis, aid outcomes, or work authorization. |
 | `derived_rag_filters` | Converts selected answers into chunk-aligned metadata fields. | Filters chunks before vector search. | `risk_level` is derived by the system, not selected directly by the user. |
-| `retrieval_plan` | Shows how the retriever should use metadata and text fields. | Filters first, searches `embedding_text`, and cites from `chunk_text` plus source metadata. | Must not bypass official-source, safety, and citation constraints. |
+| `retrieval_plan` | Shows how the retriever should use metadata and text fields. | Filters first, searches `embedding_text`, returns a top-k evidence set, and cites from `chunk_text` plus source metadata. | Must not bypass official-source, safety, and citation constraints. |
 
 #### Need-Type Mapping To RAG Chunk Metadata
 
@@ -539,7 +536,7 @@ The derived RAG profile should use metadata fields that exist in
 - `student_type`
 - `jurisdiction`
 - `language`
-- `risk_level`
+- legacy `risk_level`
 - `info_type_tags`
 - `has_contact_info`
 - `has_required_docs`
@@ -549,6 +546,10 @@ The derived RAG profile should use metadata fields that exist in
 - `has_deadlines`
 - `has_booking_steps`
 - `has_emergency_info`
+- `review_status`
+- `label_method`
+- `label_confidence`
+- `vector_id`
 
 The retriever should filter chunks by metadata before semantic search. It should
 then run vector search against `embedding_text`, because that field includes the
@@ -556,6 +557,7 @@ heading context plus the chunk text. User-facing citations and summaries should
 come from `chunk_text` and source metadata, including:
 
 - `chunk_id`
+- `vector_id`
 - `canonical_url`
 - `section_heading`
 - `heading_path`
@@ -571,10 +573,40 @@ come from `chunk_text` and source metadata, including:
 - `source_updated_at`
 - `source_priority_rank`
 - `freshness_score`
+- `review_status`
+- `label_method`
+- `label_confidence`
 
 Fields such as `url_hash`, `content_hash`, `section_hash`, `chunk_index`, and
 `token_count` are useful for deduplication, drift monitoring, and debugging, but
 they should not be shown as recommendation content.
+
+#### Top-K Evidence Set Requirement
+
+Issue 4 should return a top-k evidence set, not one best vector. The response
+layer needs enough retrieved evidence to combine action, limitation, contact,
+source, and confirmation wording without inventing content.
+
+Each retrieved evidence item should include at least:
+
+- `chunk_id`
+- `vector_id`
+- `chunk_text`
+- `heading_path`
+- `canonical_url`
+- `source_publisher`
+- `authority_level`
+- `review_status`
+- `label_method`
+- `label_confidence`
+- `retrieved_at`
+- matched metadata filters
+- vector distance or ranking score
+
+The response layer should run a simple evidence pass/fail check before writing
+an answer. If the top chunks are boilerplate-heavy, generic, contradictory, or
+not specific enough to support a concrete action, the UI should show a bounded
+fallback or ask the student to broaden/edit the intake.
 
 #### Applicability Logic For Retrieval
 
@@ -661,8 +693,8 @@ flowchart TD
     I --> J
     J --> K[Submit]
     K --> L{Matching result state}
-    L -->|Curated matches| M[Results screen]
-    L -->|No curated match| N[No-match fallback]
+    L -->|Evidence passes| M[Results screen]
+    L -->|No evidence pass| N[No-match fallback]
     M --> O[Expand source details]
 ```
 
@@ -674,9 +706,9 @@ flowchart LR
     B -->|No| C[Unsupported fallback]
     B -->|Yes| D{Emergency selected?}
     D -->|Yes| E[Emergency guidance first]
-    D -->|No| F{Curated records found?}
+    D -->|No| F{Evidence set passes?}
     E --> F
-    F -->|Yes| G[Primary result plus backups]
+    F -->|Yes| G[Primary route plus backup evidence]
     F -->|No| H[No-match fallback]
     G --> I[Source-linked next steps]
     H --> I
@@ -740,16 +772,16 @@ flowchart LR
 | Based on: Healthcare access, routine, Downtown, IHI context  |
 +-------------------------------------------------------------+
 | Primary starting point                                      |
-| [Service name]                                              |
+| [Official route or source title]                            |
 | Category: Healthcare access                                 |
 | Why this matched: Matches your healthcare need, profile     |
 | fields, and selected access context.                        |
-| Next step: [Conservative official next step from record]    |
-| Access: [Access method from record]                         |
-| Limitations: [Limitations from record]                      |
+| Next step: [Concrete action from retrieved evidence]         |
+| Evidence: [Top chunks and matched filters]                  |
+| Limitations: [Topic and evidence limits]                    |
 | Source: [Official source link]                              |
 | Publisher: [Source publisher]                               |
-| Last verified: [YYYY-MM-DD]                                 |
+| Last checked: [YYYY-MM-DD]                                  |
 | [View source details]                                       |
 +-------------------------------------------------------------+
 | Backup options                                              |
@@ -771,12 +803,12 @@ flowchart LR
 | service.                                                    |
 +-------------------------------------------------------------+
 | Primary official source                                     |
-| [Service name]                                              |
+| [Official route or source title]                            |
 | Why this matched: [category + context reason]                |
 | Next step: [official next step]                             |
 | Limitation: [topic-specific limitation]                     |
 | Source: [official URL]                                      |
-| Last verified: [YYYY-MM-DD]                                 |
+| Last checked: [YYYY-MM-DD]                                  |
 +-------------------------------------------------------------+
 ```
 
@@ -802,9 +834,9 @@ flowchart LR
 
 ```text
 +-------------------------------------------------------------+
-| No curated match found                                      |
+| No source-grounded match found                              |
 +-------------------------------------------------------------+
-| The navigator did not find a curated record that safely     |
+| The navigator did not find source-grounded evidence that     |
 | matches these choices. It will not invent a service.        |
 |                                                             |
 | Try broadening your choices, or start with an official       |
@@ -829,48 +861,46 @@ The results page should use this order:
 
 ### Result Card Fields
 
-Every recommendation card should include these fields when available from the
-curated service record:
+Every recommendation card should be grounded in the retrieved top-k evidence set.
+The UI can still show a service or office name when the source chunk supports
+one, but the card should not require a separate service row.
 
-| Display field | Source field | Required display behavior |
+| Display field | Evidence source | Required display behavior |
 | --- | --- | --- |
-| Service name | `service_name` | Use as the card title. |
-| Category | `category_label` | Show near the title for scanning. |
-| Why this matched | Derived from universal intake, taxonomy follow-up, `student_need`, `intended_users`, and `category_id` | Explain the match without overclaiming. |
-| Intended users | `intended_users` | Show when it clarifies fit. |
-| Access method | `access_method` | Show before the source link when it is actionable. |
-| Recommended next step | `recommended_next_step` | Use as the main action sentence. |
-| Limitations | `limitations` | Show on every high-risk or eligibility-adjacent result. |
-| Official source | `official_source_url` | Always show as a visible link. |
+| Primary starting point | `heading_path`, source title, or office/service name from `chunk_text` | Use the clearest official route name supported by the evidence. |
+| Category | `category_id` and user-facing taxonomy label | Show near the title for scanning. |
+| Why this matched | Intake answers, matched metadata filters, and retrieved chunk content | Explain the match without overclaiming. |
+| Recommended next step | Retrieved `chunk_text` and nearby source context | Show a concrete source-derived action: book, apply, prepare documents, contact an office, check cost/coverage, or confirm criteria. |
+| Important limit | Topic limitation template plus evidence status | Show on every high-risk, eligibility-adjacent, or `silver_unreviewed` result. |
+| Official source | `canonical_url` | Always show as a visible link. |
 | Source publisher | `source_publisher` | Show in metadata. |
-| Last verified | `last_verified_date` | Show in metadata. |
-| Source details | `source_name`, `source_license_or_terms`, `source_retrieved_at`, `source_record_id` | Put behind expandable "source details" when space is limited. |
-
+| Last checked | `retrieved_at` or `source_updated_at` | Show in metadata. |
+| Evidence details | `chunk_id`, `vector_id`, `heading_path`, `review_status`, `label_method`, `label_confidence`, `licence_or_terms` | Put behind expandable "source details" when space is limited. |
 ### Primary Result
 
 The primary result is the best official starting point for the selected intake and one taxonomy-specific follow-up path.
 It should be visually first and should include:
 
-- service name;
+- primary starting point;
 - category label;
 - concise match reason;
 - official next step;
-- access method;
+- source-derived access, booking, application, contact, document, or confirmation route;
 - limitation wording;
 - official source link;
 - source publisher;
-- last verified date.
+- last checked date.
 
 ### Backup Results
 
 Backup results should help the student avoid dead ends. They should be displayed
 below the primary result and use shorter cards:
 
-- service name;
+- primary starting point;
 - one-sentence reason;
 - next step;
 - source link;
-- last verified date.
+- last checked date.
 
 Backup results should not appear more authoritative than the primary result.
 
@@ -882,25 +912,29 @@ user to open an advanced panel:
 ```text
 Source: McGill University
 Official link: [Open source]
-Last verified: 2026-06-19
+Last checked: 2026-06-24
 ```
 
 Expanded source details may include:
 
 ```text
-Source name: International Health Insurance
+Heading path: International Health Insurance > Activate your Coverage
+Chunk ID: [chunk_id]
+Vector ID: [vector_id]
 Source terms: https://www.mcgill.ca/copyright/
-Retrieved at: 2026-06-12T18:02:00+00:00
-Source record ID: candidate-...
-Review status: curated_for_directory_milestone
+Retrieved at: 2026-06-24T00:00:00+00:00
+Review status: silver_unreviewed
+Label method/confidence: deterministic_keyword / [low|medium|high]
 ```
 
 ### Broad Candidate Rule
 
-Broad scraped candidates, source manifests, and raw discovery records should not
-be displayed as recommendations unless they have been curated into the production
-service-record schema. The UI can mention that a match is unavailable, but it
-must not fill the gap with unapproved scraped headings.
+Raw discovery pages, broad link lists, and noisy Silver chunks should not be
+shown as finished recommendations by themselves. A prototype result should be
+shown only when the retrieved evidence set supports a concrete next step and a
+safe limitation. If the evidence is generic, boilerplate-heavy, contradictory,
+or only points to a website without action-grade content, the UI should show a
+bounded fallback instead of inventing a recommendation.
 
 ## User-Facing Wording Standards
 
@@ -963,8 +997,8 @@ eligibility caveats with the responsible office or service.
 | Financial aid | This navigator can link to funding and support resources, but it cannot decide financial-aid eligibility, award amounts, or application outcomes. |
 | Employment | This navigator can link to career and official work resources, but it cannot interpret permit conditions or decide work authorization. |
 | Housing | This navigator can link to housing and tenant-information resources, but it cannot provide legal advice or decide a dispute. |
-| Unsupported | This navigator does not have a curated service record for that request. It will not invent a recommendation. |
-| No match | No curated record matched these choices. Try a broader category or start with an official McGill student-service contact point. |
+| Unsupported | This navigator does not have source-grounded evidence for that request. It will not invent a recommendation. |
+| No retrieved evidence set matched these choices. Try a broader category or start with an official McGill student-service contact point. |
 
 ### Result Label Standards
 
@@ -972,14 +1006,14 @@ Use these labels consistently:
 
 | UI label | Meaning |
 | --- | --- |
-| Primary starting point | Top ranked service or official source. |
+| Primary starting point | Top ranked official source route grounded in retrieved evidence. |
 | Backup option | Secondary result that may still help. |
 | Why this matched | Plain-language match explanation. |
-| Recommended next step | Conservative action grounded in the source record. |
+| Recommended next step | Conservative action grounded in retrieved chunk evidence. |
 | Important limit | Safety, eligibility, freshness, or scope limitation. |
 | Official source | Link the user can open to verify details. |
-| Last verified | Date the project last checked or curated the record. |
-| Source details | Publisher, terms, retrieval timestamp, and source record ID. |
+| Last verified | Date the project last fetched or checked the source. |
+| Source details | Publisher, terms, retrieval timestamp, chunk IDs, and review status. |
 
 ## Low-Fidelity Mockups
 
@@ -1037,19 +1071,18 @@ layout structure.
 | Why this matched: You selected healthcare access with        |
 | campus care and IHI context. This is an official McGill     |
 | starting point for health and wellness care navigation.      |
-| Recommended next step: Use the listed access route to      |
-| start with the appropriate service, then verify details in   |
-| the official source.                                         |
+| Recommended next step: Use the booking, request, contact,   |
+| or registration route stated in the retrieved evidence.      |
 | Important limit: This navigator cannot diagnose symptoms or  |
 | decide whether care is urgent.                               |
 | Official source: [Open official source]                      |
 | Publisher: McGill University                                |
-| Last verified: 2026-06-19                                   |
+| Last checked: 2026-06-24                                    |
 | [Source details]                                             |
 +-------------------------------------------------------------+
 | BACKUP OPTIONS                                              |
-| 1. International Health Insurance - relevant to IHI context. |
-| 2. Primary Care Access Point - useful for Quebec healthcare  |
+| 1. International Health Insurance - evidence may support coverage context. |
+| 2. Primary Care Access Point - evidence may support Quebec healthcare  |
 |    navigation context.                                       |
 +-------------------------------------------------------------+
 ```
@@ -1077,20 +1110,22 @@ layout structure.
 +-------------------------------------------------------------+
 | Source details                                              |
 +-------------------------------------------------------------+
-| Source name: Access Health and Wellness Care                 |
+| Heading path: Access Health and Wellness Care                |
 | Publisher: McGill University                                |
 | Terms or license: McGill copyright terms                     |
-| Retrieved at: 2026-06-12T18:02:00+00:00                     |
-| Source record ID: candidate-...                             |
-| Review status: curated_for_directory_milestone              |
+| Retrieved at: 2026-06-24T00:00:00+00:00                     |
+| Chunk ID: [chunk_id]                                        |
+| Vector ID: [vector_id]                                      |
+| Review status: silver_unreviewed                            |
+| Label method/confidence: deterministic_keyword / high       |
 +-------------------------------------------------------------+
 ```
 
 ## Response Examples
 
-These examples define the expected response shape. The exact service ranking
-will be owned by the matching issue, but the UI should be able to display each
-case in this format.
+These examples define the expected response shape. The exact retrieval ranking
+will be owned by Issue 4, but each example should be answerable from a top-k
+set of retrieved chunks, not from a pre-selected service row.
 
 ### Example 1: Healthcare Access
 
@@ -1098,8 +1133,8 @@ case in this format.
 | --- | --- |
 | Sample intake | Current McGill student; graduate; international student; newly arrived; healthcare access; routine; Downtown campus; English; online; Stage 2: healthcare type = campus care; Stage 3: access context = McGill IHI |
 | Expected category | `health_care` |
-| Candidate service types from Issue 1 | Access Health and Wellness Care, Primary Care Access Point, Quebec Family Doctor Finder |
-| Primary result shape | Official healthcare starting point with match reason, next step, limitation, source link, publisher, and last verified date. |
+| Expected retrieved evidence | Official McGill or Quebec chunks that state the access route, such as an appointment/request page, clinic contact route, family-doctor registration route, or campus health navigation route. |
+| Primary result shape | Official healthcare starting point with match reason, next step, limitation, source link, publisher, and last checked date. |
 | Limitation wording | This navigator can point you to official healthcare starting points, but it cannot diagnose symptoms, recommend treatment, or decide whether care is urgent. |
 | Source placement | Show official link and publisher on the card; put retrieval details in expandable source details. |
 
@@ -1110,12 +1145,11 @@ Primary starting point: Access Health and Wellness Care
 Why this matched: You selected healthcare access, campus care, and IHI context
 as a newly arrived McGill student. This is an official McGill starting point
 for health and wellness care navigation.
-Recommended next step: Use the listed access route to start with the
-appropriate care-navigation service, then verify details in the official source.
+Recommended next step: Use the booking, request, registration, or contact route stated in the retrieved source. If the retrieved chunks only support a broad official starting point, show that route and tell the student what to confirm there.
 Important limit: This navigator cannot diagnose symptoms, recommend treatment,
 or decide whether care is urgent.
 Source: McGill University - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 2: Immigration Or Status Navigation
@@ -1124,7 +1158,7 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Current McGill student; graduate; international student; first term; immigration and legal status; routine; online/remote; English; Stage 2: immigration topic = McGill international student support; Stage 3: not shown |
 | Expected category | `immigration_status` |
-| Candidate service types from Issue 1 | International Student Services, immigration guidance |
+| Expected retrieved evidence | Official McGill or government chunks that state the responsible office, application/checklist route, document-information page, or contact path. |
 | Primary result shape | Official McGill or government starting point with limitation against status interpretation. |
 | Limitation wording | This navigator can link to official immigration and student-service resources, but it cannot interpret documents, decide status, or provide legal advice. |
 | Source placement | Official source link must appear in the card. |
@@ -1136,13 +1170,11 @@ Primary starting point: International Student Services
 Why this matched: You selected immigration and legal status with an
 international newcomer profile. This is an official McGill starting point for
 international student navigation.
-Recommended next step: Contact the responsible student-service or official
-information channel for case-specific guidance, then use the source link to
-verify current instructions.
+Recommended next step: Use the retrieved source to identify the responsible office, checklist, application page, or contact channel. Ask that office to confirm how the official criteria apply to your situation.
 Important limit: This navigator cannot interpret documents, decide status, or
 provide legal advice.
 Source: McGill University - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 3: Health Insurance
@@ -1151,7 +1183,7 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Current McGill student; graduate; international student; newly arrived; health insurance and coverage; planning ahead; online/remote; English; Stage 2: insurance topic = activate coverage; Stage 3: coverage context = McGill IHI |
 | Expected category | `insurance` |
-| Candidate service types from Issue 1 | International Health Insurance, Activate your Coverage, Access HealthCare |
+| Expected retrieved evidence | Official insurance chunks that state activation steps, coverage/cost notes, required documents, claim/contact route, or insurer office details. |
 | Primary result shape | Insurance source record with coverage limitation and official link. |
 | Limitation wording | This navigator can link to official insurance resources, but it cannot decide coverage, reimbursement, exemptions, or claim outcomes. |
 | Source placement | Official source and publisher visible; terms in source details. |
@@ -1163,12 +1195,11 @@ Primary starting point: International Health Insurance
 Why this matched: You selected health insurance, activation support, and McGill
 IHI context. This is an official McGill source for international health
 insurance navigation.
-Recommended next step: Use the listed insurance activation or contact route,
-then verify coverage details in the official source.
+Recommended next step: Follow the activation, coverage, document, or contact step stated in the retrieved source. Contact the listed insurer or McGill office to confirm coverage, costs, claims, or exemptions.
 Important limit: Confirm coverage, exemptions, claims, and costs with the
 official insurance source.
 Source: McGill University - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 4: Wellness Or Mental Health
@@ -1177,7 +1208,7 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Current McGill student; graduate; newcomer context: unsure; first term; mental health and wellbeing; urgent but not emergency; Downtown campus; English; online; Stage 2: support type = routine wellness support; Stage 3: not shown |
 | Expected category | `mental_health` |
-| Candidate service types from Issue 1 | Student Wellness Hub, I need help now, community resources |
+| Expected retrieved evidence | Official wellness, urgent-care, crisis, or community-support chunks that state a contact route, booking route, 24/7 support route, or emergency redirection. |
 | Primary result shape | Wellness or support record with urgent-but-not-emergency limitation. |
 | Limitation wording | This navigator can point you to support resources, but it cannot assess risk, diagnose, or replace crisis or clinical support. |
 | Source placement | Source link and safety limitation visible near result. |
@@ -1189,12 +1220,11 @@ Primary starting point: Student Wellness Hub
 Why this matched: You selected mental health and wellbeing with urgent but not
 emergency urgency. This is an official McGill starting point for wellness
 support.
-Recommended next step: Use the listed support route to connect with the
-appropriate service, then verify current access details in the official source.
+Recommended next step: Use the support route stated in the retrieved source, such as a booking path, phone line, crisis contact, or campus support contact. If the user indicates immediate danger, bypass normal ranking and show emergency guidance first.
 Important limit: This navigator cannot assess risk, diagnose, or replace crisis
 or clinical support.
 Source: McGill University - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 5: Tax Filing Information
@@ -1203,7 +1233,7 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Current McGill student; graduate; international student; first term; tax filing and residency information; planning ahead; online/remote; English; Stage 2: tax topic = general student tax information; Stage 3: official information page |
 | Expected category | `tax` |
-| Candidate service types from Issue 1 | Who has to file a return, free tax clinics, residency-status information |
+| Expected retrieved evidence | CRA or tax-clinic chunks that state filing-information pages, clinic/contact routes, required documents, benefit/credit steps, or residency-status caveats. |
 | Primary result shape | CRA source record with tax limitation. |
 | Limitation wording | This navigator can link to CRA and student tax resources, but it cannot decide tax residency, filing obligations, credits, deductions, or refunds. |
 | Source placement | CRA official link visible in card. |
@@ -1214,12 +1244,11 @@ Example response:
 Primary starting point: CRA student tax information
 Why this matched: You selected tax filing and residency information. This is an
 official federal source for learning about student tax topics.
-Recommended next step: Use the CRA guidance or a listed tax clinic to decide
-where to get help, then verify current instructions in the official source.
+Recommended next step: Use the retrieved CRA or clinic source to identify the next action, such as reading the listed student-tax guidance, preparing the documents named by the source, or contacting a listed clinic for help.
 Important limit: This navigator cannot decide tax residency, filing obligations,
 credits, deductions, or refunds.
 Source: Canada Revenue Agency - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 6: Financial Aid
@@ -1228,7 +1257,7 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Current McGill student; undergraduate; newcomer context: unsure; continuing student; financial aid and affordability; urgent but not emergency; Downtown campus; English; email or web form; Stage 2: finance topic = financial aid advising; Stage 3: advising/contact route |
 | Expected category | `finances` |
-| Candidate service types from Issue 1 | McGill Financial Aid, Scholarships and Student Aid, International Student Funding |
+| Expected retrieved evidence | McGill funding chunks that state an advising/contact route, application page, emergency-support route, deadlines, or required-document guidance. |
 | Primary result shape | McGill funding support record with financial-aid limitation. |
 | Limitation wording | This navigator can link to funding and support resources, but it cannot decide financial-aid eligibility, award amounts, or application outcomes. |
 | Source placement | McGill source link visible. |
@@ -1239,13 +1268,11 @@ Example response:
 Primary starting point: McGill Financial Aid
 Why this matched: You selected financial aid and affordability. This is an
 official McGill starting point for student funding support.
-Recommended next step: Use the listed contact or application route to start
-the funding-support process, then verify current requirements in the official
-source.
+Recommended next step: Use the contact, advising, application, deadline, or required-document route stated in the retrieved source. Confirm eligibility and award decisions with the responsible McGill office.
 Important limit: This navigator cannot decide financial-aid eligibility, award
 amounts, or application outcomes.
 Source: McGill University - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 7: Work And Career Support
@@ -1254,7 +1281,7 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Current McGill student; undergraduate; international student; continuing student; work and career support; routine; Downtown campus; English; in person; Stage 2: work/career topic = career advising; Stage 3: advising appointment |
 | Expected category | `work_career` |
-| Candidate service types from Issue 1 | Career Planning Service, on-campus work, off-campus work |
+| Expected retrieved evidence | Career or work-guidance chunks that state booking/contact routes, career-advising steps, work-rule information pages, or official limitations. |
 | Primary result shape | Career or work-guidance source with employment limitation. |
 | Limitation wording | This navigator can link to career and official work resources, but it cannot interpret permit conditions or decide work authorization. |
 | Source placement | Official source link visible in result. |
@@ -1266,12 +1293,11 @@ Primary starting point: Career Planning Service
 Why this matched: You selected work and career support with career advising as
 the follow-up topic. This is an official McGill starting point for career
 navigation.
-Recommended next step: Use the listed booking or contact route to start with
-career support, then verify current service details in the official source.
+Recommended next step: Use the booking, contact, event, or official work-guidance route stated in the retrieved source. Confirm permit-specific work questions with the responsible official source.
 Important limit: This navigator cannot interpret permit conditions or decide
 work authorization.
 Source: McGill University - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 8: Campus Documents Or Administration
@@ -1280,10 +1306,10 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Exchange or visiting student; exchange/visiting level; international student; newly arrived; campus documents and administration; routine; Downtown campus; English; in person; Stage 2: documents/admin task = ID or documents; Stage 3: not shown |
 | Expected category | `documents_admin` |
-| Candidate service types from Issue 1 | Service Point, Student Accounts |
-| Primary result shape | Administrative service record with next step and source link. |
+| Expected retrieved evidence | McGill administrative chunks that state the responsible office, request path, document route, account route, or contact information. |
+| Primary result shape | Administrative source-grounded route with next step, limitation, source link, and evidence details. |
 | Limitation wording | This navigator can point you to the official administrative starting point, but it cannot access or change your student record. |
-| Source placement | Official McGill link and last verified date visible. |
+| Source placement | Official McGill link and last checked date visible. |
 
 Example response:
 
@@ -1291,11 +1317,10 @@ Example response:
 Primary starting point: Service Point
 Why this matched: You selected campus documents and administration. This is an
 official McGill starting point for common student administrative services.
-Recommended next step: Use the listed service route to start the administrative
-request, then verify current instructions in the official source.
+Recommended next step: Use the request, office, form, or contact route stated in the retrieved source. Do not imply the navigator can access or change records.
 Important limit: This navigator cannot access or change your student record.
 Source: McGill University - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 9: Housing Or Basic Needs
@@ -1304,7 +1329,7 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Current McGill student; graduate; newcomer context: unsure; newly arrived; housing and basic needs; routine; off campus in Montreal; English; online; Stage 2: housing topic = find housing; Stage 3: not shown |
 | Expected category | `housing` |
-| Candidate service types from Issue 1 | Off-Campus Housing, finding housing, refusal-to-rent guidance |
+| Expected retrieved evidence | McGill or official housing chunks that state search steps, office/contact routes, tenant-information pages, basic-needs support, or legal-advice caveats. |
 | Primary result shape | Housing support source with legal-advice limitation when relevant. |
 | Limitation wording | This navigator can link to housing and tenant-information resources, but it cannot provide legal advice or decide a dispute. |
 | Source placement | Official source visible on card. |
@@ -1315,12 +1340,11 @@ Example response:
 Primary starting point: Off-Campus Housing
 Why this matched: You selected housing and basic needs with an off-campus
 Montreal context. This is a McGill-related starting point for housing navigation.
-Recommended next step: Use the listed support route to connect with the
-appropriate service, then verify current access details in the official source.
+Recommended next step: Use the housing search, office/contact, tenant-information, or basic-needs route stated in the retrieved source. For disputes or rights questions, direct the student to the official or legal-information route without deciding the issue.
 Important limit: This navigator cannot provide legal advice or decide a housing
 dispute.
 Source: McGill University - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 10: Language Or Community Integration
@@ -1329,7 +1353,7 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Current McGill student; undergraduate; permanent resident or new Canadian; first term; language and integration; planning ahead; Downtown campus; French; in person; Stage 2: integration topic = language learning; Stage 3: not shown |
 | Expected category | `language_integration` |
-| Candidate service types from Issue 1 | Campus Life and Engagement |
+| Expected retrieved evidence | McGill integration chunks that state orientation, language-learning, peer-support, community, event, or contact routes. |
 | Primary result shape | Integration or campus-life source with accessible next step. |
 | Limitation wording | This navigator can link to orientation and integration resources, but availability and language options should be confirmed with the source. |
 | Source placement | Official McGill or trusted source visible. |
@@ -1340,13 +1364,11 @@ Example response:
 Primary starting point: Campus Life and Engagement
 Why this matched: You selected language and integration support as a first-term
 student. This is an official McGill starting point for campus integration.
-Recommended next step: Use the listed orientation, peer, or community program
-route that fits your situation, then verify current availability in the
-official source.
+Recommended next step: Use the orientation, peer, language, event, or community route stated in the retrieved source. Confirm current availability and language options with the listed source.
 Important limit: Confirm current availability and language options with the
 official source.
 Source: McGill University - official source link
-Last verified: 2026-06-19
+Last checked: 2026-06-19
 ```
 
 ### Example 11: Emergency Or Immediate Safety
@@ -1355,7 +1377,7 @@ Last verified: 2026-06-19
 | --- | --- |
 | Sample intake | Any McGill relationship; any academic level; any newcomer context; urgent or safety-related help; emergency or immediate danger; any location; Stage 2: safety type = emergency or immediate danger; Stage 3: not shown |
 | Expected category | `safety_urgent` |
-| Candidate service types from Issue 1 | Emergency or crisis instructions when curated; regular services only as secondary follow-up |
+| Expected retrieved evidence | Guardrail-first emergency instructions plus any official urgent-care or crisis-support chunks used only as secondary source support. |
 | Primary result shape | Emergency guidance first, then source-linked support if available. |
 | Limitation wording | If this is an emergency or immediate danger, call 911 or go to the nearest emergency department. Regular navigator results are secondary. |
 | Source placement | Emergency guidance visible before normal source cards. |
@@ -1378,9 +1400,9 @@ resources.
 | --- | --- |
 | Sample intake | Student selects "something else" or asks for a professional decision outside supported categories. |
 | Expected category | None, or fallback only |
-| Candidate service types from Issue 1 | None unless a curated general starting point applies. |
+| Expected retrieved evidence | None required. Show a fallback only if a broad official starting point is available and safe. |
 | Primary result shape | Unsupported fallback, not a fabricated recommendation. |
-| Limitation wording | This navigator does not have a curated service record for that request. It will not invent a recommendation. |
+| Limitation wording | This navigator does not have source-grounded evidence for that request. It will not invent a recommendation. |
 | Source placement | If available, show broad official McGill starting point. |
 
 Example response:
@@ -1394,22 +1416,22 @@ Try selecting a broader supported need, or start with an official McGill student
 service for navigation help.
 ```
 
-### Example 13: No Curated Match
+### Example 13: No Source-Grounded Match
 
 | Field | Example |
 | --- | --- |
-| Sample intake | Student selects a supported category, but no curated record matches the full context. |
+| Sample intake | Student selects a supported category, but no retrieved evidence set safely supports a concrete next step for the full context. |
 | Expected category | Selected category remains visible. |
-| Candidate service types from Issue 1 | None with sufficient confidence. |
+| Expected retrieved evidence | No top-k evidence set passes the evidence check with sufficient confidence. |
 | Primary result shape | No-match fallback with edit-intake option. |
-| Limitation wording | No curated record matched these choices. The navigator will not invent a service. |
-| Source placement | Show general official source only if it exists as a curated record. |
+| Limitation wording | No retrieved evidence set matched these choices. The navigator will not invent a service. |
+| Source placement | Show a general official source only if the retrieved evidence supports it. |
 
 Example response:
 
 ```text
-No curated match found:
-The navigator did not find a curated record that safely matches these choices.
+No source-grounded match found:
+The navigator did not find retrieved evidence that safely matches these choices.
 It will not invent a service.
 
 Try broadening your choices, or start with an official McGill student-service
@@ -1434,14 +1456,13 @@ contract. They should be revisited during Issue 4 implementation and team review
 - Delivery preference remains a Stage 1 usability field because the product
   definition includes it; it affects access-method ranking and presentation, not
   eligibility or service availability.
-- Applicability/profile fit is used to narrow and rank records, not to make
+- Applicability/profile fit is used to narrow and rank evidence sets, not to make
   official eligibility, coverage, tax, immigration, medical, financial-aid, or
   work-authorization decisions.
 - The MVP avoids open-ended sensitive free text, private identifiers, detailed
   symptoms, exact income, document numbers, and account credentials.
-- The questionnaire assumes the curated service directory contains enough record
-  fields to support routing by taxonomy, need subtype, intended users, access
-  method, limitations, source URL, and verification date.
+- The questionnaire assumes Issue 1 provides `rag_chunks.csv`, `questionnaire_metadata_map.yml`, and a rebuildable vector index with enough metadata to support filtering by taxonomy, need subtype, student profile, jurisdiction, language, information type, source authority, limitations, source URL, and retrieval date.
+- The current corpus is Silver and `silver_unreviewed`; prototype answers must display limits and source grounding, and final Gold approval/evaluation remains future work.
 
 ## Team Review Checklist
 
@@ -1461,10 +1482,11 @@ Use this checklist to close Issue 2.
 
 ### Muhammad Review
 
-- [ ] Intake fields can be supported by the curated data fields.
-- [ ] Result layout uses the production service-record fields.
-- [ ] Examples align with available categories and service types.
-- [ ] No broad scraped candidate is treated as an approved recommendation.
+- [ ] Intake fields map to `questionnaire_metadata_map.yml` and `rag_chunks.csv` metadata fields.
+- [ ] Retrieval can filter before vector search and return a top-k evidence set.
+- [ ] Result layout uses chunk/source metadata, including `chunk_id`, `vector_id`, `canonical_url`, `review_status`, `label_method`, and `label_confidence`.
+- [ ] Examples align with available taxonomy categories, need types, and expected retrieved evidence.
+- [ ] No raw source page, noisy Silver chunk, or broad discovery candidate is treated as an approved recommendation without evidence checks.
 
 ### Team Review
 
@@ -1477,12 +1499,7 @@ Use this checklist to close Issue 2.
 
 ## Handoff Notes For Future Issues
 
-- Issue 4 should implement intake and matching using the field names and result
-  shape defined here.
-- Issue 5 should use the wording patterns and response examples as the first
-  explanation-layer contract.
-- Issue 7 should turn the high-risk and unsupported-case wording into guardrail
-  checks.
-- Issue 8 should convert the examples into evaluation scenarios with expected
-  categories, acceptable service types, source-link checks, and safety-note
-  checks.
+- Issue 4 should implement intake and retrieval using the field names, metadata filters, top-k evidence-set requirement, and result shape defined here.
+- Issue 5 should use the wording patterns and response examples as the first explanation-layer contract, filling actions only from retrieved chunk evidence.
+- Issue 7 should turn the high-risk, emergency, unsupported-case, and evidence-failure wording into guardrail checks.
+- Issue 8 should convert the examples into evaluation scenarios with expected categories, expected metadata filters, expected retrieved evidence fields, source-link checks, evidence pass/fail rules, and safety-note checks.
