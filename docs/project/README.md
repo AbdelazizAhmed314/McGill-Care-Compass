@@ -19,15 +19,16 @@ This folder contains the durable project documents for McGill Care Compass: Newc
 
 ## Source Relationship
 
-The finalized documents summarize and operationalize durable content from the original proposal package and the current repo data package:
+The finalized documents summarize and operationalize durable content from the original proposal package and the current v1 RAG data package:
 
 - [Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
 - [Project-Plan-High-Level.md](Project-Plan-High-Level.md)
-- [../../data/reports/Consolidated-Data-Investigation-Report.md](../../data/reports/Consolidated-Data-Investigation-Report.md)
+- [../../data/silver/reports/rag_pipeline_report.md](../../data/silver/reports/rag_pipeline_report.md)
+- [../../data/silver/reports/rag_run_manifest.json](../../data/silver/reports/rag_run_manifest.json)
 - [GitHub-Issue-Based-Task-Breakdown.md](GitHub-Issue-Based-Task-Breakdown.md)
 - [Team-Roles-and-Individual-Workload-Appendix.md](Team-Roles-and-Individual-Workload-Appendix.md)
 
-The finalized project documents are the concise planning and delivery references. The `Data/` package is the evidence and reproducibility reference for datasets, scripts, source inputs, and detailed investigation reports.
+The finalized project documents are the concise planning and delivery references. The `Data/` package is the evidence and reproducibility reference for v1 RAG datasets, source inputs, run reports, and manifest governance.
 
 ## How To Use These Files
 

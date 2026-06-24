@@ -30,9 +30,9 @@ LABELS: dict[str, tuple[str, str]] = {
 }
 
 MILESTONES: dict[str, tuple[str, str]] = {
-    "Directory Milestone / Progress Report 1": (
+    "Data Corpus Milestone / Progress Report 1": (
         "2026-06-21T23:59:59Z",
-        "Curated service directory, schema, quality checks, first progress evidence.",
+        "v1 RAG corpus, schema, quality checks, first progress evidence.",
     ),
     "Working Prototype / Progress Report 2": (
         "2026-07-05T23:59:59Z",

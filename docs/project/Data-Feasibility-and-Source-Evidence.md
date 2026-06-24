@@ -2,121 +2,100 @@
 
 ## Purpose
 
-This document summarizes the evidence that the project has enough accessible source material to build McGill Care Compass as a source-grounded service navigator. It is the project-facing evidence summary; detailed datasets, scripts, reproducibility steps, and the full investigation history live in the data package.
+This document summarizes the evidence that McGill Care Compass has enough
+official source material to support a source-grounded navigator. The active data
+evidence is the v1 local RAG corpus.
 
-Primary source document: [Consolidated-Data-Investigation-Report.md](../../data/reports/Consolidated-Data-Investigation-Report.md)
+Primary evidence:
 
-Data package index: [data/README.md](../../data/README.md)
+- [data/README.md](../../data/README.md)
+- [rag_pipeline_report.md](../../data/silver/reports/rag_pipeline_report.md)
+- [rag_run_manifest.json](../../data/silver/reports/rag_run_manifest.json)
+- [rag-data-pipeline.md](../workflow/rag-data-pipeline.md)
 
 ## Main Finding
 
-The data investigation supports building a structured navigator, but not an open-ended advice chatbot. Official sources are accessible and useful, but high-risk topics require a curated service directory, transparent matching, visible source links, last-verified dates, and limitation wording.
+Official McGill, Canada, and Quebec pages provide enough accessible content to
+build a practical navigator. The v1 pipeline turns those pages into
+source-grounded chunks that can support filtered retrieval and cited next-step
+responses.
 
-The implementation challenge is not finding information. It is transforming inconsistent official information into a curated, maintainable, and safe service directory.
+The implementation challenge is no longer finding source pages. It is keeping
+the corpus relevant, versioned, auditable, and safe for high-risk navigation.
 
-## Evidence Summary
+## Current Evidence
 
-| Evidence item | Result | Interpretation |
+| Evidence item | Current v1 result | Interpretation |
 | --- | ---: | --- |
-| Official URLs inventoried and tested | 30 | The source universe is identifiable and accessible. |
-| Inventoried URLs returning HTTP 200 and retained parse samples | 30 | Technical access and parsing were feasible for the tested sources. |
-| Broad service candidates extracted | 376 | Automated discovery can identify possible records but not approve final recommendations. |
-| McGill-specific broad candidates | 323 | McGill pages contain substantial useful service-navigation material. |
-| Complete content-level McGill service records | 10 | A smaller set of records was fully structured with descriptions, users, access methods, next steps, verification dates, and limitations. |
-| Quebec newcomer-guidance records | 286 | Quebec guidance can support settlement and public-service routing. |
-| Quebec integration-partner records | 167 | Community and settlement partner data can support referral options. |
-| Montreal healthcare-facility records | 288 | ODHF-derived facility data can support location-aware healthcare context. |
-
-## How To Interpret The 10 Records Versus 40-Record MVP
-
-The broad automated pull produced many candidates, but only 10 complete McGill content-level records were already recommendation-ready enough for proposal evidence.
-
-The MVP directory target is different: the app will rely on at least 40 curated high-value records. Those records are produced by selecting the best official candidates and manually structuring them into the final service-record schema.
-
-In short:
-
-- **10 complete McGill records** = what the data investigation already proved could be fully structured.
-- **40 curated MVP records** = what the project commits to build for the working navigator.
+| Active seed URLs | 21 | The source universe is explicit and reproducible. |
+| Pages processed | 500 | The crawler reaches the configured page target under depth and source-scope limits. |
+| Discovered links recorded | 22,727 | The pipeline preserves crawl decisions and skipped links for review. |
+| Header-aware chunks | 4,228 | The corpus contains retrievable, section-aware source text. |
+| Categories covered | 11 | The corpus covers the locked taxonomy categories needed for the MVP. |
+| Vector count | 4,228 | Chroma contains one vector per active chunk. |
+| Pipeline version | 1.0.0 | Generated artifacts are tied to a versioned pipeline run. |
 
 ## Source Layers
 
-The project should keep source layers distinct:
-
 | Layer | Role | Can power recommendations? |
 | --- | --- | --- |
-| Discovery catalogue | Broad headings, links, and source metadata used to identify possible services. | No, not directly. |
-| Curated service directory | Human-reviewed records with intended users, access methods, next steps, limitations, official sources, and source metadata. | Yes. |
-| Location datasets | Facility and geography data used for maps and nearby-service support. | Only when surfaced with provenance and limitations. |
-| Evaluation scenarios | Labeled student scenarios used to test matching quality. | No, used for validation. |
+| Bronze raw HTML | Exact fetched source snapshots. | No. Used for traceability and drift checks. |
+| Silver clean text | Boilerplate-removed source text. | No. Used to rebuild chunks. |
+| Silver page/link manifests | Crawl evidence, source metadata, link decisions, and drift state. | No. Used for audit and maintenance. |
+| Silver chunks | Header-aware source snippets with questionnaire metadata and provenance. | Yes, through filtered retrieval. |
+| Silver Chroma index | Local vector search over active chunks. | Yes, but only with source filters and safety rules. |
+| Gold reviewed data | Future release-ready recommendation artifacts. | Not available in v1. |
 
-Only curated records should power final recommendations.
+## Why The v1 RAG Corpus Is Feasible
 
-## Key Evidence Artifacts
+The v1 pipeline addresses the team's main data concern: the app should not only
+point users to websites. It extracts useful page content into chunks with
+headings, source links, nearby links, category metadata, need-type tags, and
+source terms. The response layer can use those chunks to summarize next steps,
+contacts, costs, required documents, and eligibility-adjacent information while
+citing official sources.
 
-The full artifact map and reproduction commands are maintained in [data/README.md](../../data/README.md). The most important evidence artifacts are:
+The corpus remains maintainable because each run records source hashes,
+configuration hashes, pipeline version, artifact hashes, and row counts. When a
+website changes, the next run can detect the changed clean-text hash and refresh
+the affected chunks and vectors.
 
-| Artifact | Role |
-| --- | --- |
-| `navigator_source_inventory.csv` | Approved/candidate source registry. |
-| `navigator_url_parse_samples.csv` | One parse sample per inventoried URL. |
-| `navigator_service_candidates.csv` | Broad discovery catalogue with 376 candidates. |
-| `navigator_proposal_samples.csv` | Structure-verified McGill examples. |
-| `mcgill_useful_service_records.csv` | 10 content-level McGill feasibility records. |
-| `quebec_guidance_catalogue.csv` | Quebec guidance actions and linked resources. |
-| `guidance_review_queue.csv` | Review workflow for high-risk guidance. |
-| `quebec_immigration_partners.csv` | Quebec integration-partner directory. |
-| `montreal_healthcare_facilities.csv` | Montreal healthcare-facility locations. |
-| `source_manifest.csv` | Quebec and ODHF source retrieval evidence. |
+## Architecture Assumptions
 
-## Healthcare Facility Evidence
+- v1 ingests official HTML pages from McGill, Canada, and Quebec sources.
+- PDFs, login-gated pages, JavaScript-only pages, and irrelevant external links
+  are logged but not ingested.
+- The crawler follows only approved domains and path prefixes.
+- The pipeline uses local/open-source tooling and
+  `sentence-transformers/all-MiniLM-L6-v2`.
+- The questionnaire metadata map is the shared contract with Mustafa's intake
+  flow.
+- Silver outputs are generated and queryable, but not yet manually approved as
+  final Gold recommendation data.
 
-The Montreal healthcare-facility dataset comes from the Statistics Canada Open Database of Healthcare Facilities.
-
-Observed healthcare-facility findings:
-
-- Canada-wide ODHF records: 7,033.
-- Quebec records: 1,606.
-- Exact Montreal CSD records: 288.
-- Montreal facilities missing coordinates: 0.
-- Duplicate facility IDs: 0.
-
-ODHF-derived facility records can support maps and nearby-facility context, but they are not enough to make clinical or eligibility recommendations. Every ODHF-derived facility surfaced in the app must carry source and license/terms provenance.
-
-Required ODHF provenance fields:
-
-- `source_name`
-- `source_publisher`
-- `source_url`
-- `source_license_or_terms`
-- `source_retrieved_at`
-- `source_record_id` where available
-- `last_verified_date`
-
-## Feasibility Claim
-
-The strongest defensible project claim is:
-
-> Official sources contain enough accessible and useful information to build a practical navigator, provided that automated extraction is combined with structured curation, visible source links, last-verified dates, transparent matching rules, and review controls for high-risk topics.
-
-## What The Evidence Does Not Support
+## Limits
 
 The evidence does not support:
 
-- A fully automated advice-generating chatbot.
-- Live professional review of each user response.
-- Medical, legal, immigration, tax, insurance, or financial eligibility decisions.
-- Recommendations powered directly by raw scraped headings or candidate links.
-- Guarantees about current service availability, wait times, cost, or eligibility.
+- a free-form advice chatbot;
+- medical, legal, immigration, tax, insurance, financial, or eligibility
+  decisions;
+- guarantees about service availability, wait times, costs, or eligibility;
+- retrieval from unapproved external pages;
+- treating Silver outputs as reviewed Gold data.
+
+The pipeline can still ingest noisy in-scope pages when official sites expose
+large navigation surfaces. The link-priority score and reasons make that visible
+for review and tuning.
 
 ## Implementation Implications
 
 The app should:
 
-- Build a curated directory of at least 40 service records.
-- Keep broad scraped records as discovery evidence, not final recommendation records.
-- Use the locked taxonomy in all records.
-- Preserve official source URLs and last-verified dates.
-- Preserve ODHF source and license/terms provenance for healthcare facilities.
-- Use transparent rule-based matching.
-- Include limitation language for high-risk topics.
-- Provide source-freshness and broken-link maintenance reports.
+- filter chunks by questionnaire metadata before semantic search;
+- prefer primary sources in the configured order: Canada, Quebec, official
+  healthcare systems, McGill, then other approved sources;
+- show citations and source dates;
+- surface source terms metadata where needed;
+- use high-risk guardrails before producing final wording;
+- promote only reviewed subsets of Silver data to Gold.
