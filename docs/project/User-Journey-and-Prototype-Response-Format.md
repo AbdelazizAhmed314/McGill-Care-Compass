@@ -554,25 +554,19 @@ The derived RAG profile should use metadata fields that exist in
 The retriever should filter chunks by metadata before semantic search. It should
 then run vector search against `embedding_text`, because that field includes the
 heading context plus the chunk text. User-facing citations and summaries should
-come from `chunk_text` and source metadata, including:
+come from `chunk_text` and user-safe source metadata, including:
+
+- one or more `canonical_url` values;
+- `source_publisher`;
+- `terms_url` or `licence_or_terms`;
+- `retrieved_at` or `source_updated_at`.
+
+Developer-only evidence details should retain the chunk-level fields needed for
+debugging and evaluation, including:
 
 - `chunk_id`
 - `vector_id`
-- `canonical_url`
-- `section_heading`
 - `heading_path`
-- `nearby_links`
-- `domain`
-- `source_group`
-- `source_owner`
-- `source_publisher`
-- `authority_level`
-- `terms_url`
-- `licence_or_terms`
-- `retrieved_at`
-- `source_updated_at`
-- `source_priority_rank`
-- `freshness_score`
 - `review_status`
 - `label_method`
 - `label_confidence`
@@ -872,10 +866,9 @@ one, but the card should not require a separate service row.
 | Why this matched | Intake answers, matched metadata filters, and retrieved chunk content | Explain the match without overclaiming. |
 | Recommended next step | Retrieved `chunk_text` and nearby source context | Show a concrete source-derived action: book, apply, prepare documents, contact an office, check cost/coverage, or confirm criteria. |
 | Important limit | Topic limitation template plus evidence status | Show on every high-risk, eligibility-adjacent, or `silver_unreviewed` result. |
-| Official source | `canonical_url` | Always show as a visible link. |
-| Source publisher | `source_publisher` | Show in metadata. |
-| Last checked | `retrieved_at` or `source_updated_at` | Show in metadata. |
-| Evidence details | `chunk_id`, `vector_id`, `heading_path`, `review_status`, `label_method`, `label_confidence`, `licence_or_terms` | Put behind expandable "source details" when space is limited. |
+| Official sources | one or more `canonical_url` values | Always show visible links for every source page used in the answer. |
+| Source details | `source_publisher`, `terms_url` or `licence_or_terms`, `retrieved_at` or `source_updated_at` | Show user-facing provenance in a compact table, with one row per distinct source/page. |
+| Developer-only evidence details | `chunk_id`, `vector_id`, `heading_path`, `review_status`, `label_method`, `label_confidence` | Keep internal chunk-level evidence in developer/debug views, logs, review notes, or evaluation fixtures; do not show these fields to users. |
 ### Primary Result
 
 The primary result is the best official starting point for the selected intake and one taxonomy-specific follow-up path.
@@ -915,17 +908,17 @@ Official link: [Open source]
 Last checked: 2026-06-24
 ```
 
-Expanded source details may include:
+Expanded source details may include one row per distinct source/page:
 
 ```text
-Heading path: International Health Insurance > Activate your Coverage
-Chunk ID: [chunk_id]
-Vector ID: [vector_id]
-Source terms: https://www.mcgill.ca/copyright/
-Retrieved at: 2026-06-24T00:00:00+00:00
-Review status: silver_unreviewed
-Label method/confidence: deterministic_keyword / [low|medium|high]
+| Source                | Publisher         | Terms                         | Last retrieved             |
+| Activate IHI Coverage | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T00:00:00+00:00 |
+| IHI Exemption         | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T00:00:00+00:00 |
 ```
+
+Developer/debug views may separately show chunk-level evidence details such as
+`chunk_id`, `vector_id`, `heading_path`, `review_status`, `label_method`, and
+`label_confidence`.
 
 ### Broad Candidate Rule
 
@@ -1013,7 +1006,7 @@ Use these labels consistently:
 | Important limit | Safety, eligibility, freshness, or scope limitation. |
 | Official source | Link the user can open to verify details. |
 | Last verified | Date the project last fetched or checked the source. |
-| Source details | Publisher, terms, retrieval timestamp, chunk IDs, and review status. |
+| Source details | User-facing source table with publisher, terms, and retrieval timestamp; developer-only chunk evidence is separate. |
 
 ## Low-Fidelity Mockups
 
@@ -1110,333 +1103,453 @@ layout structure.
 +-------------------------------------------------------------+
 | Source details                                              |
 +-------------------------------------------------------------+
-| Heading path: Access Health and Wellness Care                |
-| Publisher: McGill University                                |
-| Terms or license: McGill copyright terms                     |
-| Retrieved at: 2026-06-24T00:00:00+00:00                     |
-| Chunk ID: [chunk_id]                                        |
-| Vector ID: [vector_id]                                      |
-| Review status: silver_unreviewed                            |
-| Label method/confidence: deterministic_keyword / high       |
+| Source                  | Publisher         | Retrieved      |
+| Activate IHI Coverage   | McGill University | 2026-06-24     |
+| IHI Exemption Deadlines | McGill University | 2026-06-24     |
+| Terms: https://www.mcgill.ca/copyright/                     |
 +-------------------------------------------------------------+
 ```
 
+Internal chunk-level fields such as `chunk_id`, `vector_id`, `review_status`,
+`label_method`, and `label_confidence` should be available in developer-only
+evidence details, not in the user-facing source-details expansion.
+
 ## Response Examples
 
-These examples define the expected response shape. The exact retrieval ranking
-will be owned by Issue 4, but each example should be answerable from a top-k
-set of retrieved chunks, not from a pre-selected service row.
+These examples define the expected response shape. Retrieval ranking will be
+owned by Issue 4, but each category example should be answerable from a top-k
+evidence set, not from one best chunk or a pre-selected service row. The examples
+show at most one response per category. User-facing provenance may include
+multiple official source links and multiple source-detail rows. Chunk-level
+metadata stays in developer-only evidence details.
 
-### Example 1: Healthcare Access
+### Example 1: Health Insurance
 
-| Field | Example |
-| --- | --- |
-| Sample intake | Current McGill student; graduate; international student; newly arrived; healthcare access; routine; Downtown campus; English; online; Stage 2: healthcare type = campus care; Stage 3: access context = McGill IHI |
-| Expected category | `health_care` |
-| Expected retrieved evidence | Official McGill or Quebec chunks that state the access route, such as an appointment/request page, clinic contact route, family-doctor registration route, or campus health navigation route. |
-| Primary result shape | Official healthcare starting point with match reason, next step, limitation, source link, publisher, and last checked date. |
-| Limitation wording | This navigator can point you to official healthcare starting points, but it cannot diagnose symptoms, recommend treatment, or decide whether care is urgent. |
-| Source placement | Show official link and publisher on the card; put retrieval details in expandable source details. |
+**Expected category:** `insurance`
 
-Example response:
+**Primary starting point:** McGill International Student Services - Activate IHI Coverage
 
-```text
-Primary starting point: Access Health and Wellness Care
-Why this matched: You selected healthcare access, campus care, and IHI context
-as a newly arrived McGill student. This is an official McGill starting point
-for health and wellness care navigation.
-Recommended next step: Use the booking, request, registration, or contact route stated in the retrieved source. If the retrieved chunks only support a broad official starting point, show that route and tell the student what to confirm there.
-Important limit: This navigator cannot diagnose symptoms, recommend treatment,
-or decide whether care is urgent.
-Source: McGill University - official source link
-Last checked: 2026-06-19
-```
+**Backup option:** IHI exemption or insurance contact route if activation does not work.
 
-### Example 2: Immigration Or Status Navigation
+**Why this matched:** You selected health insurance and activation support, and the retrieved evidence set includes activation steps plus insurance source details.
 
-| Field | Example |
-| --- | --- |
-| Sample intake | Current McGill student; graduate; international student; first term; immigration and legal status; routine; online/remote; English; Stage 2: immigration topic = McGill international student support; Stage 3: not shown |
-| Expected category | `immigration_status` |
-| Expected retrieved evidence | Official McGill or government chunks that state the responsible office, application/checklist route, document-information page, or contact path. |
-| Primary result shape | Official McGill or government starting point with limitation against status interpretation. |
-| Limitation wording | This navigator can link to official immigration and student-service resources, but it cannot interpret documents, decide status, or provide legal advice. |
-| Source placement | Official source link must appear in the card. |
+**Recommended next step:** Log in to Minerva, open the Student tab, choose the International Health Insurance Menu, select Confirm IHI Coverage, and then print your IHI card. Have your McGill student ID ready.
 
-Example response:
+**Important limit:** This navigator cannot decide coverage, reimbursement, exemptions, or claim outcomes.
 
-```text
-Primary starting point: International Student Services
-Why this matched: You selected immigration and legal status with an
-international newcomer profile. This is an official McGill starting point for
-international student navigation.
-Recommended next step: Use the retrieved source to identify the responsible office, checklist, application page, or contact channel. Ask that office to confirm how the official criteria apply to your situation.
-Important limit: This navigator cannot interpret documents, decide status, or
-provide legal advice.
-Source: McGill University - official source link
-Last checked: 2026-06-19
-```
+**Official sources:**
 
-### Example 3: Health Insurance
+- https://www.mcgill.ca/internationalstudents/health/activate-ihi-coverage
 
-| Field | Example |
-| --- | --- |
-| Sample intake | Current McGill student; graduate; international student; newly arrived; health insurance and coverage; planning ahead; online/remote; English; Stage 2: insurance topic = activate coverage; Stage 3: coverage context = McGill IHI |
-| Expected category | `insurance` |
-| Expected retrieved evidence | Official insurance chunks that state activation steps, coverage/cost notes, required documents, claim/contact route, or insurer office details. |
-| Primary result shape | Insurance source record with coverage limitation and official link. |
-| Limitation wording | This navigator can link to official insurance resources, but it cannot decide coverage, reimbursement, exemptions, or claim outcomes. |
-| Source placement | Official source and publisher visible; terms in source details. |
+**Last verified:** 2026-06-24
 
-Example response:
+**Source details:**
 
-```text
-Primary starting point: International Health Insurance
-Why this matched: You selected health insurance, activation support, and McGill
-IHI context. This is an official McGill source for international health
-insurance navigation.
-Recommended next step: Follow the activation, coverage, document, or contact step stated in the retrieved source. Contact the listed insurer or McGill office to confirm coverage, costs, claims, or exemptions.
-Important limit: Confirm coverage, exemptions, claims, and costs with the
-official insurance source.
-Source: McGill University - official source link
-Last checked: 2026-06-19
-```
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Activate IHI Coverage | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
 
-### Example 4: Wellness Or Mental Health
+**Developer-only evidence details:** (not shown to users)
 
-| Field | Example |
-| --- | --- |
-| Sample intake | Current McGill student; graduate; newcomer context: unsure; first term; mental health and wellbeing; urgent but not emergency; Downtown campus; English; online; Stage 2: support type = routine wellness support; Stage 3: not shown |
-| Expected category | `mental_health` |
-| Expected retrieved evidence | Official wellness, urgent-care, crisis, or community-support chunks that state a contact route, booking route, 24/7 support route, or emergency redirection. |
-| Primary result shape | Wellness or support record with urgent-but-not-emergency limitation. |
-| Limitation wording | This navigator can point you to support resources, but it cannot assess risk, diagnose, or replace crisis or clinical support. |
-| Source placement | Source link and safety limitation visible near result. |
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_insurance_001_a | ex_insurance_001_a | International Student Services > Health Insurance > Activate Your Coverage | silver_unreviewed | deterministic_keyword | 0.93 |
+| 2 | ex_insurance_001_b | ex_insurance_001_b | International Student Services > Health Insurance > IHI Card | silver_unreviewed | deterministic_keyword | 0.88 |
 
-Example response:
+### Example 2: Healthcare Access
 
-```text
-Primary starting point: Student Wellness Hub
-Why this matched: You selected mental health and wellbeing with urgent but not
-emergency urgency. This is an official McGill starting point for wellness
-support.
-Recommended next step: Use the support route stated in the retrieved source, such as a booking path, phone line, crisis contact, or campus support contact. If the user indicates immediate danger, bypass normal ranking and show emergency guidance first.
-Important limit: This navigator cannot assess risk, diagnose, or replace crisis
-or clinical support.
-Source: McGill University - official source link
-Last checked: 2026-06-19
-```
+**Expected category:** `health_care`
 
-### Example 5: Tax Filing Information
+**Primary starting point:** McGill Student Wellness Hub - healthcare appointment route
 
-| Field | Example |
-| --- | --- |
-| Sample intake | Current McGill student; graduate; international student; first term; tax filing and residency information; planning ahead; online/remote; English; Stage 2: tax topic = general student tax information; Stage 3: official information page |
-| Expected category | `tax` |
-| Expected retrieved evidence | CRA or tax-clinic chunks that state filing-information pages, clinic/contact routes, required documents, benefit/credit steps, or residency-status caveats. |
-| Primary result shape | CRA source record with tax limitation. |
-| Limitation wording | This navigator can link to CRA and student tax resources, but it cannot decide tax residency, filing obligations, credits, deductions, or refunds. |
-| Source placement | CRA official link visible in card. |
+**Backup option:** CLSC or off-campus clinic route if the Hub is not the right fit.
 
-Example response:
+**Why this matched:** You selected healthcare access, and the retrieved evidence set includes appointment, insurance, and community-care route information.
 
-```text
-Primary starting point: CRA student tax information
-Why this matched: You selected tax filing and residency information. This is an
-official federal source for learning about student tax topics.
-Recommended next step: Use the retrieved CRA or clinic source to identify the next action, such as reading the listed student-tax guidance, preparing the documents named by the source, or contacting a listed clinic for help.
-Important limit: This navigator cannot decide tax residency, filing obligations,
-credits, deductions, or refunds.
-Source: Canada Revenue Agency - official source link
-Last checked: 2026-06-19
-```
+**Recommended next step:** Use the booking route listed by the Hub, then bring your student ID and insurance information. If the source supports direct billing, note that billing may go to McGill IHI or a Canadian provincial plan.
 
-### Example 6: Financial Aid
+**Important limit:** This navigator cannot diagnose symptoms, recommend treatment, or decide whether care is urgent.
 
-| Field | Example |
-| --- | --- |
-| Sample intake | Current McGill student; undergraduate; newcomer context: unsure; continuing student; financial aid and affordability; urgent but not emergency; Downtown campus; English; email or web form; Stage 2: finance topic = financial aid advising; Stage 3: advising/contact route |
-| Expected category | `finances` |
-| Expected retrieved evidence | McGill funding chunks that state an advising/contact route, application page, emergency-support route, deadlines, or required-document guidance. |
-| Primary result shape | McGill funding support record with financial-aid limitation. |
-| Limitation wording | This navigator can link to funding and support resources, but it cannot decide financial-aid eligibility, award amounts, or application outcomes. |
-| Source placement | McGill source link visible. |
+**Official sources:**
 
-Example response:
+- https://www.mcgill.ca/wellness-hub/get-support/find-community-resources/navigatinghealthcare
 
-```text
-Primary starting point: McGill Financial Aid
-Why this matched: You selected financial aid and affordability. This is an
-official McGill starting point for student funding support.
-Recommended next step: Use the contact, advising, application, deadline, or required-document route stated in the retrieved source. Confirm eligibility and award decisions with the responsible McGill office.
-Important limit: This navigator cannot decide financial-aid eligibility, award
-amounts, or application outcomes.
-Source: McGill University - official source link
-Last checked: 2026-06-19
-```
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Healthcare Navigation | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_health_002_a | ex_health_002_a | Student Wellness Hub > Healthcare Navigation > Health Clinics | silver_unreviewed | deterministic_keyword | 0.86 |
+| 2 | ex_health_002_b | ex_health_002_b | Student Wellness Hub > Healthcare Navigation > Billing and Insurance | silver_unreviewed | deterministic_keyword | 0.82 |
+
+### Example 3: Immigration Or Status Navigation
+
+**Expected category:** `immigration_status`
+
+**Primary starting point:** McGill International Student Services - TRV or study-permit guidance
+
+**Backup option:** International Student Services advisor or linked government application page.
+
+**Why this matched:** You selected immigration/status navigation, and the retrieved evidence set includes official document steps and required-document guidance.
+
+**Recommended next step:** Use the retrieved source to identify the responsible office, checklist, application page, or contact channel. Ask that office to confirm how the official criteria apply to your situation.
+
+**Important limit:** This navigator cannot interpret documents, decide status, or provide legal advice.
+
+**Official sources:**
+
+- https://www.mcgill.ca/internationalstudents/immigration-documents/renewing-documents/renewing-temporary-resident-visa-trv
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| TRV Renewal | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_immigration_003_a | ex_immigration_003_a | Immigration Documents > Renewing Visitor Visa > Step-by-step Guide | silver_unreviewed | deterministic_keyword | 0.87 |
+| 2 | ex_immigration_003_b | ex_immigration_003_b | Immigration Documents > Renewing Visitor Visa > Required Documents | silver_unreviewed | deterministic_keyword | 0.84 |
+
+### Example 4: Mental Health And Wellbeing
+
+**Expected category:** `mental_health`
+
+**Primary starting point:** McGill Student Wellness Hub - support route
+
+**Backup option:** Crisis or urgent support route if the student indicates immediate danger.
+
+**Why this matched:** You selected mental health and wellbeing, and the retrieved evidence set includes support-routing and limitation information.
+
+**Recommended next step:** Use the booking, phone, crisis, or campus-support route stated in the retrieved source. If the student indicates immediate danger, bypass normal ranking and show emergency guidance first.
+
+**Important limit:** This navigator cannot assess risk, diagnose, or replace crisis or clinical support.
+
+**Official sources:**
+
+- https://www.mcgill.ca/wellness-hub/contact/hub-policies
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Hub Policies | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_mental_004_a | ex_mental_004_a | Student Wellness Hub > Hub Policies > Eligibility | silver_unreviewed | deterministic_keyword | 0.89 |
+| 2 | ex_mental_004_b | ex_mental_004_b | Student Wellness Hub > Hub Policies > Telehealth Options | silver_unreviewed | deterministic_keyword | 0.81 |
+
+### Example 5: Financial Aid
+
+**Expected category:** `finances`
+
+**Primary starting point:** McGill Scholarships and Student Aid - In-Course Financial Aid
+
+**Backup option:** Fee Deferral route if the issue is delayed funding.
+
+**Why this matched:** You selected financial aid and affordability, and the retrieved evidence set includes application, appointment, and deferral routes.
+
+**Recommended next step:** Submit or update your In-Course Financial Aid profile or application. After submitting, make an appointment with a Financial Aid Counsellor if the application tells you to do so.
+
+**Important limit:** This navigator cannot decide financial-aid eligibility, award amounts, or application outcomes.
+
+**Official sources:**
+
+- https://www.mcgill.ca/studentaid/scholarships-aid/international-students
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| International Student Funding | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_finances_005_a | ex_finances_005_a | Scholarships and Student Aid > International Student Funding > McGill Financial Aid | silver_unreviewed | deterministic_keyword | 0.88 |
+| 2 | ex_finances_005_b | ex_finances_005_b | Scholarships and Student Aid > Fee Deferral | silver_unreviewed | deterministic_keyword | 0.82 |
+
+### Example 6: Tax Filing Information
+
+**Expected category:** `tax`
+
+**Primary starting point:** Canada Revenue Agency - free tax clinic finder
+
+**Backup option:** CRA student tax information for document preparation.
+
+**Why this matched:** You selected tax filing information, and the retrieved evidence set includes clinic, student-tax, and required-document guidance.
+
+**Recommended next step:** Use the CRA free tax clinic page to find a clinic, then prepare tax slips, tuition documents, identification, and income records before the appointment.
+
+**Important limit:** This navigator cannot decide tax residency, filing obligations, credits, deductions, or refunds.
+
+**Official sources:**
+
+- https://www.canada.ca/en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html
+- https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Free Tax Clinics | Canada Revenue Agency | https://www.canada.ca/en/transparency/terms.html | 2026-06-24T07:40:10+00:00 |
+| CRA Student Tax Information | Canada Revenue Agency | https://www.canada.ca/en/transparency/terms.html | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_tax_006_a | ex_tax_006_a | Free Tax Clinics > Community Volunteer Income Tax Program | silver_unreviewed | deterministic_keyword | 0.86 |
+| 2 | ex_tax_006_b | ex_tax_006_b | Students > Documents and Records | silver_unreviewed | deterministic_keyword | 0.80 |
 
 ### Example 7: Work And Career Support
 
-| Field | Example |
-| --- | --- |
-| Sample intake | Current McGill student; undergraduate; international student; continuing student; work and career support; routine; Downtown campus; English; in person; Stage 2: work/career topic = career advising; Stage 3: advising appointment |
-| Expected category | `work_career` |
-| Expected retrieved evidence | Career or work-guidance chunks that state booking/contact routes, career-advising steps, work-rule information pages, or official limitations. |
-| Primary result shape | Career or work-guidance source with employment limitation. |
-| Limitation wording | This navigator can link to career and official work resources, but it cannot interpret permit conditions or decide work authorization. |
-| Source placement | Official source link visible in result. |
+**Expected category:** `work_career`
 
-Example response:
+**Primary starting point:** McGill International Student Services - SIN and work authorization guidance
 
-```text
-Primary starting point: Career Planning Service
-Why this matched: You selected work and career support with career advising as
-the follow-up topic. This is an official McGill starting point for career
-navigation.
-Recommended next step: Use the booking, contact, event, or official work-guidance route stated in the retrieved source. Confirm permit-specific work questions with the responsible official source.
-Important limit: This navigator cannot interpret permit conditions or decide
-work authorization.
-Source: McGill University - official source link
-Last checked: 2026-06-19
-```
+**Backup option:** Career Planning Service if the need is career advising rather than work authorization.
+
+**Why this matched:** You selected work and career support, and the retrieved evidence set includes work-rule and required-document guidance.
+
+**Recommended next step:** Check whether your Study Permit includes work authorization wording before starting work. If you need a SIN, prepare your valid Study Permit and valid passport and use the official SIN route.
+
+**Important limit:** This navigator cannot interpret permit conditions or decide work authorization.
+
+**Official sources:**
+
+- https://www.mcgill.ca/internationalstudents/work/social-insurance-number
+- https://www.mcgill.ca/internationalstudents/work/work-authorization-cheat-sheet
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Social Insurance Number | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+| Work Authorization Cheat Sheet | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_work_007_a | ex_work_007_a | Work In Canada > Social Insurance Number > Required Documents | silver_unreviewed | deterministic_keyword | 0.92 |
+| 2 | ex_work_007_b | ex_work_007_b | Work In Canada as a Student > Work Authorization Conditions | silver_unreviewed | deterministic_keyword | 0.88 |
 
 ### Example 8: Campus Documents Or Administration
 
-| Field | Example |
-| --- | --- |
-| Sample intake | Exchange or visiting student; exchange/visiting level; international student; newly arrived; campus documents and administration; routine; Downtown campus; English; in person; Stage 2: documents/admin task = ID or documents; Stage 3: not shown |
-| Expected category | `documents_admin` |
-| Expected retrieved evidence | McGill administrative chunks that state the responsible office, request path, document route, account route, or contact information. |
-| Primary result shape | Administrative source-grounded route with next step, limitation, source link, and evidence details. |
-| Limitation wording | This navigator can point you to the official administrative starting point, but it cannot access or change your student record. |
-| Source placement | Official McGill link and last checked date visible. |
+**Expected category:** `documents_admin`
 
-Example response:
+**Primary starting point:** McGill Service Point - document or hold support
 
-```text
-Primary starting point: Service Point
-Why this matched: You selected campus documents and administration. This is an
-official McGill starting point for common student administrative services.
-Recommended next step: Use the request, office, form, or contact route stated in the retrieved source. Do not imply the navigator can access or change records.
-Important limit: This navigator cannot access or change your student record.
-Source: McGill University - official source link
-Last checked: 2026-06-19
-```
+**Backup option:** Student Accounts route if the question is about fees or billing.
+
+**Why this matched:** You selected campus documents and administration, and the retrieved evidence set includes administrative processing and contact-route information.
+
+**Recommended next step:** Use the request, office, form, or contact route stated in the retrieved source. If the issue is a document hold, check the stated processing window before following up.
+
+**Important limit:** This navigator cannot access or change your student record.
+
+**Official sources:**
+
+- https://www.mcgill.ca/servicepoint/holds
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Service Point Holds | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_documents_008_a | ex_documents_008_a | Service Point > Holds > Processing Times | silver_unreviewed | deterministic_keyword | 0.83 |
+| 2 | ex_documents_008_b | ex_documents_008_b | Service Point > Holds > Contact Route | silver_unreviewed | deterministic_keyword | 0.78 |
 
 ### Example 9: Housing Or Basic Needs
 
+**Expected category:** `housing`
+
+**Primary starting point:** Gouvernement du Quebec - newcomer housing search guidance
+
+**Backup option:** Accompagnement Quebec or community organization support.
+
+**Why this matched:** You selected housing and basic needs, and the retrieved evidence set includes housing search, temporary housing, and lease-check guidance.
+
+**Recommended next step:** Find temporary housing first so you have time to assess your needs. Check weekly or monthly rentals, budget fit, and central locations. Before signing a lease, check rent, exact address, owner information, and tenant responsibilities.
+
+**Important limit:** This navigator cannot provide legal advice or decide a housing dispute.
+
+**Official sources:**
+
+- https://www.quebec.ca/en/immigration/settle-and-integrate-in-quebec
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Quebec Newcomer Housing | Gouvernement du Quebec | https://www.quebec.ca/en/copyright | 2026-06-21T19:13:49+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_housing_009_a | ex_housing_009_a | Settle and Integrate in Quebec > Housing | silver_unreviewed | deterministic_keyword | 0.84 |
+| 2 | ex_housing_009_b | ex_housing_009_b | Settle and Integrate in Quebec > Housing > Renting Accommodation | silver_unreviewed | deterministic_keyword | 0.79 |
+
+### Example 10: Academic And Advising Support
+
+**Expected category:** `academics`
+
+**Primary starting point:** McGill Libraries - Ask a Librarian
+
+**Backup option:** Academic advising route if the question is program-planning rather than research help.
+
+**Why this matched:** You selected academic and advising support, and the retrieved evidence set includes library help and subject-support routes.
+
+**Recommended next step:** Chat with a librarian during listed service hours or text the library help number. If the question is subject-specific, contact the liaison librarian and prepare your course name, research topic, and source type.
+
+**Important limit:** Service hours and response times can change. Check the official page before relying on availability.
+
+**Official sources:**
+
+- https://www.mcgill.ca/libraries/contact-us/ask-librarian
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Ask a Librarian | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_academics_010_a | ex_academics_010_a | McGill Libraries > Contact Us > Ask A Librarian | silver_unreviewed | deterministic_keyword | 0.90 |
+| 2 | ex_academics_010_b | ex_academics_010_b | McGill Libraries > Contact Us > Text a Librarian | silver_unreviewed | deterministic_keyword | 0.86 |
+
+### Example 11: Language And Community Integration
+
+**Expected category:** `language_integration`
+
+**Primary starting point:** McGill International Student Services - pre-arrival orientation and integration route
+
+**Backup option:** Campus Life and Engagement if the need is peer or campus-community connection.
+
+**Why this matched:** You selected language and integration support, and the retrieved evidence set includes orientation, community, and event routes.
+
+**Recommended next step:** Use the orientation, peer, language, event, or community route stated in the retrieved source. Confirm current availability, format, and language options with the listed source.
+
+**Important limit:** Availability and language options can change. The navigator cannot guarantee a seat or service language.
+
+**Official sources:**
+
+- https://www.mcgill.ca/internationalstudents/pre-arrival/pre-arrival-orientation-webinars-0
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Pre-Arrival Orientation Webinars | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_language_011_a | ex_language_011_a | Pre-Arrival Orientation Webinars > International Student Guide | silver_unreviewed | deterministic_keyword | 0.83 |
+| 2 | ex_language_011_b | ex_language_011_b | Pre-Arrival Orientation Webinars > Registration Links | silver_unreviewed | deterministic_keyword | 0.80 |
+
+### Example 12: Urgent Or Safety-Related Help
+
+**Expected category:** `safety_urgent`
+
+**Primary starting point:** Emergency guidance first
+
+**Backup option:** Official urgent-care, crisis, or campus support resources as secondary follow-up.
+
+**Why this matched:** You selected emergency or immediate danger, so guardrail-first safety handling overrides ordinary ranking.
+
+**Recommended next step:** If this is an emergency or immediate danger, call 911 or go to the nearest emergency department. Show normal navigator resources only as secondary follow-up.
+
+**Important limit:** The navigator cannot decide whether a situation is an emergency or replace emergency, crisis, or clinical support.
+
+**Official sources:**
+
+- https://www.mcgill.ca/wellness-hub/get-support/resources-available-247
+
+**Last verified:** 2026-06-24
+
+**Source details:**
+
+| Source | Publisher | Terms | Last retrieved |
+| --- | --- | --- | --- |
+| Emergency Guidance | McGill University | https://www.mcgill.ca/copyright/ | 2026-06-24T07:40:10+00:00 |
+
+**Developer-only evidence details:** (not shown to users)
+
+| Rank | chunk_id | vector_id | heading_path | review_status | label_method | label_confidence |
+| ---: | --- | --- | --- | --- | --- | ---: |
+| 1 | ex_safety_012_a | ex_safety_012_a | Student Wellness Hub > Resources Available 24/7 | silver_unreviewed | deterministic_keyword | 0.86 |
+| 2 | ex_safety_012_b | ex_safety_012_b | Student Wellness Hub > Emergency and Crisis Support | silver_unreviewed | deterministic_keyword | 0.82 |
+
+### Fallback: Unsupported Request
+
 | Field | Example |
 | --- | --- |
-| Sample intake | Current McGill student; graduate; newcomer context: unsure; newly arrived; housing and basic needs; routine; off campus in Montreal; English; online; Stage 2: housing topic = find housing; Stage 3: not shown |
-| Expected category | `housing` |
-| Expected retrieved evidence | McGill or official housing chunks that state search steps, office/contact routes, tenant-information pages, basic-needs support, or legal-advice caveats. |
-| Primary result shape | Housing support source with legal-advice limitation when relevant. |
-| Limitation wording | This navigator can link to housing and tenant-information resources, but it cannot provide legal advice or decide a dispute. |
-| Source placement | Official source visible on card. |
+| Trigger | Student selects `something else` or asks for a professional decision outside supported categories. |
+| Primary starting point | Unsupported request fallback. |
+| Backup option | Broad official McGill student-service contact point, only if source-grounded and safe. |
+| Why this matched | The request does not match a supported newcomer service-navigation category, or it asks for a decision the navigator cannot make. |
+| Recommended next step | Ask the student to select a broader supported need or start with an official McGill student-service contact point. |
+| Important limit | The navigator will not invent a recommendation when the request is outside scope. |
+| Official sources | None required unless a broad fallback source is shown. |
+| Last verified | Not applicable. |
+| Source details | Not applicable unless a broad fallback source is shown. |
 
-Example response:
-
-```text
-Primary starting point: Off-Campus Housing
-Why this matched: You selected housing and basic needs with an off-campus
-Montreal context. This is a McGill-related starting point for housing navigation.
-Recommended next step: Use the housing search, office/contact, tenant-information, or basic-needs route stated in the retrieved source. For disputes or rights questions, direct the student to the official or legal-information route without deciding the issue.
-Important limit: This navigator cannot provide legal advice or decide a housing
-dispute.
-Source: McGill University - official source link
-Last checked: 2026-06-19
-```
-
-### Example 10: Language Or Community Integration
+### Fallback: No Source-Grounded Match
 
 | Field | Example |
 | --- | --- |
-| Sample intake | Current McGill student; undergraduate; permanent resident or new Canadian; first term; language and integration; planning ahead; Downtown campus; French; in person; Stage 2: integration topic = language learning; Stage 3: not shown |
-| Expected category | `language_integration` |
-| Expected retrieved evidence | McGill integration chunks that state orientation, language-learning, peer-support, community, event, or contact routes. |
-| Primary result shape | Integration or campus-life source with accessible next step. |
-| Limitation wording | This navigator can link to orientation and integration resources, but availability and language options should be confirmed with the source. |
-| Source placement | Official McGill or trusted source visible. |
-
-Example response:
-
-```text
-Primary starting point: Campus Life and Engagement
-Why this matched: You selected language and integration support as a first-term
-student. This is an official McGill starting point for campus integration.
-Recommended next step: Use the orientation, peer, language, event, or community route stated in the retrieved source. Confirm current availability and language options with the listed source.
-Important limit: Confirm current availability and language options with the
-official source.
-Source: McGill University - official source link
-Last checked: 2026-06-19
-```
-
-### Example 11: Emergency Or Immediate Safety
-
-| Field | Example |
-| --- | --- |
-| Sample intake | Any McGill relationship; any academic level; any newcomer context; urgent or safety-related help; emergency or immediate danger; any location; Stage 2: safety type = emergency or immediate danger; Stage 3: not shown |
-| Expected category | `safety_urgent` |
-| Expected retrieved evidence | Guardrail-first emergency instructions plus any official urgent-care or crisis-support chunks used only as secondary source support. |
-| Primary result shape | Emergency guidance first, then source-linked support if available. |
-| Limitation wording | If this is an emergency or immediate danger, call 911 or go to the nearest emergency department. Regular navigator results are secondary. |
-| Source placement | Emergency guidance visible before normal source cards. |
-
-Example response:
-
-```text
-Urgent safety guidance:
-If this is an emergency or immediate danger, call 911 or go to the nearest
-emergency department.
-
-The navigator cannot decide whether your situation is an emergency. Official
-student or wellness resources may appear below only as secondary follow-up
-resources.
-```
-
-### Example 12: Unsupported Request
-
-| Field | Example |
-| --- | --- |
-| Sample intake | Student selects "something else" or asks for a professional decision outside supported categories. |
-| Expected category | None, or fallback only |
-| Expected retrieved evidence | None required. Show a fallback only if a broad official starting point is available and safe. |
-| Primary result shape | Unsupported fallback, not a fabricated recommendation. |
-| Limitation wording | This navigator does not have source-grounded evidence for that request. It will not invent a recommendation. |
-| Source placement | If available, show broad official McGill starting point. |
-
-Example response:
-
-```text
-Unsupported request:
-This does not match a supported newcomer service-navigation category, or it asks
-for a decision the navigator cannot make.
-
-Try selecting a broader supported need, or start with an official McGill student
-service for navigation help.
-```
-
-### Example 13: No Source-Grounded Match
-
-| Field | Example |
-| --- | --- |
-| Sample intake | Student selects a supported category, but no retrieved evidence set safely supports a concrete next step for the full context. |
-| Expected category | Selected category remains visible. |
-| Expected retrieved evidence | No top-k evidence set passes the evidence check with sufficient confidence. |
-| Primary result shape | No-match fallback with edit-intake option. |
-| Limitation wording | No retrieved evidence set matched these choices. The navigator will not invent a service. |
-| Source placement | Show a general official source only if the retrieved evidence supports it. |
-
-Example response:
-
-```text
-No source-grounded match found:
-The navigator did not find retrieved evidence that safely matches these choices.
-It will not invent a service.
-
-Try broadening your choices, or start with an official McGill student-service
-contact point.
-```
+| Trigger | Student selects a supported category, but no retrieved evidence set safely supports a concrete next step for the full context. |
+| Primary starting point | No source-grounded match found. |
+| Backup option | Edit intake choices or broaden the selected category. |
+| Why this matched | No top-k evidence set passed the evidence check with sufficient confidence. |
+| Recommended next step | Tell the student that no retrieved evidence safely matched the choices and that the navigator will not invent a service. |
+| Important limit | Show a general official source only if the retrieved evidence supports it. |
+| Official sources | None required unless a broad fallback source is shown. |
+| Last verified | Not applicable. |
+| Source details | Not applicable unless a broad fallback source is shown. |
 
 
 ## Current Iteration Assumptions
