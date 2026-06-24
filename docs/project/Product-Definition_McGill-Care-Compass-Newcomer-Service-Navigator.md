@@ -42,7 +42,7 @@ The product should convert the student's situation into a small ranked set of re
 | McGill website | Authoritative but distributed across departments and pages. | Brings relevant McGill services together around the student's situation. |
 | Human advisor | Helpful but not always immediately available. | Provides immediate navigation support while directing complex cases to qualified services. |
 
-The product should not claim to be universally better than general-purpose AI tools. It is better suited to this high-risk navigation task because it is structured, source-linked, and constrained to curated records.
+The product should not claim to be universally better than general-purpose AI tools. It is better suited to this high-risk navigation task because it is structured, source-linked, and constrained to the approved v1 RAG corpus.
 
 ## 5. User Journey
 
@@ -114,78 +114,63 @@ The product should use one controlled taxonomy across the dataset, intake, match
 | `language_integration` | Language and integration | French courses, settlement/integration services |
 | `safety_urgent` | Urgent or safety-related help | Emergency services, crisis lines, urgent referrals |
 
-## 9. Data Sources and Record Schema
+## 9. Data Sources and RAG Artifact Schema
 
-The curated service directory is the source of truth for recommendations. Broad scraped candidates and raw facility/location datasets are discovery or support layers unless they have been curated into approved service records.
+The v1 RAG corpus is the source of truth for retrieval. It is generated from official seed pages and stored as Bronze raw HTML, Silver clean text, Silver page/link/chunk CSVs, SQLite metadata, and a local Chroma index.
 
 Recommended source groups:
 
-| Data needed | Source | Access method | Required fields |
+| Data needed | Source | Access method | Required metadata |
 | --- | --- | --- | --- |
-| McGill international student services | McGill International Student Services | Curate official pages into structured records | Topic, student type, service, contact, URL, last verified date |
-| McGill international health insurance | McGill International Health Insurance | Curate IHI pages and healthcare access pages | Coverage topic, access route, insurance notes, official URL |
-| McGill healthcare access guidance | Access Health & Wellness Care | Curate official guidance into healthcare scenarios | Care type, urgency, campus/off-campus route, cost notes, source URL |
-| McGill wellness and community health resources | Student Wellness Hub and Community Resources | Curate service categories and selected resources | Resource type, location, cost notes, language, contact |
-| McGill financial aid and funding | Scholarships and Student Aid | Curate funding options | Funding type, student group, application route, official URL |
-| McGill administrative services | Service Point | Curate administrative task records | Task, required documents, contact route, service page |
-| Career and work support | CaPS and ISS work/permit pages | Curate employment and work-permit guidance | Topic, eligibility caveat, booking route, official URL |
-| Student tax information | CRA student and international student tax pages | Curate official federal tax information | Topic, student situation, official next step, source URL |
-| Quebec newcomer settlement services | Quebec integration partner organizations | Extract or manually structure directory records | Organization, service, population served, language, contact |
-| Healthcare facility locations | Statistics Canada Open Database of Healthcare Facilities | Download open CSV and filter to Montreal | Facility name, type, address, coordinates, source/provenance fields |
-| Montreal geography | Montreal Open Data Portal | Download borough boundaries | Borough name, geometry |
+| McGill international student services | McGill International Student Services | Crawl approved official pages and sublinks | Category, student type, jurisdiction, source owner, terms URL, section heading |
+| McGill international health insurance | McGill International Health Insurance | Crawl IHI pages and healthcare access pages | Coverage topic, section heading, nearby links, source URL |
+| McGill healthcare access guidance | Access Health & Wellness Care | Crawl official guidance into chunks | Care topic, urgency tags, source URL, source-updated date |
+| McGill wellness and community health resources | Student Wellness Hub and Community Resources | Crawl approved support pages | Resource topic, location/contact tags, limitations, source URL |
+| McGill financial aid and funding | Scholarships and Student Aid | Crawl approved funding pages | Funding category, required-doc tags, source URL |
+| McGill administrative services | Service Point | Crawl administrative task pages | Task category, required-doc tags, contact/access links |
+| Career and work support | CaPS and ISS work/permit pages | Crawl approved career and work pages | Category, student type, source URL, safety limitations |
+| Student tax information | CRA student and newcomer tax pages | Crawl official federal tax information | Tax category, source authority, source URL, retrieved date |
+| Quebec public services | Official Quebec pages | Crawl allowlisted Quebec paths | Source group, source authority, category, retrieved date |
 
-Every curated service record should include:
+Every v1 chunk should include:
 
-- `record_id`
-- `service_name`
+- `chunk_id`
+- `canonical_url`
+- `section_heading`
+- `heading_path`
+- `chunk_text`
+- `embedding_text`
 - `category_id`
 - `category_label`
-- `student_need`
-- `intended_users`
-- `access_method`
-- `recommended_next_step`
-- `limitations`
-- `contact_or_booking_url`
-- `official_source_url`
-- `source_name`
-- `source_publisher`
-- `source_license_or_terms`
-- `source_retrieved_at`
-- `source_record_id` where available
-- `last_verified_date`
-- `review_status`
-
-For ODHF-derived healthcare facility records, source/provenance must travel with each facility surfaced in the app:
-
-| Field | Purpose |
-| --- | --- |
-| `source_name` | Example: Open Database of Healthcare Facilities v1.1 |
-| `source_publisher` | Example: Statistics Canada |
-| `source_url` | Link to the ODHF source or download page |
-| `source_license_or_terms` | ODHF license or terms reference |
-| `source_retrieved_at` | Date the project retrieved the source |
-| `source_record_id` | Original ODHF identifier if available |
-| `last_verified_date` | Date the project last checked or transformed the record |
+- `info_type_tags`
+- source ownership and authority fields
+- source terms fields
+- `retrieved_at`
+- `source_updated_at`
+- `content_hash`
+- `section_hash`
+- questionnaire filter fields
+- pipeline version and run metadata
 
 ## 10. Matching Logic
 
-The first version should use transparent rule-based matching rather than a fully open-ended conversational assistant.
+The first version should use deterministic filters and source-grounded retrieval rather than a fully open-ended conversational assistant.
 
 Recommended approach:
 
-- Use the curated service directory as the source of truth.
-- Use the locked taxonomy for intake, records, matching, UI, and evaluation.
-- Use rule-based eligibility and category matching for high-risk topics.
-- Use retrieval-grounded generation only to summarize already matched source records.
-- Show the records and source URLs used for every recommendation.
+- Use the v1 RAG corpus as the retrieval source.
+- Use the locked taxonomy for intake, chunks, retrieval, UI, and evaluation.
+- Apply questionnaire filters before semantic search.
+- Use retrieval-grounded generation only to summarize retrieved chunks.
+- Show the source chunks and official URLs used for every recommendation.
 - Log recommendation inputs and outputs without storing sensitive identifiers.
 
 Routing precedence:
 
 1. If the intake indicates emergency, immediate danger, or severe symptoms, route first to urgent/safety guidance and show regular services only as secondary follow-up.
 2. If the need falls under a McGill-owned student service, rank the McGill service above external services unless the case requires public healthcare, legal, government, or emergency authority.
-3. If the need requires official government, healthcare, insurance, tax, immigration, or eligibility information, rank official Quebec, federal, RAMQ, ODHF, or McGill source-backed records above general informational pages.
-4. If two services match the same need with equal authority, break the tie by specificity to the student's situation, then accessibility/location, then most recently verified source.
+3. If the need requires official government, healthcare, insurance, tax, immigration, or eligibility information, rank official Canada, Quebec, healthcare-system, or McGill source-backed chunks above general informational pages.
+4. If two chunks match the same need with equal authority, break the tie by specificity to the student's situation, then source freshness, then stable chunk ID.
 
 Deterministic tie-break order:
 
@@ -216,7 +201,7 @@ Safety constraints:
 - Do not determine whether a condition is an emergency beyond displaying emergency safety instructions.
 - Do not recommend treatment.
 - Do not collect detailed health information.
-- Clearly distinguish official McGill services, Quebec public services, ODHF facility records, and private external clinics.
+- Clearly distinguish official McGill services, Quebec public services, and private external clinics.
 - Show cost, coverage, and data-freshness uncertainty where applicable.
 
 ## 12. Operational Outputs
@@ -232,11 +217,11 @@ Recommended student-facing outputs:
 - Nearby service map where coordinates are available.
 - Service category filters.
 - Last-verified date.
-- Source/provenance display for healthcare facility data.
+- Source/provenance display for retrieved chunks.
 
 Recommended admin or maintenance outputs:
 
-- Service directory coverage report.
+- RAG corpus coverage report.
 - Missing-data report.
 - Recommendation test scenario report.
 - Source freshness report.
@@ -248,32 +233,32 @@ Recommended admin or maintenance outputs:
 
 | Area | Target |
 | --- | --- |
-| Service directory coverage | At least 40 service records across at least eight locked taxonomy categories. |
-| McGill-specific coverage | At least 20 records from McGill sources. |
-| Healthcare coverage | At least five healthcare scenarios and at least 10 healthcare or wellness records. |
+| RAG corpus coverage | At least 500 pages and 4,000 chunks across at least eight locked taxonomy categories. |
+| McGill-specific coverage | McGill chunks are represented across core student-support categories. |
+| Healthcare coverage | Healthcare, insurance, and wellness chunks support common newcomer scenarios. |
 | Source grounding | 100% of recommendations include at least one source URL. |
-| Source freshness | 100% of curated service records include a last-verified date. |
-| ODHF provenance | 100% of ODHF-derived facility records surfaced in the app include source and license/terms provenance. |
+| Source freshness | 100% of retrieved chunks include `retrieved_at`; source-updated dates are preserved when available. |
+| Version governance | 100% of active page/link/chunk rows include pipeline version, run ID, config hashes, and embedding model. |
 | Recommendation quality | At least 90% of fixed labeled evaluation scenarios return a relevant service in the top three results. |
 | Safety controls | 100% of medical, immigration, tax, and financial-aid recommendations include appropriate limitation wording. |
 | Sensitive-data minimization | No student ID, SIN, passport number, medical record number, or detailed health description is collected. |
 | Usability | At least five participants complete testing; users can identify a next step in under two minutes. |
 | App reliability | The app loads without errors and handles unsupported scenarios gracefully. |
-| Reproducibility | Documented commands rebuild the service directory and run the app in a clean environment. |
+| Reproducibility | Documented commands rebuild the RAG corpus and run the app in a clean environment. |
 
 ## 14. Scope Boundaries
 
 In scope:
 
 - McGill newcomer student service navigation.
-- Curated service directory from McGill, government, and selected trusted community sources.
+- v1 RAG corpus from approved McGill, Canada, and Quebec official sources.
 - Medical and healthcare access routing at a navigation level.
 - Tax, financial, immigration, work, housing, campus-service, and community referrals.
 - Transparent rule-based matching and ranked recommendations.
-- Optional retrieval-grounded explanation layer for matched records.
+- Retrieval-grounded explanation layer for matched chunks.
 - English interface text, with French interface text only if core milestones are complete.
-- Service map for campus and selected Montreal resources.
-- Source URLs, source/provenance metadata, last-verified dates, and update documentation.
+- Location-aware support only when approved source data is available.
+- Source URLs, source/provenance metadata, retrieved/source-updated dates, and update documentation.
 - Streamlit or lightweight web app demo.
 - Reproducible setup and documented run/update commands.
 
@@ -290,4 +275,4 @@ Out of scope:
 
 ## 15. Final Framing
 
-McGill Care Compass helps newcomer students identify relevant services and next steps by using curated, source-linked records and transparent matching rules. Its value is not that it automates professional judgment. Its value is that it reduces confusion, avoids unsupported AI advice, and helps students reach the right official starting point faster.
+McGill Care Compass helps newcomer students identify relevant services and next steps by using source-linked RAG chunks, deterministic filters, and transparent matching rules. Its value is not that it automates professional judgment. Its value is that it reduces confusion, avoids unsupported AI advice, and helps students reach the right official starting point faster.

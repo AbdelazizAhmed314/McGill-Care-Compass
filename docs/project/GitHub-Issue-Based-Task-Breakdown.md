@@ -26,13 +26,13 @@ gantt
     axisFormat  %b %d
 
     section Directory Milestone / Progress Report 1
-    Issue 1 - Curate and validate priority service records       :i1, 2026-06-13, 2026-06-21
+    Issue 1 - Build and validate v1 RAG data corpus              :i1, 2026-06-13, 2026-06-21
     Issue 2 - Define user journey and response format            :i2, 2026-06-13, 2026-06-21
     Issue 3 - Set up repo workflow and PR1 tracking              :i3, 2026-06-13, 2026-06-21
     Directory milestone / Progress Report 1                      :milestone, m1, 2026-06-21, 0d
 
     section Working Prototype / Progress Report 2
-    Issue 4 - Build intake and rule-based matching prototype     :i4, 2026-06-22, 2026-07-05
+    Issue 4 - Build intake and filtered retrieval prototype     :i4, 2026-06-22, 2026-07-05
     Issue 5 - Implement grounded recommendation explanations     :i5, 2026-06-27, 2026-07-05
     Issue 6 - Integrate working prototype and prepare PR2        :i6, 2026-07-03, 2026-07-05
     Working prototype / Progress Report 2                        :milestone, m2, 2026-07-05, 0d
@@ -61,8 +61,8 @@ gantt
 
 | GitHub Milestone | Due Date | Purpose |
 | --- | --- | --- |
-| Directory Milestone / Progress Report 1 | June 21 | Curated service directory, schema, quality checks, first progress evidence |
-| Working Prototype / Progress Report 2 | July 5 | Intake flow, rule-based matching, grounded results, integrated prototype |
+| Data Corpus Milestone / Progress Report 1 | June 21 | v1 RAG corpus, schema, quality checks, first progress evidence |
+| Working Prototype / Progress Report 2 | July 5 | Intake flow, metadata-filtered retrieval, grounded results, integrated prototype |
 | Evaluation Package / Progress Report 3 | July 19 | Guardrails, maintenance reports, scenario evaluation, internal deployment |
 | Usability Assessment / Progress Report 4 | July 26 | Usability sessions, findings, priority fixes, documentation |
 | Presentation-Ready Release | July 27 | Feature freeze, deployed app, maintenance package |
@@ -74,7 +74,7 @@ Use labels to make the board scannable:
 
 | Label | Use |
 | --- | --- |
-| `data` | Service records, schema, source metadata, data validation |
+| `data` | RAG chunks, schema, source metadata, data validation |
 | `matching` | Routing logic, scoring, tie handling, recommendation behavior |
 | `ux` | Intake flow, interface, response layout, usability wording |
 | `guardrails` | High-risk handling, unsupported cases, safety limitations |
@@ -89,30 +89,32 @@ Use labels to make the board scannable:
 
 ## Milestone: Directory Milestone / Progress Report 1
 
-### Issue 1: Curate and validate priority service records
+### Issue 1: Build and validate v1 RAG data corpus
 
 **Due:** June 21  
 **Primary owners:** Muhammad, with Abdelaziz review and Mustafa input  
 **Maps to:** `MH-01`, `MH-02`, `MH-03`, `MH-04`  
 **Suggested labels:** `data`, `matching`, `documentation`, `progress-report`
 
-**Goal:** Produce the first complete service-directory milestone: a curated, validated dataset that can support prototype matching and Progress Report 1.
+**Goal:** Produce the first complete v1 RAG data milestone: a validated, version-governed corpus that can support prototype retrieval and Progress Report 1.
 
 **Detailed tasks:**
 
-- [ ] Confirm the production service-record schema.
+- [ ] Confirm the production RAG artifact schema.
 - [ ] Lock the canonical service-category taxonomy.
 - [ ] Define source-authority rules and required fields.
-- [ ] Add or confirm fields for source URL, source name, source publisher, license/terms reference, retrieved date, last-verified date, limitations, contact/access details, and matching fields.
-- [ ] Expand the priority service directory from existing investigation outputs.
-- [ ] Prioritize McGill, healthcare/wellness, government, and trusted community services.
-- [ ] Reach at least 40 curated records.
+- [ ] Add or confirm fields for source URL, source owner, source publisher, license/terms reference, retrieved date, source-updated date, limitations, section headings, and retrieval fields.
+- [ ] Build the reusable RAG corpus from official source seeds.
+- [ ] Prioritize McGill, healthcare/wellness, Canada, and Quebec sources.
+- [ ] Reach at least 500 processed pages.
+- [ ] Reach at least 4,000 chunks.
 - [ ] Include at least eight service categories.
-- [ ] Include at least 20 McGill records.
-- [ ] Include at least 10 healthcare or wellness records.
+- [ ] Include McGill, Canada, and Quebec source groups.
+- [ ] Include healthcare, insurance, and wellness chunks.
 - [ ] Build or refine validation checks for missing required fields.
-- [ ] Check duplicate record IDs.
+- [ ] Check duplicate canonical URLs and chunk IDs.
 - [ ] Check invalid or missing URLs.
+- [ ] Check manifest hashes and version stamps.
 - [ ] Check category consistency against the locked taxonomy.
 - [ ] Check stale verification dates.
 - [ ] Create a quality-summary report.
@@ -120,7 +122,7 @@ Use labels to make the board scannable:
 
 **Acceptance check:**
 
-- [ ] Clean directory dataset exists.
+- [ ] Validated Silver RAG corpus exists.
 - [ ] Schema documentation exists.
 - [ ] Quality summary exists.
 - [ ] Reproducible build/update commands are documented.
@@ -189,36 +191,36 @@ Use labels to make the board scannable:
 
 ## Milestone: Working Prototype / Progress Report 2
 
-### Issue 4: Build intake and rule-based matching prototype
+### Issue 4: Build intake and filtered retrieval prototype
 
 **Due:** July 5  
 **Primary owners:** Muhammad and Mustafa  
 **Maps to:** `MH-05`, `MH-06`, `MY-03`  
 **Suggested labels:** `matching`, `ux`, `data`
 
-**Goal:** Build the first working intake-to-ranked-results path using transparent rule-based matching.
+**Goal:** Build the first working intake-to-ranked-results path using metadata filters, vector retrieval, and transparent ranking.
 
 **Detailed tasks:**
 
-- [ ] Define matching features from intake fields.
+- [ ] Define retrieval/filtering features from intake fields.
 - [ ] Include need category, student type, urgency, location, language, and access preference where available.
 - [ ] Write the routing precedence in clear if-then form.
-- [ ] Define matching weights or rule priorities.
+- [ ] Define filter, ranking, and tie-breaking priorities.
 - [ ] Define filters for unsupported or out-of-scope cases.
 - [ ] Define tie-breaking logic.
-- [ ] Define high-risk routing behavior.
-- [ ] Implement ranked retrieval against the curated directory.
-- [ ] Return match reasons for recommended records.
+- [ ] Define sensitive-topic and guardrail routing behavior.
+- [ ] Implement ranked retrieval against the RAG corpus.
+- [ ] Return match reasons for retrieved chunks/results.
 - [ ] Return backup options when appropriate.
 - [ ] Handle empty-result cases.
 - [ ] Build the structured intake interface.
-- [ ] Build the first results interface with placeholders or live matched records.
-- [ ] Confirm the prototype uses production-format records.
+- [ ] Build the first results interface with placeholders or live retrieved chunks/results.
+- [ ] Confirm the prototype uses production-format chunks and metadata.
 
 **Acceptance check:**
 
 - [ ] User can complete the intake.
-- [ ] Prototype returns ranked records.
+- [ ] Prototype returns ranked source-grounded results.
 - [ ] Each result includes a traceable match explanation.
 - [ ] Empty and unsupported cases are handled gracefully.
 
@@ -229,22 +231,22 @@ Use labels to make the board scannable:
 **Maps to:** `MY-04`  
 **Suggested labels:** `ux`, `guardrails`, `matching`
 
-**Goal:** Convert matched records into concise user-facing explanations grounded only in approved service-record content.
+**Goal:** Convert retrieved chunks/results into concise user-facing explanations grounded only in approved source content.
 
 **Detailed tasks:**
 
 - [ ] Define the explanation template.
 - [ ] Include service name, why it matched, official next step, source link, and limitation wording.
 - [ ] Ensure explanations do not make unsupported eligibility, medical, immigration, tax, or financial-aid claims.
-- [ ] Include backup-option wording where the matcher returns a secondary path.
+- [ ] Include backup-option wording where retrieval returns a secondary path.
 - [ ] Include source and verification-date display.
-- [ ] Confirm healthcare facility explanations show ODHF provenance when the record comes from ODHF.
+- [ ] Confirm explanations show source URL, source date, and terms metadata.
 - [ ] Test explanations on common scenarios.
 - [ ] Test explanations on high-risk and unsupported scenarios.
 
 **Acceptance check:**
 
-- [ ] Explanations use retrieved record content.
+- [ ] Explanations use retrieved chunk content.
 - [ ] Explanations include official links and limitations.
 - [ ] Explanations make no unsupported claims.
 
@@ -255,12 +257,12 @@ Use labels to make the board scannable:
 **Maps to:** `MH-07`, `MY-05`, `AA-05`  
 **Suggested labels:** `deployment`, `matching`, `ux`, `progress-report`, `qa`
 
-**Goal:** Merge the directory, matcher, interface, and explanation layer into a demonstrable prototype by the July 5 milestone.
+**Goal:** Merge the RAG corpus, retrieval/ranking layer, interface, and explanation layer into a demonstrable prototype by the July 5 milestone.
 
 **Detailed tasks:**
 
-- [ ] Define or confirm the data/interface contract between the directory, matcher, and UI.
-- [ ] Integrate the production-format directory with the matcher.
+- [ ] Define or confirm the data/interface contract between the RAG corpus, retrieval/ranking layer, and UI.
+- [ ] Integrate the production-format RAG chunks/vector retrieval with the prototype.
 - [ ] Integrate matched results with the explanation layer.
 - [ ] Integrate the full flow into the prototype app.
 - [ ] Confirm the app does not require manual data changes to return results.
@@ -272,7 +274,7 @@ Use labels to make the board scannable:
 
 **Acceptance check:**
 
-- [ ] Prototype reads production-format records.
+- [ ] Prototype reads production-format chunks and metadata.
 - [ ] User receives ranked recommendations, match reasons, next steps, backup options, and source links.
 - [ ] Working prototype is demonstrated or ready to demonstrate by July 5.
 

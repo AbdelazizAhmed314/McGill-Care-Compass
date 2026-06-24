@@ -14,11 +14,11 @@ Related documents:
 
 | Deliverable | Format | Due date | Acceptance criterion |
 | --- | --- | --- | --- |
-| Curated newcomer-service directory | Structured CSV or JSON dataset with documented schema | June 21 | At least 40 curated records across at least eight locked taxonomy categories, including at least 20 McGill records and 10 healthcare or wellness records. Every record includes a category, official source URL, and last-verified date. ODHF-derived healthcare records include source/license provenance. |
-| Intake and recommendation prototype | Working Streamlit or lightweight web-app prototype | July 5 | A user can complete structured intake and receive ranked rule-based recommendations with match reasons, official links, source provenance, and limitation wording. |
+| v1 RAG data corpus | Bronze/Silver RAG artifacts with documented schema, report, and manifest | June 21 | At least 500 processed pages, 4,000 chunks, eight locked taxonomy categories, source URLs, source terms, drift hashes, Chroma vectors, and version-governed artifacts. |
+| Intake and recommendation prototype | Working Streamlit or lightweight web-app prototype | July 5 | A user can complete structured intake and receive ranked source-backed recommendations with match reasons, official links, source provenance, and limitation wording. |
 | Recommendation evaluation package | Fixed scenario set, repeatable tests, and evaluation-results report | July 19 | At least 90% of predefined scenarios return a relevant service in the top three results according to a labeled pass/fail rubric. Tests cover empty results, source-link presence, safety messages, and unsupported scenarios. |
 | Usability and community-impact assessment | Anonymized test results and findings report | July 26 | At least five participants complete testing, with proxy users used only if recruitment is insufficient. The assessment records completion time, relevance, explanation clarity, confidence change, and usefulness ratings. |
-| Presentation-ready navigator and maintenance package | Deployed app, source-freshness dashboard, documented repository, and run/update instructions | July 27 | App loads without errors, handles unsupported scenarios gracefully, grounds recommendations in curated records, displays official links and verification dates, and can be run or updated from documentation. |
+| Presentation-ready navigator and maintenance package | Deployed app, source-freshness dashboard, documented repository, and run/update instructions | July 27 | App loads without errors, handles unsupported scenarios gracefully, grounds recommendations in retrieved RAG chunks, displays official links and source dates, and can be run or updated from documentation. |
 | Final QA and rehearsal buffer | QA results, backup demo, and rehearsal materials | July 28-29 | Critical defects resolved, final materials checked, demo rehearsed, and backup demo prepared. |
 | Final submission and live demonstration | Final repository, deliverable URL, presentation materials, and live demo | July 30 | All required materials submitted and verified; live and backup demos are ready. |
 
@@ -32,14 +32,14 @@ gantt
     dateFormat  YYYY-MM-DD
     axisFormat  %b %d
 
-    section Directory Milestone / Progress Report 1
-    Issue 1 - Curate and validate priority service records       :i1, 2026-06-13, 2026-06-21
+    section Data Corpus Milestone / Progress Report 1
+    Issue 1 - Build and validate v1 RAG data corpus              :i1, 2026-06-13, 2026-06-21
     Issue 2 - Define user journey and response format            :i2, 2026-06-13, 2026-06-21
     Issue 3 - Set up repo workflow and PR1 tracking              :i3, 2026-06-13, 2026-06-21
-    Directory milestone / Progress Report 1                      :milestone, m1, 2026-06-21, 0d
+    Data corpus milestone / Progress Report 1                    :milestone, m1, 2026-06-21, 0d
 
     section Working Prototype / Progress Report 2
-    Issue 4 - Build intake and rule-based matching prototype     :i4, 2026-06-22, 2026-07-05
+    Issue 4 - Build intake and filtered retrieval prototype     :i4, 2026-06-22, 2026-07-05
     Issue 5 - Implement grounded recommendation explanations     :i5, 2026-06-27, 2026-07-05
     Issue 6 - Integrate working prototype and prepare PR2        :i6, 2026-07-03, 2026-07-05
     Working prototype / Progress Report 2                        :milestone, m2, 2026-07-05, 0d
@@ -68,11 +68,11 @@ The repository should use 13 milestone-based GitHub Issues rather than one issue
 
 | Issue | Milestone | Purpose |
 | --- | --- | --- |
-| Issue 1: Curate and validate priority service records | June 21 | Dataset, schema, taxonomy, ODHF provenance, validation, PR1 evidence. |
+| Issue 1: Build and validate v1 RAG data corpus | June 21 | RAG corpus, schema, taxonomy, source governance, validation, PR1 evidence. |
 | Issue 2: Define user journey and prototype response format | June 21 | Intake flow, response examples, limitation/source-link format. |
 | Issue 3: Set up repo workflow and PR1 tracking | June 21 | GitHub board, labels, milestones, repo workflow, PR1 tracking. |
-| Issue 4: Build intake and rule-based matching prototype | July 5 | Intake form, matching rules, routing precedence, tie-breaking, ranked records. |
-| Issue 5: Implement grounded recommendation explanations | July 5 | User-facing explanations grounded in matched records. |
+| Issue 4: Build intake and filtered retrieval prototype | July 5 | Intake form, metadata filters, routing precedence, tie-breaking, ranked chunks/results. |
+| Issue 5: Implement grounded recommendation explanations | July 5 | User-facing explanations grounded in retrieved chunks. |
 | Issue 6: Integrate working prototype and prepare PR2 | July 5 | Complete prototype integration and Progress Report 2 evidence. |
 | Issue 7: Add guardrails and maintenance reports | July 19 | High-risk handling, unsupported-case handling, freshness/broken-link reports, internal deployment. |
 | Issue 8: Create and run recommendation evaluation | July 19 | Fixed scenario set, relevance rubric, evaluation results. |
@@ -88,7 +88,7 @@ The three-person team contributes approximately 100 hours per member, for roughl
 
 | Team member and role | Responsibilities | Estimated hours |
 | --- | --- | --- |
-| Muhammad Hydar-Ali - Data Engineering and Matching Systems Lead | Data acquisition, service-record structure, validation, freshness/conflict checks, rule-based matching, technical testing. | Data engineering: 35; validation/governance: 25; matching/retrieval: 20; testing/documentation: 10; contingency: 10; total: 100 |
+| Muhammad Hydar-Ali - Data Engineering and Matching Systems Lead | RAG data acquisition, artifact schema, validation, freshness/drift checks, retrieval support, technical testing. | Data engineering: 35; validation/governance: 25; matching/retrieval: 20; testing/documentation: 10; contingency: 10; total: 100 |
 | Mustafa Yousif - AI Engineering and User Experience Lead | Response layer, guardrails, evaluation scenarios, interface support, usability testing, final presentation support. | Agent/response development: 35; guardrails/evaluation: 20; interface/UX: 20; testing/presentation: 15; contingency: 10; total: 100 |
 | Abdelaziz Ahmed - Project, Git-Flow, and MLOps Lead | Scope, milestones, risks, Git workflow, integration, deployment, documentation, stakeholder feedback, final delivery. | Project/risk coordination: 25; Git-flow/integration: 25; deployment/monitoring: 20; documentation/testing coordination: 15; requirements/data review: 5; contingency: 10; total: 100 |
 

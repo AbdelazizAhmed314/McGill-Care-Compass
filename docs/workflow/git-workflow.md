@@ -9,7 +9,7 @@
 ## Branch Names
 
 - `feature/issue-04-matching-prototype`
-- `data/issue-01-service-records`
+- `data/issue-01-rag-corpus`
 - `docs/issue-11-readme`
 - `fix/issue-07-empty-results`
 

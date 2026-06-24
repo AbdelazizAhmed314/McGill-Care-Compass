@@ -1,4 +1,4 @@
-"""Service-record schema used by the navigator scaffold."""
+"""Source-grounded record schema used by the navigator scaffold."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pydantic import BaseModel, HttpUrl
 
 
 class ServiceRecord(BaseModel):
-    """Curated service record that can safely power recommendations."""
+    """Source-grounded service record used by prototype matching."""
 
     record_id: str
     service_name: str

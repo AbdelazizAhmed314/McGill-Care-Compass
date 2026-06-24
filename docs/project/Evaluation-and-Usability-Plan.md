@@ -8,7 +8,7 @@ This document defines how McGill Care Compass will be evaluated. It makes the to
 
 The evaluation should answer four questions:
 
-1. Does the service directory contain enough curated records to support the MVP?
+1. Does the v1 RAG corpus contain enough source-grounded chunks to support the MVP?
 2. Does matching return relevant, source-linked recommendations for predefined student scenarios?
 3. Do high-risk and unsupported scenarios receive safe, bounded outputs?
 4. Can users identify an appropriate next step quickly and clearly?
@@ -71,13 +71,13 @@ The fixed scenario set should cover:
 
 | Test area | Required check |
 | --- | --- |
-| Schema | Required fields are present, including taxonomy category, source URL, last-verified date, and source metadata. |
-| ODHF provenance | ODHF-derived facility records include source name, publisher, source URL, license/terms reference, retrieval date, source record ID where available, and last-verified date. |
-| Taxonomy | Records, intake, matching, UI, and evaluation scenarios use the locked taxonomy. |
+| Schema | Required fields are present, including taxonomy category, source URL, retrieved date, source-updated date where available, source terms, and source metadata. |
+| Version governance | Page, link, and chunk rows include pipeline version, run ID, config hashes, artifact schema version, and embedding model. |
+| Taxonomy | Chunks, intake, matching, UI, and evaluation scenarios use the locked taxonomy. |
 | Matching | Supported scenarios return ranked results with match reasons. |
 | Routing precedence | Emergency/high-risk and official-authority rules are applied before lower-priority matching rules. |
 | Tie-breaking | Repeated runs produce stable ordering for tied services. |
-| Empty result | No service is invented when no record matches. |
+| Empty result | No service or next step is invented when retrieved evidence is missing. |
 | Unsupported case | Unsupported needs return a useful fallback and source-linked next step where possible. |
 | Source link | Every recommendation includes at least one official or trusted source URL. |
 | Safety wording | Medical, immigration, tax, insurance, financial-aid, and employment-authorization outputs include limitations. |
