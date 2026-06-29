@@ -1,40 +1,24 @@
-# Finalized Project Documents
+﻿# Project Documents
 
-This folder contains the durable project documents for McGill Care Compass: Newcomer Service Navigator. These files replace the proposal-only patch structure used during submission preparation.
+This folder contains the durable project contracts for McGill Care Compass. Use these documents for product scope, course alignment, delivery tracking, safety boundaries, and evaluation evidence.
 
 ## Document Map
 
-| Document | Purpose |
+| Document | Use |
 | --- | --- |
-| [BUSA-649-Course-Outline.md](BUSA-649-Course-Outline.md) | Course requirements and rubric context. |
-| [Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md) | Final product contract: users, problem, taxonomy, data schema, matching logic, outputs, success metrics, and boundaries. |
-| [Data-Feasibility-and-Source-Evidence.md](Data-Feasibility-and-Source-Evidence.md) | Final project-facing summary of the data evidence and feasibility claim. |
-| [../../data/README.md](../../data/README.md) | Data package index covering datasets, source inputs, reports, and reproducibility notes. |
-| [Project-Plan-High-Level.md](Project-Plan-High-Level.md) | High-level overview of milestones, the shared issue/milestone Gantt chart, GitHub issue structure, roles, capacity, and delivery rules. |
-| [Risk-Assumptions-and-Safety-Boundaries.md](Risk-Assumptions-and-Safety-Boundaries.md) | Risks, mitigations, source authority, high-risk boundaries, and safety rules. |
-| [Evaluation-and-Usability-Plan.md](Evaluation-and-Usability-Plan.md) | Fixed scenario evaluation, top-three relevance rubric, tests, and usability plan. |
-| [User-Journey-and-Prototype-Response-Format.md](User-Journey-and-Prototype-Response-Format.md) | Issue 2 UX contract covering user journey, intake questions, response layout, wording standards, mockups, and examples. |
-| [GitHub-Issue-Based-Task-Breakdown.md](GitHub-Issue-Based-Task-Breakdown.md) | 13-issue GitHub board structure mapped to the milestone timeline. |
-| [Team-Roles-and-Individual-Workload-Appendix.md](Team-Roles-and-Individual-Workload-Appendix.md) | Supporting appendix organized by teammate, with `MH`, `MY`, and `AA` task responsibilities, dependencies, acceptance checks, and planned hours. |
+| [Product Definition](Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md) | What the navigator is, who it serves, the intake and response shape, taxonomy, RAG artifact fields, matching rules, outputs, metrics, and scope boundaries. |
+| [Delivery Plan](Delivery-Plan.md) | Milestones, 13 GitHub issues, owners, task IDs, workload totals, and Definition of Done. |
+| [Safety and Evaluation](Safety-and-Evaluation.md) | Safety boundaries, source authority, routing rules, evaluation target, required tests, and usability plan. |
+| [Data Feasibility and Source Evidence](Data-Feasibility-and-Source-Evidence.md) | Data feasibility claim, RAG evidence, historical proposal evidence counts, and limits. |
+| [Course Requirements Summary](Course-Requirements-Summary.md) | Course requirements that affect scope, deadlines, grading, and final deliverables. |
+| [decisions.md](decisions.md) | Dated decisions that affect shared data contracts, retrieval behavior, and merge readiness. |
 
-## Source Relationship
+## Source Of Truth
 
-The finalized documents summarize and operationalize durable content from the original proposal package and the current v1 RAG data package:
+- Product behavior lives in the product definition.
+- Delivery dates, owners, issue coverage, and workload accountability live in the delivery plan.
+- Safety and evaluation rules live in the safety and evaluation document.
+- Data status and rebuild commands live in [../../data/README.md](../../data/README.md) and the workflow docs.
+- Historical proposal evidence is retained only where it still supports the current RAG direction.
 
-- [Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
-- [Project-Plan-High-Level.md](Project-Plan-High-Level.md)
-- [../../data/silver/reports/rag_pipeline_report.md](../../data/silver/reports/rag_pipeline_report.md)
-- [../../data/silver/reports/rag_run_manifest.json](../../data/silver/reports/rag_run_manifest.json)
-- [GitHub-Issue-Based-Task-Breakdown.md](GitHub-Issue-Based-Task-Breakdown.md)
-- [Team-Roles-and-Individual-Workload-Appendix.md](Team-Roles-and-Individual-Workload-Appendix.md)
-
-The finalized project documents are the concise planning and delivery references. The `Data/` package is the evidence and reproducibility reference for v1 RAG datasets, source inputs, run reports, and manifest governance.
-
-## How To Use These Files
-
-- Use the product definition as the source of truth for what the tool is and is not.
-- Use the data evidence document when explaining why the project is feasible.
-- Use the data package when tracing evidence back to datasets, scripts, source inputs, or the full consolidated investigation report.
-- Use the high-level project plan and issue-based breakdown to create the GitHub board.
-- Use the team workload appendix for individual responsibilities and planned-hour accountability.
-- Use the risk and evaluation documents to keep implementation aligned with the professor's feedback.
+When a feature changes setup, data, behavior, limitations, or maintenance steps, update the relevant source-of-truth document in the same pull request.

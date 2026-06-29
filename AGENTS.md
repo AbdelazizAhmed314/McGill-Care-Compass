@@ -1,4 +1,4 @@
-# Agent Collaboration Contract
+﻿# Agent Collaboration Contract
 
 This repository is designed for human teammates and coding agents working together.
 
@@ -7,8 +7,8 @@ This repository is designed for human teammates and coding agents working togeth
 Use these documents before making behavior or scope changes:
 
 1. [docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
-2. [docs/project/GitHub-Issue-Based-Task-Breakdown.md](docs/project/GitHub-Issue-Based-Task-Breakdown.md)
-3. [docs/project/Risk-Assumptions-and-Safety-Boundaries.md](docs/project/Risk-Assumptions-and-Safety-Boundaries.md)
+2. [docs/project/Delivery-Plan.md](docs/project/Delivery-Plan.md)
+3. [docs/project/Safety-and-Evaluation.md](docs/project/Safety-and-Evaluation.md)
 4. [data/README.md](data/README.md)
 
 ## Workflow Rules
