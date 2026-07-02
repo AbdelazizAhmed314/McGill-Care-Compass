@@ -5,13 +5,13 @@ the previous static record artifacts in the repository.
 
 ## Medallion Policy
 
-- Bronze stores unprocessed source capture: `data/bronze/raw/rag_pages/`.
-- Silver stores processed/generated RAG outputs: `data/silver/processed/`,
-  `data/silver/datasets/`, `data/silver/rag/`,
-  `data/silver/vector_store/`, and `data/silver/reports/`.
-- Gold is reserved for reviewed, release-ready data: `data/gold/`. The current
+- Bronze stores unprocessed source capture: [`data/bronze/raw/rag_pages/`](../../data/README.md).
+- Silver stores processed/generated RAG outputs: [`data/silver/processed/`](../../data/README.md),
+  [`data/silver/datasets/`](../../data/silver/datasets/), [`data/silver/rag/`](../../data/README.md),
+  [`data/silver/vector_store/`](../../data/README.md), and [`data/silver/reports/`](../../data/silver/reports/).
+- Gold is reserved for reviewed, release-ready data: [`data/gold/`](../../data/gold/). The current
   version has no Gold dataset.
-- `data/source-inputs/` is configuration, not a medallion data layer.
+- [`data/source-inputs/`](../../data/source-inputs/) is configuration, not a medallion data layer.
 
 ## Source Policy
 
@@ -44,7 +44,7 @@ Every active Silver row must include:
 - `link_priority_config_version`
 - `embedding_model`
 
-`data/silver/reports/rag_run_manifest.json` must match the generated CSVs,
+[`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json) must match the generated CSVs,
 SQLite DB, report, and vector store count. Validation fails if the manifest and
 artifacts disagree.
 
@@ -52,13 +52,13 @@ artifacts disagree.
 
 - Bronze raw HTML, Silver cleaned page text, Silver SQLite files, and Silver
   Chroma indexes are generated locally and ignored by git. Chroma must be rebuilt
-  from committed `data/silver/datasets/rag_chunks.csv` during deployment/startup.
-- `data/silver/datasets/rag_pages.csv`,
-  `data/silver/datasets/rag_links.csv`,
-  `data/silver/datasets/rag_chunks.csv`,
-  `data/silver/reports/rag_pipeline_report.md`,
-  `data/silver/reports/rag_corpus_quality_report.md`, and
-  `data/silver/reports/rag_run_manifest.json` are reviewable Silver artifacts.
+  from committed [`data/silver/datasets/rag_chunks.csv`](../../data/silver/datasets/rag_chunks.csv) during deployment/startup.
+- [`data/silver/datasets/rag_pages.csv`](../../data/silver/datasets/rag_pages.csv),
+  [`data/silver/datasets/rag_links.csv`](../../data/silver/datasets/rag_links.csv),
+  [`data/silver/datasets/rag_chunks.csv`](../../data/silver/datasets/rag_chunks.csv),
+  [`data/silver/reports/rag_pipeline_report.md`](../../data/silver/reports/rag_pipeline_report.md),
+  [`data/silver/reports/rag_corpus_quality_report.md`](../../data/silver/reports/rag_corpus_quality_report.md), and
+  [`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json) are reviewable Silver artifacts.
 - Do not store sensitive personal identifiers or detailed health descriptions.
 - Do not use user-specific browsing at answer time.
 
