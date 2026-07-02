@@ -8,8 +8,7 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 
 - Product contract: [docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
 - Project plan: [docs/project/Project-Plan-High-Level.md](docs/project/Project-Plan-High-Level.md)
-- Issue plan: [docs/project/GitHub-Issue-Based-Task-Breakdown.md](docs/project/GitHub-Issue-Based-Task-Breakdown.md)
-- Team workload appendix: [docs/project/Team-Roles-and-Individual-Workload-Appendix.md](docs/project/Team-Roles-and-Individual-Workload-Appendix.md)
+- Team workload appendix: [docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md](docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md)
 - Data evidence: [data/README.md](data/README.md)
 - Agent/collaboration contract: [AGENTS.md](AGENTS.md)
 
@@ -17,15 +16,15 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 
 | Path | Purpose |
 | --- | --- |
-| `src/mcgill_care_compass/` | App, data loading, matching, guardrails, explanation, and evaluation helpers. |
-| `tests/` | Unit and behavior tests for app scaffolding and core rules. |
-| `data/source-inputs/` | Seed URL and questionnaire metadata configuration shared by the pipeline and UI. |
-| `data/bronze/` | Raw unprocessed source captures generated locally and ignored by git. |
-| `data/silver/` | Processed v1 RAG artifacts: reviewable CSVs/reports plus local ignored text, SQLite, and rebuildable Chroma outputs. |
-| `data/gold/` | Reserved for reviewed, release-ready data; no Gold dataset exists yet. |
-| `scripts/data/` | RAG corpus build, query, and validation scripts. |
-| `docs/project/` | Finalized course/project documents. |
-| `docs/workflow/` | Collaboration, GitHub, data, and architecture contracts. |
+| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | App, data loading, matching, guardrails, explanation, and evaluation helpers. |
+| [`tests/`](tests/) | Unit and behavior tests for app scaffolding and core rules. |
+| [`data/source-inputs/`](data/source-inputs/) | Seed URL and questionnaire metadata configuration shared by the pipeline and UI. |
+| [`data/bronze/`](data/README.md) | Raw unprocessed source captures generated locally and ignored by git. |
+| [`data/silver/`](data/silver/) | Processed v1 RAG artifacts: reviewable CSVs/reports plus local ignored text, SQLite, and rebuildable Chroma outputs. |
+| [`data/gold/`](data/gold/) | Reserved for reviewed, release-ready data; no Gold dataset exists yet. |
+| [`scripts/data/`](scripts/data/) | RAG corpus build, query, and validation scripts. |
+| [`docs/project/`](docs/project/) | Finalized course/project documents. |
+| [`docs/workflow/`](docs/workflow/) | Collaboration, GitHub, data, and architecture contracts. |
 
 ## Local Setup
 

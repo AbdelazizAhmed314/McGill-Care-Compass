@@ -8,8 +8,8 @@ control how the pipeline runs.
 
 | File | Purpose |
 | --- | --- |
-| `rag_seed_urls.csv` | Official seed URLs, source ownership, source authority, allowlists, per-seed crawl limits, taxonomy, source terms, and default user-context metadata. |
-| `questionnaire_metadata_map.yml` | Stable questionnaire IDs, category IDs, need-type IDs, keyword rules, and fields shared with Mustafa's intake flow. |
+| [`rag_seed_urls.csv`](rag_seed_urls.csv) | Official seed URLs, source ownership, source authority, allowlists, per-seed crawl limits, taxonomy, source terms, and default user-context metadata. |
+| [`questionnaire_metadata_map.yml`](questionnaire_metadata_map.yml) | Stable questionnaire IDs, category IDs, need-type IDs, keyword rules, and fields shared with Mustafa's intake flow. |
 
 ## Seed Contract
 
@@ -50,6 +50,6 @@ uv run python scripts/data/build_rag_corpus.py --force-rechunk
 `risk_level` is kept for v1 compatibility, but it should be read as topic sensitivity, not actual chunk-level danger. Future work may rename it to `topic_sensitivity` or let the app derive sensitive-topic behavior directly from the taxonomy.
 
 Both source-input files are hashed into
-`data/silver/reports/rag_run_manifest.json` and stamped onto every generated
+[`data/silver/reports/rag_run_manifest.json`](../silver/reports/rag_run_manifest.json) and stamped onto every generated
 page, link, and chunk row. If either file changes, the next generated Silver
 artifacts carry new config hashes.

@@ -6,12 +6,12 @@ recommendation generation.
 
 ## Subsystems
 
-1. **Source configuration**: `data/source-inputs/rag_seed_urls.csv` and
-   `data/source-inputs/questionnaire_metadata_map.yml`.
-2. **RAG ingestion**: `scripts/data/build_rag_corpus.py` crawls official pages,
+1. **Source configuration**: [`data/source-inputs/rag_seed_urls.csv`](../../data/source-inputs/rag_seed_urls.csv) and
+   [`data/source-inputs/questionnaire_metadata_map.yml`](../../data/source-inputs/questionnaire_metadata_map.yml).
+2. **RAG ingestion**: [`scripts/data/build_rag_corpus.py`](../../scripts/data/build_rag_corpus.py) crawls official pages,
    saves raw and cleaned content, chunks pages, tags metadata, embeds locally,
    and writes Chroma.
-3. **Validation and governance**: `scripts/data/validate_rag_corpus.py` checks
+3. **Validation and governance**: [`scripts/data/validate_rag_corpus.py`](../../scripts/data/validate_rag_corpus.py) checks
    schema, artifact hashes, manifest consistency, SQLite parity, and vector
    count.
 4. **Structured intake**: the UI collects category, need type, student context,

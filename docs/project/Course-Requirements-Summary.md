@@ -1,4 +1,4 @@
-﻿# Course Requirements Summary
+# Course Requirements Summary
 
 This summary keeps only the BUSA 649 course requirements that affect the repo and delivery plan.
 
