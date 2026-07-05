@@ -19,9 +19,14 @@ class ServiceRecord(BaseModel):
     limitations: str | None = None
     official_source_url: HttpUrl | None = None
     source_name: str | None = None
+    source_group: str | None = None
     source_publisher: str | None = None
+    authority_level: str | None = None
     source_license_or_terms: str | None = None
+    terms_url: HttpUrl | None = None
     source_retrieved_at: str | None = None
+    retrieved_at: str | None = None
+    source_updated_at: str | None = None
     source_record_id: str | None = None
     last_verified_date: str | None = None
     review_status: str | None = None
