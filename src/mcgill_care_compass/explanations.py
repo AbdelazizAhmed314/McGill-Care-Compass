@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
+from mcgill_care_compass.intake_contract import format_intake_summary
 from mcgill_care_compass.matching import MatchResult
 from mcgill_care_compass.schema import ServiceRecord
 
@@ -57,6 +58,31 @@ DEFAULT_CHUNK_NEXT_STEP = (
     "costs, coverage, or eligibility criteria."
 )
 MAX_EVIDENCE_CHARS = 360
+SUPPORTED_RETRIEVAL_STATUSES = {
+    "matched",
+    "emergency",
+    "unsupported",
+    "no_match",
+    "low_confidence",
+}
+FALLBACK_MESSAGES = {
+    "unsupported": (
+        "This navigator does not yet support that category. Use a broad official McGill "
+        "or government starting point while the taxonomy is expanded."
+    ),
+    "no_match": (
+        "No source-grounded match was found after applying the available retrieval "
+        "filters. Try broader intake choices or use an official McGill starting point."
+    ),
+    "low_confidence": (
+        "The retriever found possible evidence, but it looked too generic, short, or "
+        "navigation-heavy to present as a confident recommendation."
+    ),
+    "emergency": (
+        "Safety guidance should be shown before any normal recommendation or fallback "
+        "result."
+    ),
+}
 
 
 def format_recommendation(result: MatchResult) -> str:
@@ -123,6 +149,51 @@ def format_recommendation_set(primary: str, backups: Iterable[str] = ()) -> str:
     for index, backup in enumerate((text for text in backups if _clean(text)), start=1):
         parts.append(f"Backup option {index}:\n{backup}")
     return "\n\n".join(parts)
+
+
+def format_retrieval_response(
+    response: Mapping[str, object] | object,
+    *,
+    intake: Mapping[str, object] | object | None = None,
+) -> str:
+    """Format Muhammad's Issue 4 retrieval response for Issue 5 result display."""
+
+    status = _response_field(response, "status") or "unknown"
+    parts = [f"Status: {status}"]
+
+    if intake is not None:
+        intake_summary = format_intake_summary(intake)
+        if intake_summary:
+            parts.append(intake_summary)
+
+    safety_notice = _response_field(response, "safety_notice")
+    if safety_notice:
+        parts.append(f"Safety notice: {safety_notice}")
+
+    limitation_notice = _response_field(response, "limitation_notice")
+    if limitation_notice:
+        parts.append(f"Limitation: {limitation_notice}")
+
+    message = _response_field(response, "message")
+    if not message and status in FALLBACK_MESSAGES and status != "matched":
+        message = FALLBACK_MESSAGES[status]
+    if message:
+        parts.append(f"Fallback message: {message}")
+
+    primary = _response_value(response, "primary_result")
+    backups = tuple(_response_value(response, "backup_results") or ())
+    if primary:
+        primary_text = _format_retrieved_evidence(primary)
+        backup_texts = [_format_retrieved_evidence(evidence) for evidence in backups]
+        parts.append(format_recommendation_set(primary_text, backup_texts))
+    elif backups:
+        formatted_backups = [
+            f"Backup option {index}:\n{_format_retrieved_evidence(evidence)}"
+            for index, evidence in enumerate(backups, start=1)
+        ]
+        parts.append("Backup results:\n" + "\n\n".join(formatted_backups))
+
+    return "\n\n".join(part for part in parts if _clean(part))
 
 
 def chunk_debug_metadata(chunk: Mapping[str, object]) -> str:
@@ -233,6 +304,52 @@ def _chunk_limitation_text(chunk: Mapping[str, object], limitation_required: boo
     if limitation_required:
         return limitation or GENERAL_LIMITATION
     return ""
+
+
+def _format_retrieved_evidence(evidence: Mapping[str, object] | object) -> str:
+    chunk = _evidence_chunk(evidence)
+    match_reason = _response_field(evidence, "match_reason") or "Matched retrieved evidence."
+    formatted = format_retrieved_chunk_recommendation(chunk, match_reason)
+
+    quality_warnings = _response_value(evidence, "quality_warnings") or ()
+    if quality_warnings:
+        formatted = f"{formatted}\nEvidence warnings: {', '.join(map(str, quality_warnings))}"
+
+    limitation = _response_field(evidence, "limitation")
+    if limitation and limitation not in formatted:
+        formatted = f"{formatted}\nRetriever limitation: {limitation}"
+    return formatted
+
+
+def _evidence_chunk(evidence: Mapping[str, object] | object) -> Mapping[str, object]:
+    raw_chunk = _response_value(evidence, "raw_chunk")
+    if isinstance(raw_chunk, Mapping):
+        return raw_chunk
+    if isinstance(evidence, Mapping):
+        return evidence
+
+    return {
+        "chunk_id": _response_field(evidence, "chunk_id"),
+        "vector_id": _response_field(evidence, "vector_id"),
+        "heading_path": _response_field(evidence, "title"),
+        "chunk_text": _response_field(evidence, "chunk_text"),
+        "canonical_url": _response_field(evidence, "canonical_url"),
+        "source_publisher": _response_field(evidence, "source_publisher"),
+        "retrieved_at": _response_field(evidence, "retrieved_at"),
+        "source_updated_at": _response_field(evidence, "source_updated_at"),
+        "review_status": _response_field(evidence, "review_status"),
+        "label_confidence": _response_field(evidence, "label_confidence"),
+    }
+
+
+def _response_field(values: Mapping[str, object] | object, key: str) -> str:
+    return _clean(_response_value(values, key))
+
+
+def _response_value(values: Mapping[str, object] | object, key: str) -> object | None:
+    if isinstance(values, Mapping):
+        return values.get(key)
+    return getattr(values, key, None)
 
 
 def _mapping_field(label: str, values: Mapping[str, object], key: str) -> str:
