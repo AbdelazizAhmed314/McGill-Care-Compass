@@ -1,7 +1,7 @@
 # Data Policy
 
 The active data layer is the v1 local RAG corpus. The project no longer keeps
-the previous static record artifacts in the repository.
+the active RAG artifacts in the repository.
 
 ## Medallion Policy
 

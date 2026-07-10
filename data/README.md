@@ -1,8 +1,7 @@
 # Data Package
 
 This folder contains the active v1 RAG data package for McGill Care Compass.
-The previous static record files have been removed. The current data layer is a
-medallion pipeline that ingests official source pages,
+The current data layer is a medallion pipeline that ingests official source pages,
 creates source-grounded chunks, and builds a local vector index.
 
 ## Medallion Layout

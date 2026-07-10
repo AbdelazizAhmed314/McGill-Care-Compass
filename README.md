@@ -16,8 +16,8 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 
 | Path | Purpose |
 | --- | --- |
-| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | App, data loading, matching, guardrails, explanation, and evaluation helpers. |
-| [`tests/`](tests/) | Unit and behavior tests for app scaffolding and core rules. |
+| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Placeholder app shell, guardrails, and RAG ranking helpers. |
+| [`tests/`](tests/) | Unit and behavior tests for RAG pipeline helpers, ranking, and safety rules. |
 | [`data/source-inputs/`](data/source-inputs/) | Seed URL and questionnaire metadata configuration shared by the pipeline and UI. |
 | [`data/bronze/`](data/README.md) | Raw unprocessed source captures generated locally and ignored by git. |
 | [`data/silver/`](data/silver/) | Processed v1 RAG artifacts: reviewable CSVs/reports plus local ignored text, SQLite, and rebuildable Chroma outputs. |
@@ -42,7 +42,7 @@ uv run pytest
 uv run python scripts/data/validate_rag_corpus.py
 ```
 
-Run the placeholder Streamlit app:
+Run the placeholder Streamlit intake shell:
 
 ```powershell
 uv run streamlit run src/mcgill_care_compass/app.py

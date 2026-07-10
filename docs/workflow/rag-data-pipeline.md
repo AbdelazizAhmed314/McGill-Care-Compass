@@ -81,5 +81,5 @@ uv run python scripts/data/query_rag_corpus.py \
 - Rebuild Chroma from [`data/silver/datasets/rag_chunks.csv`](../../data/silver/datasets/rag_chunks.csv); do not commit the vector store.
 - Treat `risk_level` as legacy topic-sensitivity metadata, not actual chunk danger.
 - If taxonomy, questionnaire IDs, source authority, or metadata rules change, update the source-input files and rerun the pipeline.
-- Use Silver chunks for prototype retrieval only with source links, limitation wording, and evidence checks.
+- Use Silver chunks for future app retrieval only with source links, limitation wording, and evidence checks.
 - Promote data to Gold only after explicit review.

@@ -32,7 +32,7 @@ Decision: do not create a Gold approved retrieval subset in this PR.
 
 Reason: Issue #1 is about building the RAG corpus pipeline. Gold approval is a later review workflow.
 
-Impact: app prototypes may use Silver only with clear wording that Silver chunks are unreviewed and not final recommendation data.
+Impact: future RAG-backed app flows may use Silver only with clear wording that Silver chunks are unreviewed and not final recommendation data.
 
 ## 2026-06-24 - Safety urgent is guardrail-first
 
