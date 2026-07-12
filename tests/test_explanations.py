@@ -1,4 +1,4 @@
-﻿from types import SimpleNamespace
+from types import SimpleNamespace
 
 from mcgill_care_compass.explanations import (
     chunk_debug_metadata,

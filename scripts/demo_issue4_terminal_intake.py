@@ -1,4 +1,4 @@
-﻿"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
+"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-﻿"""Safety routing helpers for high-risk intake cases."""
+"""Safety routing helpers for high-risk intake cases."""
 
 from __future__ import annotations
 

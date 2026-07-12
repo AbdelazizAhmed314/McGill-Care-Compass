@@ -1,4 +1,4 @@
-﻿from types import SimpleNamespace
+from types import SimpleNamespace
 
 import mcgill_care_compass.retrieval as retrieval_module
 from mcgill_care_compass.explanations import format_retrieved_chunk_recommendation

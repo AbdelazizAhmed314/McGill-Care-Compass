@@ -1,4 +1,4 @@
-﻿"""Grounded RAG explanation formatting."""
+"""Grounded RAG explanation formatting."""
 
 from __future__ import annotations
 

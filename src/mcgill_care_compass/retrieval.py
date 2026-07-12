@@ -1,4 +1,4 @@
-﻿"""Filtered RAG retrieval for the Issue 4 prototype."""
+"""Filtered RAG retrieval for the Issue 4 prototype."""
 
 from __future__ import annotations
 
