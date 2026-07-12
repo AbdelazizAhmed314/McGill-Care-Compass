@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+﻿from types import SimpleNamespace
 
 import mcgill_care_compass.retrieval as retrieval_module
 from mcgill_care_compass.explanations import format_retrieved_chunk_recommendation
@@ -14,6 +14,7 @@ from mcgill_care_compass.retrieval import (
     need_type_boolean,
     quality_warnings,
     raw_chunk_from_candidate,
+    retrieve_matches,
 )
 
 
@@ -232,7 +233,11 @@ def test_low_confidence_retrieval_does_not_return_rejected_backups(monkeypatch) 
         def encode(self, values, normalize_embeddings: bool = True):  # noqa: ANN001
             return [SimpleNamespace(tolist=lambda: [0.1, 0.2, 0.3])]
 
-    monkeypatch.setattr(retrieval_module, "get_chroma_collection", lambda **kwargs: FakeCollection())
+    monkeypatch.setattr(
+        retrieval_module,
+        "get_chroma_collection",
+        lambda **kwargs: FakeCollection(),
+    )
     monkeypatch.setitem(
         __import__("sys").modules,
         "sentence_transformers",

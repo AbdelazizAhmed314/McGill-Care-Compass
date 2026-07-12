@@ -1,4 +1,4 @@
-"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
+﻿"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
 
 from __future__ import annotations
 
@@ -23,7 +23,6 @@ from mcgill_care_compass.retrieval import (  # noqa: E402
     NEED_TYPE_LABELS,
     STUDENT_TYPE_LABELS,
     RetrievalIntake,
-    RetrievalResponse,
     VectorStoreUnavailable,
     retrieve_matches,
 )
@@ -241,7 +240,7 @@ def run_demo(args: argparse.Namespace) -> None:
         print(f"\nLimitation: {response.limitation_notice}")
     if response.message:
         print(f"\nMessage: {response.message}")
-    formatted = format_user_facing_recommendations(response)
+    formatted = format_retrieval_response(response, intake=intake)
     if formatted:
         print("\nUser-facing recommendation:")
         print("-" * 72)
