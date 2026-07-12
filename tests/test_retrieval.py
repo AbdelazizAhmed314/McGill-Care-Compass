@@ -1,3 +1,6 @@
+﻿from types import SimpleNamespace
+
+import mcgill_care_compass.retrieval as retrieval_module
 from mcgill_care_compass.explanations import format_retrieved_chunk_recommendation
 from mcgill_care_compass.retrieval import (
     RetrievalIntake,
@@ -190,3 +193,55 @@ def test_retrieved_evidence_can_feed_mustafa_formatter() -> None:
     assert "Why this matched: Matched selected context" in explanation
     assert "Suggested next step: Use the official source section to confirm costs" in explanation
     assert "Official source: https://www.mcgill.ca/internationalstudents/health" in explanation
+
+
+def test_emergency_retrieval_returns_resources_without_vector_store(monkeypatch) -> None:
+    def fail_if_called(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("Emergency routing should not call the vector store")
+
+    monkeypatch.setattr(retrieval_module, "get_chroma_collection", fail_if_called)
+
+    response = retrieve_matches(
+        RetrievalIntake(category_id="safety_urgent", urgency_level="emergency_immediate_danger")
+    )
+
+    assert response.status == "emergency"
+    assert response.primary_result is None
+    assert response.backup_results == ()
+    assert response.emergency_resources
+    assert response.emergency_resources[0].phone == "911"
+
+
+def test_low_confidence_retrieval_does_not_return_rejected_backups(monkeypatch) -> None:
+    class FakeCollection:
+        def count(self) -> int:
+            return 1
+
+        def query(self, **kwargs):  # noqa: ANN003
+            return {
+                "documents": [["Related Content Quick Links"]],
+                "metadatas": [[{"category_id": "insurance", "label_confidence": "low"}]],
+                "distances": [[0.9]],
+                "ids": [["rejected-1"]],
+            }
+
+    class FakeModel:
+        def __init__(self, model_name: str) -> None:
+            self.model_name = model_name
+
+        def encode(self, values, normalize_embeddings: bool = True):  # noqa: ANN001
+            return [SimpleNamespace(tolist=lambda: [0.1, 0.2, 0.3])]
+
+    monkeypatch.setattr(retrieval_module, "get_chroma_collection", lambda **kwargs: FakeCollection())
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=FakeModel),
+    )
+
+    response = retrieve_matches(RetrievalIntake(category_id="insurance"))
+
+    assert response.status == "low_confidence"
+    assert response.primary_result is None
+    assert response.backup_results == ()
+

@@ -1,4 +1,4 @@
-"""Filtered RAG retrieval for the Issue 4 prototype."""
+﻿"""Filtered RAG retrieval for the Issue 4 prototype."""
 
 from __future__ import annotations
 
@@ -10,7 +10,12 @@ from typing import Any
 
 import pandas as pd
 
-from mcgill_care_compass.guardrails import emergency_notice, requires_limitation_notice
+from mcgill_care_compass.guardrails import (
+    EmergencyResource,
+    emergency_notice,
+    emergency_resources,
+    requires_limitation_notice,
+)
 from mcgill_care_compass.rag_ranking import rank_retrieved_chunks
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -143,6 +148,7 @@ class RetrievalResponse:
     relaxed_level: int
     primary_result: RetrievedEvidence | None
     backup_results: tuple[RetrievedEvidence, ...]
+    emergency_resources: tuple[EmergencyResource, ...] = ()
     safety_notice: str | None = None
     limitation_notice: str | None = None
     message: str = ""
@@ -486,7 +492,23 @@ def retrieve_matches(
     """Retrieve ranked RAG evidence for structured intake answers."""
 
     query = intake.query.strip() or default_query_from_intake(intake)
-    safety_notice = emergency_notice("emergency") if is_emergency_intake(intake) else None
+    safety_notice = emergency_notice(intake.urgency_level) if is_emergency_intake(intake) else None
+    if safety_notice:
+        return RetrievalResponse(
+            status="emergency",
+            query=query,
+            matched_filters={},
+            relaxed_level=0,
+            primary_result=None,
+            backup_results=(),
+            emergency_resources=emergency_resources(),
+            safety_notice=safety_notice,
+            limitation_notice=(
+                "This navigator cannot assess symptoms, determine whether a situation is "
+                "an emergency, or replace emergency services."
+            ),
+            message="Emergency guidance is shown before regular navigator results.",
+        )
     if not is_supported_category(intake.category_id):
         return RetrievalResponse(
             status="unsupported",
@@ -509,7 +531,7 @@ def retrieve_matches(
     total_chunks = collection.count()
     if total_chunks == 0:
         return RetrievalResponse(
-            status="emergency" if safety_notice else "no_match",
+            status="no_match",
             query=query,
             matched_filters={},
             relaxed_level=0,
@@ -565,33 +587,22 @@ def retrieve_matches(
             )
 
     if fallback_candidates:
-        rejected = tuple(
-            evidence_from_candidate(candidate, intake=intake, matched_filters={})
-            for candidate in fallback_candidates[:limit]
-        )
         return RetrievalResponse(
-            status="emergency" if safety_notice else "low_confidence",
+            status="low_confidence",
             query=query,
             matched_filters={},
             relaxed_level=len(filter_steps_for_intake(intake)) - 1,
             primary_result=None,
-            backup_results=rejected,
-            safety_notice=safety_notice,
+            backup_results=(),
             limitation_notice=limitation_for_intake(intake, "silver_unreviewed"),
             message=(
-                "Safety guidance is shown first. The retriever found chunks, but the top "
-                "evidence looked too generic, short, or navigation-heavy for a "
-                "source-grounded recommendation."
-                if safety_notice
-                else (
-                    "The retriever found chunks, but the top evidence looked too generic, "
-                    "short, or navigation-heavy for a source-grounded recommendation."
-                )
+                "The retriever found chunks, but the top evidence looked too generic, "
+                "short, or navigation-heavy for a source-grounded recommendation."
             ),
         )
 
     return RetrievalResponse(
-        status="emergency" if safety_notice else "no_match",
+        status="no_match",
         query=query,
         matched_filters={},
         relaxed_level=len(filter_steps_for_intake(intake)) - 1,
@@ -600,9 +611,8 @@ def retrieve_matches(
         safety_notice=safety_notice,
         limitation_notice=limitation_for_intake(intake, "silver_unreviewed"),
         message=(
-            "Safety guidance is shown first. No secondary source-grounded match was found "
-            "after strict and relaxed metadata filters."
-            if safety_notice
-            else "No source-grounded match was found after strict and relaxed metadata filters."
+            "No source-grounded match was found after strict and relaxed metadata filters."
         ),
     )
+
+

@@ -1,4 +1,4 @@
-"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
+﻿"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
 
 from __future__ import annotations
 
@@ -15,8 +15,7 @@ if str(SRC) not in sys.path:
 
 from mcgill_care_compass.explanations import (  # noqa: E402
     chunk_debug_metadata,
-    format_recommendation_set,
-    format_retrieved_chunk_recommendation,
+    format_retrieval_response,
 )
 from mcgill_care_compass.retrieval import (  # noqa: E402
     CATEGORY_LABELS,
@@ -216,20 +215,6 @@ def print_evidence(label: str, evidence) -> None:
     print(f"- Evidence preview: {preview}")
 
 
-def format_user_facing_recommendations(response: RetrievalResponse) -> str:
-    """Return Mustafa's user-facing wording for matched evidence."""
-
-    if not response.primary_result:
-        return ""
-    primary = format_retrieved_chunk_recommendation(
-        response.primary_result.raw_chunk,
-        response.primary_result.match_reason,
-    )
-    backups = [
-        format_retrieved_chunk_recommendation(evidence.raw_chunk, evidence.match_reason)
-        for evidence in response.backup_results
-    ]
-    return format_recommendation_set(primary, backups)
 
 
 def run_demo(args: argparse.Namespace) -> None:
@@ -284,3 +269,4 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     run_demo(parse_args())
+
