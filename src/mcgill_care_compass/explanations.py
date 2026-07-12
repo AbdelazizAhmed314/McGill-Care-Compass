@@ -1,0 +1,264 @@
+"""Grounded explanation formatting."""
+
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
+
+from mcgill_care_compass.matching import MatchResult
+from mcgill_care_compass.schema import ServiceRecord
+
+CATEGORY_LIMITATIONS = {
+    "health_care": (
+        "This is navigation information only. Use the official source or a qualified "
+        "health professional for personal medical decisions."
+    ),
+    "mental_health": (
+        "This is navigation information only. If there is immediate danger or a crisis, "
+        "use emergency or crisis supports instead of relying on this navigator."
+    ),
+    "insurance": (
+        "This does not decide coverage or reimbursement. Confirm details with the "
+        "official insurer or McGill office listed in the source."
+    ),
+    "immigration_status": (
+        "This is not legal or immigration advice and does not determine status or "
+        "eligibility. Confirm requirements with official immigration sources or a "
+        "qualified advisor."
+    ),
+    "tax": (
+        "This is not tax advice and does not determine residency, filing obligations, "
+        "deductions, credits, or refunds. Confirm details with official tax sources or "
+        "a qualified tax professional."
+    ),
+    "finances": (
+        "This does not decide financial-aid eligibility, award amounts, or application "
+        "outcomes. Confirm details with the official source."
+    ),
+    "work_career": (
+        "This does not decide work authorization or interpret permit conditions. Confirm "
+        "requirements with official sources or a qualified advisor."
+    ),
+    "safety_urgent": (
+        "Urgent safety concerns should use emergency or crisis supports first; this "
+        "navigator should not be used as emergency triage."
+    ),
+}
+
+GENERAL_LIMITATION = (
+    "This is source-grounded navigation information only. Confirm details with the "
+    "official source before acting."
+)
+SILVER_UNREVIEWED_NOTICE = (
+    "This result is based on source-grounded Silver data that has not been manually "
+    "approved as final recommendation data."
+)
+DEFAULT_CHUNK_NEXT_STEP = (
+    "Review the official source section for the listed steps, contact route, documents, "
+    "costs, coverage, or eligibility criteria."
+)
+MAX_EVIDENCE_CHARS = 360
+
+
+def format_recommendation(result: MatchResult) -> str:
+    """Format a concise recommendation using only matched record fields."""
+
+    record = result.record
+    parts = [
+        f"Service: {record.service_name}",
+        f"Why this matched: {result.match_reason}",
+    ]
+    if record.recommended_next_step:
+        parts.append(f"Suggested next step: {record.recommended_next_step}")
+    if record.official_source_url:
+        parts.append(f"Official source: {record.official_source_url}")
+    source_details = _source_details(record)
+    if source_details:
+        parts.append(f"Source details: {source_details}")
+    limitation = _limitation_text(record, result.limitation_required)
+    if limitation:
+        parts.append(f"Limitations: {limitation}")
+    return "\n".join(parts)
+
+
+def format_retrieved_chunk_recommendation(
+    chunk: Mapping[str, object],
+    match_reason: str,
+    *,
+    limitation_required: bool | None = None,
+) -> str:
+    """Format a RAG chunk-shaped retrieval result for user-facing prototype output."""
+
+    category_id = _chunk_field(chunk, "category_id")
+    needs_limitation = limitation_required
+    if needs_limitation is None:
+        needs_limitation = category_id in CATEGORY_LIMITATIONS
+
+    parts = [
+        f"Service: {_chunk_starting_point(chunk)}",
+        f"Why this matched: {match_reason}",
+        f"Suggested next step: {_chunk_next_step(chunk)}",
+    ]
+    official_source = _chunk_field(chunk, "canonical_url") or _chunk_field(chunk, "url")
+    if official_source:
+        parts.append(f"Official source: {official_source}")
+    source_details = _chunk_source_details(chunk)
+    if source_details:
+        parts.append(f"Source details: {source_details}")
+    evidence = _evidence_preview(chunk)
+    if evidence:
+        parts.append(f"Source evidence: {evidence}")
+    evidence_status = _evidence_status(chunk)
+    if evidence_status:
+        parts.append(f"Evidence status: {evidence_status}")
+    limitation = _chunk_limitation_text(chunk, needs_limitation)
+    if limitation:
+        parts.append(f"Limitations: {limitation}")
+    return "\n".join(parts)
+
+
+def format_recommendation_set(primary: str, backups: Iterable[str] = ()) -> str:
+    """Format a primary recommendation with optional backup options."""
+
+    parts = [f"Primary starting point:\n{primary}"]
+    for index, backup in enumerate((text for text in backups if _clean(text)), start=1):
+        parts.append(f"Backup option {index}:\n{backup}")
+    return "\n\n".join(parts)
+
+
+def chunk_debug_metadata(chunk: Mapping[str, object]) -> str:
+    """Return developer-facing chunk evidence metadata for evaluation/debug views."""
+
+    details = [
+        _mapping_field("Chunk ID", chunk, "chunk_id"),
+        _mapping_field("Vector ID", chunk, "vector_id"),
+        _mapping_field("Heading", chunk, "heading_path"),
+        _mapping_field("Review status", chunk, "review_status"),
+        _mapping_field("Label method", chunk, "label_method"),
+        _mapping_field("Label confidence", chunk, "label_confidence"),
+    ]
+    return "; ".join(detail for detail in details if detail)
+
+
+def _source_details(record: ServiceRecord) -> str:
+    details = [
+        _first_present("Publisher", [record.source_publisher, record.source_name]),
+        _field("Source group", record.source_group),
+        _field("Authority", record.authority_level),
+        _first_present("Retrieved", [record.retrieved_at, record.source_retrieved_at]),
+        _field("Source updated", record.source_updated_at),
+        _field("Verified", record.last_verified_date),
+        _first_present("Terms", [record.terms_url, record.source_license_or_terms]),
+    ]
+    return "; ".join(detail for detail in details if detail)
+
+
+def _limitation_text(record: ServiceRecord, limitation_required: bool) -> str:
+    limitation = _clean(record.limitations)
+    if limitation and limitation_required:
+        category_limitation = CATEGORY_LIMITATIONS.get(record.category_id)
+        if category_limitation and category_limitation not in limitation:
+            return f"{limitation} {category_limitation}"
+    if limitation:
+        return limitation
+    if limitation_required:
+        return CATEGORY_LIMITATIONS.get(record.category_id, GENERAL_LIMITATION)
+    return ""
+
+
+def _chunk_starting_point(chunk: Mapping[str, object]) -> str:
+    for field in ("heading_path", "section_heading", "source_publisher", "source_owner"):
+        value = _chunk_field(chunk, field)
+        if value:
+            return value
+    return "Source-grounded starting point"
+
+
+def _chunk_next_step(chunk: Mapping[str, object]) -> str:
+    info_tags = _chunk_field(chunk, "info_type_tags")
+    if "emergency_info" in info_tags:
+        return "Use the official emergency or crisis instructions shown in the source first."
+    if "booking_steps" in info_tags:
+        return "Use the official source section for booking, application, or access steps."
+    if "required_docs" in info_tags:
+        return "Use the official source section to confirm required documents or forms."
+    if "costs_coverage" in info_tags:
+        return "Use the official source section to confirm costs, coverage, or payment details."
+    if "eligibility" in info_tags:
+        return "Use the official source section to confirm any eligibility criteria that may apply."
+    if "contact" in info_tags:
+        return "Use the official source section for the contact route or office listed."
+    return DEFAULT_CHUNK_NEXT_STEP
+
+
+def _chunk_source_details(chunk: Mapping[str, object]) -> str:
+    details = [
+        _first_present(
+            "Publisher",
+            [
+                chunk.get("source_publisher"),
+                chunk.get("source_owner"),
+                chunk.get("domain"),
+            ],
+        ),
+        _mapping_field("Source group", chunk, "source_group"),
+        _mapping_field("Authority", chunk, "authority_level"),
+        _mapping_field("Retrieved", chunk, "retrieved_at"),
+        _mapping_field("Source updated", chunk, "source_updated_at"),
+        _first_present("Terms", [chunk.get("terms_url"), chunk.get("licence_or_terms")]),
+    ]
+    return "; ".join(detail for detail in details if detail)
+
+
+def _evidence_preview(chunk: Mapping[str, object]) -> str:
+    text = _chunk_field(chunk, "chunk_text")
+    if not text:
+        return ""
+    if len(text) <= MAX_EVIDENCE_CHARS:
+        return text
+    return f"{text[:MAX_EVIDENCE_CHARS].rstrip()}..."
+
+
+def _evidence_status(chunk: Mapping[str, object]) -> str:
+    review_status = _chunk_field(chunk, "review_status")
+    if review_status == "silver_unreviewed":
+        return SILVER_UNREVIEWED_NOTICE
+    if review_status:
+        return f"Review status: {review_status}"
+    return ""
+
+
+def _chunk_limitation_text(chunk: Mapping[str, object], limitation_required: bool) -> str:
+    category_id = _chunk_field(chunk, "category_id")
+    limitation = CATEGORY_LIMITATIONS.get(category_id, "")
+    if limitation_required:
+        return limitation or GENERAL_LIMITATION
+    return ""
+
+
+def _mapping_field(label: str, values: Mapping[str, object], key: str) -> str:
+    return _field(label, values.get(key))
+
+
+def _chunk_field(chunk: Mapping[str, object], key: str) -> str:
+    return _clean(chunk.get(key))
+
+
+def _first_present(label: str, values: Iterable[object | None]) -> str:
+    for value in values:
+        field = _field(label, value)
+        if field:
+            return field
+    return ""
+
+
+def _field(label: str, value: object | None) -> str:
+    text = _clean(value)
+    if not text:
+        return ""
+    return f"{label}: {text}"
+
+
+def _clean(value: object | None) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
