@@ -1,10 +1,11 @@
-﻿"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
+"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
 
 from __future__ import annotations
 
 import argparse
 import sys
 import textwrap
+import time
 from pathlib import Path
 from typing import NamedTuple
 
@@ -17,6 +18,7 @@ from mcgill_care_compass.explanations import (  # noqa: E402
     chunk_debug_metadata,
     format_retrieval_response,
 )
+from mcgill_care_compass.llm_response import generate_llm_response  # noqa: E402
 from mcgill_care_compass.retrieval import (  # noqa: E402
     CATEGORY_LABELS,
     JURISDICTION_LABELS,
@@ -216,19 +218,61 @@ def print_evidence(label: str, evidence) -> None:
 
 
 
+def _print_debug_timings(timings: dict[str, float]) -> None:
+    """Print timing diagnostics to stderr so recommendation output stays clean."""
+
+    order = (
+        ("intake", "intake time (includes waiting for terminal input)"),
+        ("retrieval", "retrieval time"),
+        ("llm.evidence_pack", "evidence-pack build time"),
+        ("llm.openai_call", "OpenAI call time"),
+        ("llm.llm_response_format", "LLM response formatting time"),
+        ("llm.fallback_format", "fallback formatting time"),
+        ("formatting_printing", "formatting/printing time"),
+        ("total", "total elapsed time"),
+    )
+    print("\nTiming diagnostics:", file=sys.stderr)
+    for key, label in order:
+        if key in timings:
+            print(f"[timing] {label}: {timings[key]:.3f}s", file=sys.stderr)
+
+
 def run_demo(args: argparse.Namespace) -> None:
     """Run the terminal intake and print retrieval results."""
 
+    timings: dict[str, float] = {}
+    total_start = time.perf_counter()
+    intake_start = time.perf_counter()
     intake = build_intake_from_terminal()
+    timings["intake"] = time.perf_counter() - intake_start
+    retrieval_start = time.perf_counter()
     try:
         response = retrieve_matches(
             intake,
-            limit=args.limit,
+            limit=args.evidence_limit if args.llm else args.limit,
+            retrieval_limit=args.retrieval_limit,
             rebuild_if_missing=args.rebuild_vector_store,
         )
     except VectorStoreUnavailable as exc:
         raise SystemExit(str(exc)) from exc
+    timings["retrieval"] = time.perf_counter() - retrieval_start
 
+    llm_result = None
+    formatted = ""
+    if args.llm:
+        llm_result = generate_llm_response(
+            intake,
+            response,
+            model=args.model,
+            evidence_limit=args.evidence_limit,
+            max_options=args.max_options,
+            collect_timings=args.debug_timing,
+        )
+        formatted = llm_result.markdown
+        if args.debug_timing:
+            timings.update({f"llm.{key}": value for key, value in llm_result.timings.items()})
+
+    display_start = time.perf_counter()
     print("\n" + "=" * 72)
     print(f"Status: {response.status}")
     print(f"Query: {response.query}")
@@ -240,7 +284,11 @@ def run_demo(args: argparse.Namespace) -> None:
         print(f"\nLimitation: {response.limitation_notice}")
     if response.message:
         print(f"\nMessage: {response.message}")
-    formatted = format_retrieval_response(response, intake=intake)
+    if args.llm:
+        if llm_result and not llm_result.used_llm and llm_result.fallback_reason:
+            print(f"\nLLM fallback: {llm_result.fallback_reason}")
+    else:
+        formatted = format_retrieval_response(response, intake=intake)
     if formatted:
         print("\nUser-facing recommendation:")
         print("-" * 72)
@@ -249,15 +297,57 @@ def run_demo(args: argparse.Namespace) -> None:
         print("-" * 72)
     if response.primary_result:
         print_evidence("Primary result", response.primary_result)
-    for index, evidence in enumerate(response.backup_results, start=1):
+    debug_backup_limit = max(args.max_options - 1, 0) if args.llm else len(response.backup_results)
+    for index, evidence in enumerate(response.backup_results[:debug_backup_limit], start=1):
         print_evidence(f"Backup result {index}", evidence)
-
+    timings["formatting_printing"] = time.perf_counter() - display_start
+    timings["total"] = time.perf_counter() - total_start
+    if args.debug_timing:
+        _print_debug_timings(timings)
 
 def parse_args() -> argparse.Namespace:
     """Parse terminal demo arguments."""
 
     parser = argparse.ArgumentParser(description="Run the Issue 4 terminal retrieval demo.")
-    parser.add_argument("--limit", type=int, default=3, help="Number of evidence items to show.")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=3,
+        help="Number of evidence items to show in deterministic mode.",
+    )
+    parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="Use the optional OpenAI Responses API layer.",
+    )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Override MCC_LLM_MODEL for the LLM response layer.",
+    )
+    parser.add_argument(
+        "--retrieval-limit",
+        type=int,
+        default=21,
+        help="Number of vector chunks to retrieve before filtering.",
+    )
+    parser.add_argument(
+        "--evidence-limit",
+        type=int,
+        default=15,
+        help="Maximum approved chunks available to the LLM layer.",
+    )
+    parser.add_argument(
+        "--max-options",
+        type=int,
+        default=3,
+        help="Maximum user-facing recommendation options from the LLM layer.",
+    )
+    parser.add_argument(
+        "--debug-timing",
+        action="store_true",
+        help="Print timing diagnostics for intake, retrieval, LLM, and output rendering.",
+    )
     parser.add_argument(
         "--rebuild-vector-store",
         action="store_true",
@@ -268,4 +358,3 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     run_demo(parse_args())
-

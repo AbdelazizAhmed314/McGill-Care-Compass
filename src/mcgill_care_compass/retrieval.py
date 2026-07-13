@@ -1,4 +1,4 @@
-"""Filtered RAG retrieval for the Issue 4 prototype."""
+"""Filtered RAG retrieval for terminal intake and response generation."""
 
 from __future__ import annotations
 
@@ -486,6 +486,7 @@ def retrieve_matches(
     intake: RetrievalIntake,
     *,
     limit: int = 3,
+    retrieval_limit: int = 21,
     rebuild_if_missing: bool = False,
     embedding_model: str = EMBEDDING_MODEL,
 ) -> RetrievalResponse:
@@ -547,7 +548,7 @@ def retrieve_matches(
     for relaxed_level, metadata_filter in enumerate(filter_steps_for_intake(intake)):
         result = collection.query(
             query_embeddings=[query_embedding],
-            n_results=min(total_chunks, max(limit * 8, 12)),
+            n_results=min(total_chunks, max(retrieval_limit, limit, 1)),
             where=chroma_where(metadata_filter),
             include=["documents", "metadatas", "distances"],
         )

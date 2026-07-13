@@ -1,4 +1,4 @@
-"""Shared intake-field contract for retrieval and explanation prototypes."""
+"""Shared intake-field contract for retrieval and explanation layers."""
 
 from __future__ import annotations
 

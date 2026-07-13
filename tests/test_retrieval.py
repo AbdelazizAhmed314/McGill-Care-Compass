@@ -250,3 +250,56 @@ def test_low_confidence_retrieval_does_not_return_rejected_backups(monkeypatch) 
     assert response.primary_result is None
     assert response.backup_results == ()
 
+
+
+def test_retrieve_matches_uses_explicit_retrieval_limit(monkeypatch) -> None:
+    captured = {}
+
+    class FakeCollection:
+        def count(self) -> int:
+            return 50
+
+        def query(self, **kwargs):  # noqa: ANN003
+            captured["n_results"] = kwargs["n_results"]
+            return {
+                "documents": [["Call 514-398-7992 for official insurance contact help."]],
+                "metadatas": [[
+                    {
+                        "chunk_id": "ihi-contact-1",
+                        "category_id": "insurance",
+                        "label_confidence": "high",
+                        "has_contact_info": True,
+                        "canonical_url": "https://www.mcgill.ca/internationalstudents/health",
+                        "heading_path": "International Health Insurance > Contact",
+                    }
+                ]],
+                "distances": [[0.1]],
+                "ids": [["ihi-contact-1"]],
+            }
+
+    class FakeModel:
+        def __init__(self, model_name: str) -> None:
+            self.model_name = model_name
+
+        def encode(self, values, normalize_embeddings: bool = True):  # noqa: ANN001
+            return [SimpleNamespace(tolist=lambda: [0.1, 0.2, 0.3])]
+
+    monkeypatch.setattr(
+        retrieval_module,
+        "get_chroma_collection",
+        lambda **kwargs: FakeCollection(),
+    )
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=FakeModel),
+    )
+
+    response = retrieve_matches(
+        RetrievalIntake(category_id="insurance", need_type="contact"),
+        limit=3,
+        retrieval_limit=21,
+    )
+
+    assert captured["n_results"] == 21
+    assert response.status == "matched"

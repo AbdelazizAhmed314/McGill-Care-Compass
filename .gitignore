@@ -12,6 +12,8 @@ htmlcov/
 venv/
 .env
 .env.*
+!.env.example
+.streamlit/secrets.toml
 
 # Local notebooks and generated artifacts
 .ipynb_checkpoints/

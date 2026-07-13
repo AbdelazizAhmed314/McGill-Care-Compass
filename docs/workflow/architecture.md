@@ -1,8 +1,8 @@
 # Architecture
 
 McGill Care Compass is a source-grounded navigator. The active v1 architecture
-uses a local RAG data layer, deterministic intake filters, and guarded
-recommendation generation.
+uses a local RAG data layer, deterministic intake filters, guarded retrieval,
+and optional LLM response writing over approved evidence.
 
 ## Subsystems
 
@@ -14,13 +14,16 @@ recommendation generation.
 3. **Validation and governance**: [`scripts/data/validate_rag_corpus.py`](../../scripts/data/validate_rag_corpus.py) checks
    schema, artifact hashes, manifest consistency, SQLite parity, and vector
    count.
-4. **Structured intake**: the UI collects category, need type, student context,
-   jurisdiction, language, urgency, and delivery preferences.
-5. **Retrieval**: the app filters chunks using questionnaire metadata, then runs
-   semantic search inside the filtered subset.
-6. **Response layer**: the app summarizes retrieved chunks into next steps,
-   contacts, documents, costs, and citations while applying high-risk safety
-   rules.
+4. **Structured intake**: the terminal demo collects category, need type, student context,
+   jurisdiction, language, urgency, route context, and optional free-text query.
+   The Streamlit shell is retained as a placeholder and is not the active Issue 6 path.
+5. **Retrieval**: the terminal app filters chunks using questionnaire metadata, retrieves
+   up to 21 vector candidates, then ranks and caps approved evidence for display or
+   response writing.
+6. **Response layer**: deterministic formatting remains the fallback. The optional
+   Responses API layer groups approved evidence into at most three user-facing options,
+   uses up to five chunks per option, validates cited source IDs, discloses conflicts,
+   and applies high-risk safety rules.
 7. **Evaluation**: fixed scenarios test retrieval relevance, source grounding,
    refusal/deferral behavior, and usability.
 
@@ -35,7 +38,8 @@ official seed URLs
   -> Silver SQLite metadata
   -> Silver Chroma vector index
   -> filtered retrieval
-  -> source-grounded response
+  -> evidence grouping and source validation
+  -> deterministic or optional LLM-written source-grounded response
 ```
 
 ## Design Principles

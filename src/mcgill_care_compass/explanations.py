@@ -82,7 +82,7 @@ def format_retrieved_chunk_recommendation(
     *,
     limitation_required: bool | None = None,
 ) -> str:
-    """Format a RAG chunk-shaped retrieval result for user-facing prototype output."""
+    """Format a RAG chunk-shaped retrieval result for user-facing output."""
 
     category_id = _chunk_field(chunk, "category_id")
     needs_limitation = limitation_required

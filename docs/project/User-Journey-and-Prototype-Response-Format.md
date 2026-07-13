@@ -427,7 +427,7 @@ Start with this action: [specific source-derived action]. Use the official sourc
 
 ## Handoff
 
-- Issue 4 defines the implementation target for the intake, metadata filters, top-k evidence set, and result states defined here; the current Streamlit intake shell remains a placeholder until that RAG-backed behavior is wired in.
-- Issue 5 should use the result layout, wording standards, and appendix examples as the explanation-layer contract.
-- Issue 7 should convert emergency, high-risk, unsupported, and no-match behavior into guardrail checks.
+- Issue 4/6 now has a terminal RAG path for structured intake, metadata filters, vector retrieval, deterministic formatting, and optional LLM response writing; the Streamlit intake shell remains a placeholder until the guardrails, retrieval logic, and response layer are finalized for UI wiring.
+- Issue 5 should use the result layout, wording standards, and appendix examples as the explanation-layer contract; the optional LLM layer must preserve source grounding and validated source IDs.
+- Issue 7 should harden emergency, high-risk, unsupported, no-match, conflict-disclosure, and system-error behavior into final guardrail checks.
 - Issue 8 should convert the appendix examples into evaluation scenarios with expected category, source-link, evidence-pass, and safety-note checks.

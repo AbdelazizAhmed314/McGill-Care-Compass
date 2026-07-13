@@ -16,13 +16,14 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 
 | Path | Purpose |
 | --- | --- |
-| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Placeholder app shell, guardrails, and RAG ranking helpers. |
+| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Guardrails, retrieval/ranking, explanation formatting, optional LLM response writing, and the retained placeholder Streamlit shell. |
 | [`tests/`](tests/) | Unit and behavior tests for RAG pipeline helpers, ranking, and safety rules. |
 | [`data/source-inputs/`](data/source-inputs/) | Seed URL and questionnaire metadata configuration shared by the pipeline and UI. |
 | [`data/bronze/`](data/README.md) | Raw unprocessed source captures generated locally and ignored by git. |
 | [`data/silver/`](data/silver/) | Processed v1 RAG artifacts: reviewable CSVs/reports plus local ignored text, SQLite, and rebuildable Chroma outputs. |
 | [`data/gold/`](data/gold/) | Reserved for reviewed, release-ready data; no Gold dataset exists yet. |
 | [`scripts/data/`](scripts/data/) | RAG corpus build, query, and validation scripts. |
+| [`scripts/demo_issue4_terminal_intake.py`](scripts/demo_issue4_terminal_intake.py) | Terminal intake demo for deterministic RAG retrieval and optional LLM response writing. |
 | [`docs/project/`](docs/project/) | Finalized course/project documents. |
 | [`docs/workflow/`](docs/workflow/) | Collaboration, GitHub, data, and architecture contracts. |
 
@@ -42,7 +43,60 @@ uv run pytest
 uv run python scripts/data/validate_rag_corpus.py
 ```
 
-Run the placeholder Streamlit intake shell:
+Rebuild the ignored local vector store if needed:
+
+```powershell
+uv run python scripts/demo_issue4_terminal_intake.py --rebuild-vector-store
+```
+
+Run the terminal RAG intake demo without the LLM layer:
+
+```powershell
+uv run python scripts/demo_issue4_terminal_intake.py
+```
+
+### Optional LLM/API Mode
+
+The terminal demo works without an API key by default. To enable LLM-written
+responses, set this environment variable:
+
+```text
+OPENAI_API_KEY=...
+```
+
+You can also override the default model with:
+
+```text
+MCC_LLM_MODEL=gpt-5.6-luna
+```
+
+Global environment variables are preferred. A local ignored `.env` can be used
+as a fallback:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Run the optional LLM response layer:
+
+```powershell
+uv run python scripts/demo_issue4_terminal_intake.py --llm
+```
+
+If no valid key is found, the app falls back to deterministic output and prints:
+
+```text
+LLM fallback: OPENAI_API_KEY is not set.
+```
+
+Use timing diagnostics when investigating latency:
+
+```powershell
+uv run python scripts/demo_issue4_terminal_intake.py --llm --debug-timing
+```
+
+The Streamlit app is retained only as a placeholder intake shell until the guardrails, retrieval logic, and response layer are finalized:
 
 ```powershell
 uv run streamlit run src/mcgill_care_compass/app.py
