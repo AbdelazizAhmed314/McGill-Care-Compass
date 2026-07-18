@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import re
@@ -41,7 +42,10 @@ ALLOWED_LABEL_METHOD = {"deterministic_keyword"}
 ALLOWED_LABEL_CONFIDENCE = {"low", "medium", "high"}
 
 def relative_path(path: Path) -> str:
-    return path.relative_to(ROOT).as_posix()
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 RUN_REQUIRED = {
     "pipeline_version",
@@ -139,7 +143,10 @@ def digest(value: bytes) -> str:
 def file_hash(path: Path) -> str:
     if not path.exists():
         return ""
-    return digest(path.read_bytes())
+    data = path.read_bytes()
+    if path.suffix.lower() in {".csv", ".md", ".yml", ".yaml", ".json", ".txt"}:
+        data = data.replace(b"\r\n", b"\n")
+    return digest(data)
 
 
 def read_csv(path: Path, errors: list[str]) -> pd.DataFrame:
@@ -257,6 +264,8 @@ def validate_manifest(
     chunks: pd.DataFrame,
     manifest: dict[str, object],
     errors: list[str],
+    *,
+    require_local_artifacts: bool = False,
 ) -> None:
     if not manifest:
         return
@@ -329,10 +338,11 @@ def validate_manifest(
         "pages_csv": (PAGES_CSV, len(pages)),
         "links_csv": (LINKS_CSV, len(links)),
         "chunks_csv": (CHUNKS_CSV, len(chunks)),
-        "sqlite_db": (SQLITE_DB, None),
         "report_md": (REPORT, None),
         "quality_report_md": (QUALITY_REPORT, None),
     }
+    if require_local_artifacts:
+        artifact_expectations["sqlite_db"] = (SQLITE_DB, None)
     for artifact_name, (path, expected_rows) in artifact_expectations.items():
         artifact = artifacts.get(artifact_name, {})
         if not isinstance(artifact, dict):
@@ -356,15 +366,16 @@ def validate_manifest(
             )
 
 
-def validate() -> list[str]:
+def validate(*, require_local_artifacts: bool = False) -> list[str]:
     errors: list[str] = []
     pages = read_csv(PAGES_CSV, errors)
     links = read_csv(LINKS_CSV, errors)
     chunks = read_csv(CHUNKS_CSV, errors)
     manifest = read_manifest(errors)
-    require(SQLITE_DB.exists(), f"Missing {SQLITE_DB.relative_to(ROOT)}", errors)
-    require(QUESTIONNAIRE_MAP.exists(), f"Missing {QUESTIONNAIRE_MAP.relative_to(ROOT)}", errors)
-    require(QUALITY_REPORT.exists(), f"Missing {QUALITY_REPORT.relative_to(ROOT)}", errors)
+    if require_local_artifacts:
+        require(SQLITE_DB.exists(), f"Missing {relative_path(SQLITE_DB)}", errors)
+    require(QUESTIONNAIRE_MAP.exists(), f"Missing {relative_path(QUESTIONNAIRE_MAP)}", errors)
+    require(QUALITY_REPORT.exists(), f"Missing {relative_path(QUALITY_REPORT)}", errors)
     if errors:
         return errors
 
@@ -377,7 +388,14 @@ def validate() -> list[str]:
     if missing_pages or missing_links or missing_chunks:
         return errors
 
-    validate_manifest(pages, links, chunks, manifest, errors)
+    validate_manifest(
+        pages,
+        links,
+        chunks,
+        manifest,
+        errors,
+        require_local_artifacts=require_local_artifacts,
+    )
 
     require(len(pages) > 0, "No pages recorded", errors)
     require(len(links) > 0, "No links recorded", errors)
@@ -467,38 +485,73 @@ def validate() -> list[str]:
         unknown_tags.update(tag for tag in value.split("|") if tag and tag not in allowed_tags)
     require(not unknown_tags, f"Unknown info_type_tags: {sorted(unknown_tags)}", errors)
 
-    with sqlite3.connect(SQLITE_DB) as connection:
-        page_count = connection.execute("select count(*) from pages").fetchone()[0]
-        link_count = connection.execute("select count(*) from links").fetchone()[0]
-        chunk_count = connection.execute("select count(*) from chunks").fetchone()[0]
-    require(page_count == len(pages), "SQLite pages count does not match CSV", errors)
-    require(link_count == len(links), "SQLite links count does not match CSV", errors)
-    require(chunk_count == len(chunks), "SQLite chunks count does not match CSV", errors)
+    if require_local_artifacts:
+        with sqlite3.connect(SQLITE_DB) as connection:
+            page_count = connection.execute("select count(*) from pages").fetchone()[0]
+            link_count = connection.execute("select count(*) from links").fetchone()[0]
+            chunk_count = connection.execute("select count(*) from chunks").fetchone()[0]
+        require(page_count == len(pages), "SQLite pages count does not match CSV", errors)
+        require(link_count == len(links), "SQLite links count does not match CSV", errors)
+        require(chunk_count == len(chunks), "SQLite chunks count does not match CSV", errors)
 
-    require(
-        VECTOR_DIR.exists(),
-        f"Missing vector store directory: {VECTOR_DIR.relative_to(ROOT)}",
-        errors,
-    )
-    if VECTOR_DIR.exists():
-        try:
-            import chromadb
+        require(
+            VECTOR_DIR.exists(),
+            f"Missing vector store directory: {relative_path(VECTOR_DIR)}",
+            errors,
+        )
+        if VECTOR_DIR.exists():
+            try:
+                import chromadb
 
-            client = chromadb.PersistentClient(path=str(VECTOR_DIR))
-            collection = client.get_collection(COLLECTION_NAME)
-            require(
-                collection.count() == len(chunks),
-                f"Chroma count {collection.count()} does not match chunk count {len(chunks)}",
-                errors,
-            )
-        except Exception as exc:  # validation should report dependency/index issues clearly
-            errors.append(f"Could not validate Chroma collection: {type(exc).__name__}: {exc}")
+                client = chromadb.PersistentClient(path=str(VECTOR_DIR))
+                collection = client.get_collection(COLLECTION_NAME)
+                require(
+                    collection.count() == len(chunks),
+                    f"Chroma count {collection.count()} does not match chunk count {len(chunks)}",
+                    errors,
+                )
+            except Exception as exc:  # validation should report dependency/index issues clearly
+                errors.append(
+                    f"Could not validate Chroma collection: {type(exc).__name__}: {exc}"
+                )
 
     return errors
 
 
+def parse_args() -> argparse.Namespace:
+    """Parse validator options."""
+
+    parser = argparse.ArgumentParser(description="Validate committed RAG corpus artifacts.")
+    parser.add_argument(
+        "--require-local-artifacts",
+        action="store_true",
+        help="Also require ignored local SQLite, Chroma, raw HTML, and clean-text artifacts.",
+    )
+    return parser.parse_args()
+
+
+def collect_runtime_artifact_warnings(*, include_debug_files: bool, pages: pd.DataFrame) -> list[str]:
+    """Return warnings for ignored local runtime/debug artifacts."""
+
+    warnings: list[str] = []
+    if not SQLITE_DB.exists():
+        warnings.append(
+            f"Local SQLite metadata missing: {relative_path(SQLITE_DB)} "
+            "(rebuildable ignored artifact)"
+        )
+    if not VECTOR_DIR.exists():
+        warnings.append(
+            f"Local Chroma vector store missing: {relative_path(VECTOR_DIR)} "
+            "(rebuildable ignored artifact)"
+        )
+    if include_debug_files:
+        warnings.extend(collect_local_artifact_warnings(pages))
+    return warnings
+
+
 def main() -> None:
-    errors = validate()
+    args = parse_args()
+    errors = validate(require_local_artifacts=args.require_local_artifacts)
     if errors:
         print("RAG corpus validation failed:")
         for error in errors:
@@ -510,7 +563,10 @@ def main() -> None:
     print(f"Pages: {len(pages)}")
     print(f"Chunks: {len(chunks)}")
     print(f"Categories: {chunks['category_id'].nunique()}")
-    warnings = collect_local_artifact_warnings(pages) + collect_quality_warnings(chunks)
+    warnings = collect_runtime_artifact_warnings(
+        include_debug_files=args.require_local_artifacts,
+        pages=pages,
+    ) + collect_quality_warnings(chunks)
     if warnings:
         print("Warnings:")
         for warning in warnings:

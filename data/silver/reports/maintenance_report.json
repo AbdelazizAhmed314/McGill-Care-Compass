@@ -1,0 +1,140 @@
+{
+  "broken_links": {
+    "fetch_error_examples": [
+      "https://www.mcgill.ca/studentaid/special-funding/quebec-students-priority-fields",
+      "https://www.mcgill.ca/internationalstudents/immigration-documents/renewing-documents/study-permit-renewal-guide",
+      "https://www.mcgill.ca/libraries/using-libraries/libraries/locations/islamic",
+      "https://www.mcgill.ca/libraries/using/computers/authentication-and-network-access"
+    ],
+    "fetch_failed_pages": 4,
+    "link_type_counts": {
+      "external": 2576,
+      "file": 192,
+      "in_scope": 11756,
+      "skipped": 7922,
+      "tel": 102
+    },
+    "non_200_examples": [
+      "https://www.mcgill.ca/studentaid/special-funding/quebec-students-priority-fields",
+      "https://www.mcgill.ca/internationalstudents/immigration-documents/renewing-documents/study-permit-renewal-guide",
+      "https://www.mcgill.ca/libraries/using-libraries/libraries/locations/islamic",
+      "https://www.mcgill.ca/libraries/using/computers/authentication-and-network-access"
+    ],
+    "non_200_pages": 4,
+    "not_crawled_links": 22079,
+    "pages_with_fetch_error": 4,
+    "skip_reason_counts": {
+      "<blank>": 469,
+      "contact_link": 102,
+      "depth_limit": 3016,
+      "duplicate_url": 7281,
+      "email_like_url": 12,
+      "external_domain": 2576,
+      "file_or_pdf": 192,
+      "max_pages_from_seed_reached": 762,
+      "outside_allowed_path": 7909,
+      "per_page_link_limit": 228,
+      "unsupported_scheme": 1
+    }
+  },
+  "category_coverage": {
+    "chunk_counts_by_category": {
+      "academics": 199,
+      "documents_admin": 55,
+      "finances": 657,
+      "health_care": 350,
+      "housing": 88,
+      "immigration_status": 402,
+      "insurance": 90,
+      "language_integration": 2,
+      "mental_health": 435,
+      "tax": 1605,
+      "work_career": 356
+    },
+    "expected_categories": [
+      "academics",
+      "documents_admin",
+      "finances",
+      "health_care",
+      "housing",
+      "immigration_status",
+      "insurance",
+      "language_integration",
+      "mental_health",
+      "safety_urgent",
+      "tax",
+      "work_career"
+    ],
+    "low_chunk_coverage_categories": [
+      "language_integration",
+      "safety_urgent"
+    ],
+    "missing_categories": [
+      "safety_urgent"
+    ],
+    "observed_categories": [
+      "academics",
+      "documents_admin",
+      "finances",
+      "health_care",
+      "housing",
+      "immigration_status",
+      "insurance",
+      "language_integration",
+      "mental_health",
+      "tax",
+      "work_career"
+    ],
+    "page_counts_by_category": {
+      "academics": 51,
+      "documents_admin": 6,
+      "finances": 92,
+      "health_care": 54,
+      "housing": 10,
+      "immigration_status": 50,
+      "insurance": 19,
+      "language_integration": 1,
+      "mental_health": 57,
+      "tax": 100,
+      "work_career": 50
+    }
+  },
+  "counts": {
+    "chunks": 4239,
+    "links": 22548,
+    "pages": 490
+  },
+  "generated_at": "2026-07-17T15:05:51.575672+00:00",
+  "inputs": {
+    "chunks_csv": "data/silver/datasets/rag_chunks.csv",
+    "links_csv": "data/silver/datasets/rag_links.csv",
+    "pages_csv": "data/silver/datasets/rag_pages.csv"
+  },
+  "missing_data": {
+    "blank_chunk_values": {
+      "source_updated_at": 287
+    },
+    "blank_link_values": {},
+    "blank_page_values": {
+      "source_updated_at": 44
+    },
+    "missing_chunk_columns": [],
+    "missing_link_columns": [],
+    "missing_page_columns": []
+  },
+  "source_freshness": {
+    "chunk_retrieved_at_max": "2026-06-24T07:40:10+00:00",
+    "chunk_retrieved_at_min": "2026-06-21T19:13:49+00:00",
+    "chunks_low_freshness_score": 1517,
+    "chunks_missing_source_updated_at": 287,
+    "drift_status_counts": {
+      "changed": 121,
+      "fetch_failed": 4,
+      "new": 4,
+      "unchanged": 361
+    },
+    "page_retrieved_at_max": "2026-06-24T07:40:10+00:00",
+    "page_retrieved_at_min": "2026-06-24T07:40:10+00:00",
+    "pages_missing_source_updated_at": 44
+  }
+}

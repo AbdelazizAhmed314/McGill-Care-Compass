@@ -4,43 +4,19 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
+from mcgill_care_compass.guardrails import LIMITATION_TEMPLATES
 from mcgill_care_compass.intake_contract import format_intake_summary
 
 CATEGORY_LIMITATIONS = {
-    "health_care": (
-        "This is navigation information only. Use the official source or a qualified "
-        "health professional for personal medical decisions."
-    ),
-    "mental_health": (
-        "This is navigation information only. If there is immediate danger or a crisis, "
-        "use emergency or crisis supports instead of relying on this navigator."
-    ),
-    "insurance": (
-        "This does not decide coverage or reimbursement. Confirm details with the "
-        "official insurer or McGill office listed in the source."
-    ),
-    "immigration_status": (
-        "This is not legal or immigration advice and does not determine status or "
-        "eligibility. Confirm requirements with official immigration sources or a "
-        "qualified advisor."
-    ),
-    "tax": (
-        "This is not tax advice and does not determine residency, filing obligations, "
-        "deductions, credits, or refunds. Confirm details with official tax sources or "
-        "a qualified tax professional."
-    ),
-    "finances": (
-        "This does not decide financial-aid eligibility, award amounts, or application "
-        "outcomes. Confirm details with the official source."
-    ),
-    "work_career": (
-        "This does not decide work authorization or interpret permit conditions. Confirm "
-        "requirements with official sources or a qualified advisor."
-    ),
-    "safety_urgent": (
-        "Urgent safety concerns should use emergency or crisis supports first; this "
-        "navigator should not be used as emergency triage."
-    ),
+    "health_care": LIMITATION_TEMPLATES["health_care"],
+    "mental_health": LIMITATION_TEMPLATES["mental_health"],
+    "insurance": LIMITATION_TEMPLATES["insurance"],
+    "immigration_status": LIMITATION_TEMPLATES["immigration_status"],
+    "tax": LIMITATION_TEMPLATES["tax"],
+    "finances": LIMITATION_TEMPLATES["finances"],
+    "work_career": LIMITATION_TEMPLATES["work_career"],
+    "housing": LIMITATION_TEMPLATES["housing"],
+    "safety_urgent": LIMITATION_TEMPLATES["emergency"],
 }
 
 GENERAL_LIMITATION = (
@@ -72,6 +48,10 @@ FALLBACK_MESSAGES = {
     "emergency": (
         "Emergency guidance is shown before regular navigator results. Use emergency "
         "services first if there is immediate danger."
+    ),
+    "system_error": (
+        "Source-grounded recommendations are temporarily unavailable. Run the health "
+        "check and rebuild local retrieval artifacts before using navigator output."
     ),
 }
 
@@ -159,6 +139,10 @@ def format_retrieval_response(
 
     primary = _response_value(response, "primary_result")
     backups = tuple(_response_value(response, "backup_results") or ())
+    error_code = _response_field(response, "error_code")
+    if error_code:
+        parts.append(f"Error code: {error_code}")
+
     if status == "matched" and primary:
         primary_text = _format_retrieved_evidence(primary)
         backup_texts = [_format_retrieved_evidence(evidence) for evidence in backups]

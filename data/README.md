@@ -99,6 +99,19 @@ Validate the corpus:
 uv run python scripts/data/validate_rag_corpus.py
 ```
 
+Use strict local-artifact validation only after rebuilding ignored SQLite and Chroma runtime artifacts:
+
+```powershell
+uv run python scripts/data/validate_rag_corpus.py --require-local-artifacts
+```
+
+Generate maintenance outputs for source freshness, broken-link/fetch signals,
+missing data, and category coverage:
+
+```bash
+uv run python scripts/data/generate_maintenance_report.py
+```
+
 Run a local retrieval smoke query:
 
 ```bash

@@ -41,6 +41,7 @@ Run checks:
 uv run ruff check .
 uv run pytest
 uv run python scripts/data/validate_rag_corpus.py
+uv run python scripts/health_check.py
 ```
 
 Rebuild the ignored local vector store if needed:
@@ -94,6 +95,12 @@ Use timing diagnostics when investigating latency:
 
 ```powershell
 uv run python scripts/demo_issue4_terminal_intake.py --llm --debug-timing
+```
+
+Run a basic app/data health check before internal demos:
+
+```powershell
+uv run python scripts/health_check.py
 ```
 
 The Streamlit app is retained only as a placeholder intake shell until the guardrails, retrieval logic, and response layer are finalized:

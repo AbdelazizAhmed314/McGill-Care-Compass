@@ -32,7 +32,7 @@
       "bytes": 6797,
       "exists": true,
       "path": "data/silver/reports/rag_pipeline_report.md",
-      "sha256": "2eb1be82b3d95a6e94075d2571c9903d6aa2bac773db998f8ccfda3a0b3349fc"
+      "sha256": "bb38acc1d42a6d6659149293bbc9308990e0cbb3cc26e698424fdd5d4b7edfda"
     },
     "sqlite_db": {
       "bytes": 35147776,

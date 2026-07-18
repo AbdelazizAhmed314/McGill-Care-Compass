@@ -45,7 +45,7 @@ def test_format_retrieved_chunk_recommendation_uses_rag_chunk_contract() -> None
     assert "Publisher: McGill University" in explanation
     assert "Source evidence: Review the International Health Insurance page" in explanation
     assert "Silver data that has not been manually approved" in explanation
-    assert "does not decide coverage or reimbursement" in explanation
+    assert "cannot decide coverage, reimbursement" in explanation
 
 
 def test_format_retrieved_chunk_recommendation_falls_back_without_action_tags() -> None:
@@ -66,7 +66,7 @@ def test_format_retrieved_chunk_recommendation_falls_back_without_action_tags() 
     assert "Service: Finding a resource" in explanation
     assert "Suggested next step: Review the official source section" in explanation
     assert "Terms: allows_non_commercial_or_link_and_paraphrase" in explanation
-    assert "Use the official source or a qualified health professional" in explanation
+    assert "cannot diagnose symptoms" in explanation
 
 
 def test_format_recommendation_set_formats_primary_and_backups() -> None:
@@ -239,3 +239,20 @@ def test_format_retrieval_response_shows_emergency_resources_without_recommendat
     assert "Emergency services - 911" in explanation
     assert "Primary starting point" not in explanation
     assert "Backup option" not in explanation
+
+
+def test_format_retrieval_response_shows_system_error_safely() -> None:
+    response = {
+        "status": "system_error",
+        "primary_result": None,
+        "backup_results": (),
+        "limitation_notice": "The navigator could not complete source-grounded retrieval.",
+        "error_code": "vector_store_unavailable",
+    }
+
+    explanation = format_retrieval_response(response)
+
+    assert "Status: system_error" in explanation
+    assert "Fallback message:" in explanation
+    assert "Error code: vector_store_unavailable" in explanation
+    assert "Primary starting point" not in explanation

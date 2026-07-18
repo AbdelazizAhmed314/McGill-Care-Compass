@@ -1,4 +1,4 @@
-﻿from types import SimpleNamespace
+from types import SimpleNamespace
 
 import mcgill_care_compass.retrieval as retrieval_module
 from mcgill_care_compass.explanations import format_retrieved_chunk_recommendation
@@ -303,3 +303,29 @@ def test_retrieve_matches_uses_explicit_retrieval_limit(monkeypatch) -> None:
 
     assert captured["n_results"] == 21
     assert response.status == "matched"
+
+
+def test_vector_store_failure_returns_system_error(monkeypatch) -> None:
+    def fail_vector_store(**kwargs):  # noqa: ANN003
+        raise RuntimeError("local index unavailable")
+
+    monkeypatch.setattr(retrieval_module, "get_chroma_collection", fail_vector_store)
+
+    response = retrieve_matches(RetrievalIntake(category_id="insurance"))
+
+    assert response.status == "system_error"
+    assert response.error_code == "vector_store_unavailable"
+    assert response.primary_result is None
+    assert "health check" in response.limitation_notice
+
+
+def test_unsupported_retrieval_returns_guardrail_message_without_vector_store(monkeypatch) -> None:
+    def fail_if_called(**kwargs):  # noqa: ANN003
+        raise AssertionError("Unsupported categories should not call vector store")
+
+    monkeypatch.setattr(retrieval_module, "get_chroma_collection", fail_if_called)
+
+    response = retrieve_matches(RetrievalIntake(category_id="unsupported_category"))
+
+    assert response.status == "unsupported"
+    assert "will not invent" in response.message

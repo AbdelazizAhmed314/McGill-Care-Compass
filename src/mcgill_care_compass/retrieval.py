@@ -14,8 +14,11 @@ from mcgill_care_compass.guardrails import (
     EmergencyResource,
     emergency_notice,
     emergency_resources,
-    requires_limitation_notice,
+    limitation_notice_for_category,
+    system_error_notice,
+    unsupported_notice,
 )
+from mcgill_care_compass.logging_utils import log_event
 from mcgill_care_compass.rag_ranking import rank_retrieved_chunks
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -152,6 +155,7 @@ class RetrievalResponse:
     safety_notice: str | None = None
     limitation_notice: str | None = None
     message: str = ""
+    error_code: str = ""
 
 
 def need_type_boolean(need_type: str) -> str:
@@ -396,19 +400,7 @@ def evidence_passes(document: str, metadata: dict[str, Any]) -> bool:
 def limitation_for_intake(intake: RetrievalIntake, review_status: str = "") -> str:
     """Return conservative limitation wording for retrieved evidence."""
 
-    limitations: list[str] = []
-    if requires_limitation_notice(intake.category_id):
-        limitations.append(
-            "This navigator can point to official starting points, but it cannot make "
-            "medical, legal, immigration, tax, insurance, financial-aid, or "
-            "work-authorization decisions."
-        )
-    if review_status == "silver_unreviewed":
-        limitations.append(
-            "This result comes from processed Silver RAG evidence that has not been "
-            "approved as a final Gold recommendation."
-        )
-    return " ".join(limitations)
+    return limitation_notice_for_category(intake.category_id, review_status=review_status)
 
 
 def match_reason_for_intake(intake: RetrievalIntake, matched_filters: dict[str, Any]) -> str:
@@ -482,6 +474,40 @@ def evidence_from_candidate(
     )
 
 
+
+
+def system_error_response(
+    intake: RetrievalIntake,
+    *,
+    query: str,
+    error_code: str = "retrieval_system_error",
+    error_type: str = "RuntimeError",
+) -> RetrievalResponse:
+    """Return a safe response when local retrieval dependencies fail."""
+
+    log_event(
+        "retrieval_system_error",
+        status="system_error",
+        category_id=intake.category_id,
+        error_code=error_code,
+        error_type=error_type,
+    )
+    return RetrievalResponse(
+        status="system_error",
+        query=query,
+        matched_filters={},
+        relaxed_level=0,
+        primary_result=None,
+        backup_results=(),
+        limitation_notice=system_error_notice(),
+        message=(
+            "Source-grounded recommendations are temporarily unavailable. Run the health "
+            "check and rebuild the local vector store before relying on navigator output."
+        ),
+        error_code=error_code,
+    )
+
+
 def retrieve_matches(
     intake: RetrievalIntake,
     *,
@@ -520,16 +546,21 @@ def retrieve_matches(
             backup_results=(),
             safety_notice=safety_notice,
             message=(
-                "This navigator currently supports the locked newcomer-service taxonomy. "
-                "Choose one of the supported categories or use a broad official McGill "
-                "starting point."
+                f"{unsupported_notice()} Choose one of the supported categories or "
+                "use a broad official McGill starting point."
             ),
         )
 
-    from sentence_transformers import SentenceTransformer
-
-    collection = get_chroma_collection(rebuild_if_missing=rebuild_if_missing)
-    total_chunks = collection.count()
+    try:
+        collection = get_chroma_collection(rebuild_if_missing=rebuild_if_missing)
+        total_chunks = collection.count()
+    except Exception as exc:
+        return system_error_response(
+            intake,
+            query=query,
+            error_code="vector_store_unavailable",
+            error_type=type(exc).__name__,
+        )
     if total_chunks == 0:
         return RetrievalResponse(
             status="no_match",
@@ -542,16 +573,34 @@ def retrieve_matches(
             message="The local vector store contains no chunks.",
         )
 
-    model = SentenceTransformer(embedding_model)
-    query_embedding = model.encode([query], normalize_embeddings=True)[0].tolist()
+    try:
+        from sentence_transformers import SentenceTransformer
+
+        model = SentenceTransformer(embedding_model)
+        query_embedding = model.encode([query], normalize_embeddings=True)[0].tolist()
+    except Exception as exc:
+        return system_error_response(
+            intake,
+            query=query,
+            error_code="embedding_model_unavailable",
+            error_type=type(exc).__name__,
+        )
     fallback_candidates: list[dict[str, Any]] = []
     for relaxed_level, metadata_filter in enumerate(filter_steps_for_intake(intake)):
-        result = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=min(total_chunks, max(retrieval_limit, limit, 1)),
-            where=chroma_where(metadata_filter),
-            include=["documents", "metadatas", "distances"],
-        )
+        try:
+            result = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=min(total_chunks, max(retrieval_limit, limit, 1)),
+                where=chroma_where(metadata_filter),
+                include=["documents", "metadatas", "distances"],
+            )
+        except Exception as exc:
+            return system_error_response(
+                intake,
+                query=query,
+                error_code="retrieval_query_failed",
+                error_type=type(exc).__name__,
+            )
         documents = result.get("documents", [[]])[0]
         metadatas = result.get("metadatas", [[]])[0]
         distances = result.get("distances", [[]])[0]
