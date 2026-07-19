@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from importlib import import_module
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
@@ -12,6 +13,7 @@ from mcgill_care_compass.api.app import create_app
 from mcgill_care_compass.health import HealthCheckResult, HealthReport
 from mcgill_care_compass.retrieval import RetrievalResponse, RetrievedEvidence
 
+app_module = import_module("mcgill_care_compass.api.app")
 client = TestClient(create_app())
 
 
@@ -174,3 +176,18 @@ def test_maintenance_report_is_read_only(monkeypatch, tmp_path) -> None:
     assert response.status_code == 200
     assert response.json()["counts"]["chunks"] == 3
     assert client.post("/api/v1/maintenance/report").status_code == 405
+
+
+def test_production_lifespan_preloads_retrieval_runtime(monkeypatch) -> None:
+    calls: list[str] = []
+    monkeypatch.setenv("PRELOAD_RETRIEVAL", "1")
+    monkeypatch.setattr(
+        app_module,
+        "get_retrieval_runtime",
+        lambda: calls.append("loaded"),
+    )
+
+    with TestClient(create_app()) as production_client:
+        assert production_client.get("/api/v1/health/live").status_code == 200
+
+    assert calls == ["loaded"]

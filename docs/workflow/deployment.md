@@ -6,7 +6,7 @@ McGill Care Compass deploys as one container:
 - FastAPI serves the compiled React/Vite application at the root URL.
 - The governed Silver CSV artifacts are copied into the image.
 - Chroma is rebuilt from committed chunks during the image build.
-- The embedding model and Chroma collection are reused by the single API worker.
+- The embedding model and Chroma collection are warmed before production startup completes and reused by the single API worker.
 
 The single-origin deployment avoids production CORS dependencies and leaves the
 same `/api/v1` contract available to a future mobile client.

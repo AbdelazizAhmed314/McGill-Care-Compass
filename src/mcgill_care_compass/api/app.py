@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -15,6 +17,7 @@ from mcgill_care_compass.api.routes_health import router as health_router
 from mcgill_care_compass.api.routes_intake import router as intake_router
 from mcgill_care_compass.api.routes_maintenance import router as maintenance_router
 from mcgill_care_compass.api.routes_recommendations import router as recommendations_router
+from mcgill_care_compass.api.runtime import get_retrieval_runtime
 from mcgill_care_compass.logging_utils import log_event
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -22,11 +25,19 @@ WEB_DIST = ROOT / "web" / "dist"
 API_PREFIX = "/api/v1"
 
 
+@asynccontextmanager
+async def lifespan(_application: FastAPI):
+    if os.getenv("PRELOAD_RETRIEVAL", "").lower() in {"1", "true", "yes"}:
+        await asyncio.to_thread(get_retrieval_runtime)
+    yield
+
+
 def create_app() -> FastAPI:
     application = FastAPI(
         title="McGill Care Compass API",
         version="1.0.0",
         description="Source-grounded newcomer student service navigation.",
+        lifespan=lifespan,
     )
 
     origins = [
