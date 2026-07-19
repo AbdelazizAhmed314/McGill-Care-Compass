@@ -3,6 +3,7 @@ import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import yaml
 
@@ -19,6 +20,14 @@ pipeline = importlib.util.module_from_spec(_spec)
 sys.modules["build_rag_corpus"] = pipeline
 _spec.loader.exec_module(pipeline)
 
+_VALIDATOR_PATH = (
+    Path(__file__).resolve().parents[1] / "scripts" / "data" / "validate_rag_corpus.py"
+)
+_validator_spec = importlib.util.spec_from_file_location("validate_rag_corpus", _VALIDATOR_PATH)
+validator = importlib.util.module_from_spec(_validator_spec)
+sys.modules["validate_rag_corpus"] = validator
+_validator_spec.loader.exec_module(validator)
+
 
 QUESTIONNAIRE = {
     "need_type": {
@@ -33,6 +42,16 @@ QUESTIONNAIRE = {
         "general_navigation": {"keywords": []},
     }
 }
+
+
+def test_only_committed_corpus_csvs_are_manifest_hash_governed() -> None:
+    assert validator.HASH_GOVERNED_ARTIFACTS == {
+        "pages_csv",
+        "links_csv",
+        "chunks_csv",
+    }
+    assert "sqlite_db" not in validator.HASH_GOVERNED_ARTIFACTS
+    assert "report_md" not in validator.HASH_GOVERNED_ARTIFACTS
 
 
 def test_canonicalize_url_dedupes_tracking_fragments_and_slashes() -> None:
@@ -326,7 +345,7 @@ def test_freshness_prefers_newer_source_dates() -> None:
     assert newer > older
 
 
-def test_rank_retrieved_chunks_uses_source_priority_then_freshness() -> None:
+def test_rank_retrieved_chunks_uses_source_priority_then_relevance_then_freshness() -> None:
     candidates = [
         {
             "document": "mcgill close match",
@@ -360,10 +379,98 @@ def test_rank_retrieved_chunks_uses_source_priority_then_freshness() -> None:
     ranked = rank_retrieved_chunks(candidates)
 
     assert [item["document"] for item in ranked] == [
-        "canada official match",
         "older canada match",
+        "canada official match",
         "mcgill close match",
     ]
+
+
+def test_rank_retrieved_chunks_breaks_equal_scores_deterministically() -> None:
+    first = {
+        "id": "b",
+        "document": "Second candidate",
+        "distance": 0.1,
+        "metadata": {
+            "chunk_id": "b",
+            "canonical_url": "https://www.mcgill.ca/z-route",
+            "source_priority_rank": "40",
+            "freshness_score": "0.5",
+        },
+    }
+    second = {
+        "id": "a",
+        "document": "First candidate",
+        "distance": 0.1,
+        "metadata": {
+            "chunk_id": "a",
+            "canonical_url": "https://www.mcgill.ca/a-route",
+            "source_priority_rank": "40",
+            "freshness_score": "0.5",
+        },
+    }
+
+    forward = rank_retrieved_chunks([first, second])
+    reverse = rank_retrieved_chunks([second, first])
+
+    assert [item["id"] for item in forward] == ["a", "b"]
+    assert [item["id"] for item in reverse] == ["a", "b"]
+
+
+def test_builder_uses_shared_atomic_runtime_rebuilders(monkeypatch, tmp_path) -> None:
+    paths = {
+        "PAGES_CSV": tmp_path / "rag_pages.csv",
+        "LINKS_CSV": tmp_path / "rag_links.csv",
+        "CHUNKS_CSV": tmp_path / "rag_chunks.csv",
+        "SQLITE_DB": tmp_path / "rag_metadata.sqlite",
+        "VECTOR_DIR": tmp_path / "chroma",
+        "REPORTS": tmp_path / "reports",
+        "REPORT": tmp_path / "reports" / "pipeline.md",
+        "QUALITY_REPORT": tmp_path / "reports" / "quality.md",
+        "MANIFEST": tmp_path / "reports" / "manifest.json",
+    }
+    for name, path in paths.items():
+        monkeypatch.setattr(pipeline, name, path)
+    calls = {}
+
+    def rebuild_sqlite_metadata(**kwargs):  # noqa: ANN003
+        calls["sqlite"] = kwargs
+        return {"pages": 1, "links": 1, "chunks": 1}
+
+    def rebuild_vector_store_from_chunks(**kwargs):  # noqa: ANN003
+        calls["vector"] = kwargs
+        return 1
+
+    monkeypatch.setattr(pipeline, "rebuild_sqlite_metadata", rebuild_sqlite_metadata)
+    monkeypatch.setattr(
+        pipeline,
+        "rebuild_vector_store_from_chunks",
+        rebuild_vector_store_from_chunks,
+    )
+    monkeypatch.setattr(pipeline, "render_report", lambda *args: "pipeline\n")
+    monkeypatch.setattr(pipeline, "render_quality_report", lambda *args: "quality\n")
+    monkeypatch.setattr(pipeline, "render_manifest", lambda *args: {"ok": True})
+
+    status = pipeline.write_outputs(
+        [{}],
+        [{}],
+        [{}],
+        {},
+        SimpleNamespace(skip_embeddings=False, embedding_model="test-model"),
+        SimpleNamespace(),
+    )
+
+    assert status == "rebuilt:1"
+    assert calls["sqlite"] == {
+        "pages_csv": paths["PAGES_CSV"],
+        "links_csv": paths["LINKS_CSV"],
+        "chunks_csv": paths["CHUNKS_CSV"],
+        "sqlite_db": paths["SQLITE_DB"],
+    }
+    assert calls["vector"] == {
+        "chunks_csv": paths["CHUNKS_CSV"],
+        "vector_dir": paths["VECTOR_DIR"],
+        "embedding_model": "test-model",
+    }
 
 
 def test_questionnaire_map_matches_mustafa_chunk_contract() -> None:

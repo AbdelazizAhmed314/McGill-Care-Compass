@@ -20,8 +20,6 @@ import gzip
 import hashlib
 import json
 import re
-import shutil
-import sqlite3
 import sys
 import time
 from collections import Counter, deque
@@ -66,6 +64,8 @@ from mcgill_care_compass.rag_ranking import (  # noqa: E402
     DEFAULT_LICENCE_OR_TERMS,
     ranking_metadata,
 )
+from mcgill_care_compass.retrieval import rebuild_vector_store_from_chunks  # noqa: E402
+from mcgill_care_compass.runtime import rebuild_sqlite_metadata  # noqa: E402
 
 Records = list[dict[str, str]]
 PipelineResult = tuple[Records, Records, Records, dict[str, Any]]
@@ -1371,65 +1371,14 @@ def refresh_metadata_only(args: argparse.Namespace) -> PipelineResult:
 def write_csv(path: Path, records: list[dict[str, str]], fields: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=fields,
+            extrasaction="ignore",
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(records)
-
-
-def write_sqlite(pages: Records, links: Records, chunks: Records) -> None:
-    RAG_DIR.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(SQLITE_DB) as connection:
-        pd.DataFrame(pages).to_sql("pages", connection, if_exists="replace", index=False)
-        pd.DataFrame(links).to_sql("links", connection, if_exists="replace", index=False)
-        pd.DataFrame(chunks).to_sql("chunks", connection, if_exists="replace", index=False)
-
-
-def chroma_metadata(chunk: dict[str, str]) -> dict[str, str | int | float | bool]:
-    metadata: dict[str, str | int | float | bool] = {}
-    for key in CHUNK_FIELDS:
-        if key in {"chunk_text", "embedding_text"}:
-            continue
-        value = chunk.get(key, "")
-        if key.startswith("has_"):
-            metadata[key] = str(value).lower() == "true"
-        elif key in {"chunk_index", "token_count", "source_priority_rank"}:
-            metadata[key] = int(value or 0)
-        elif key == "freshness_score":
-            metadata[key] = float(value or 0)
-        else:
-            metadata[key] = str(value)
-    return metadata
-
-
-def rebuild_chroma(chunks: list[dict[str, str]], model_name: str, persist_dir: Path) -> str:
-    if not chunks:
-        return "skipped:no_chunks"
-    try:
-        import chromadb
-        from sentence_transformers import SentenceTransformer
-    except ImportError as exc:
-        return f"skipped:missing_dependency:{exc.name}"
-
-    persist_dir.parent.mkdir(parents=True, exist_ok=True)
-    if persist_dir.exists():
-        shutil.rmtree(persist_dir)
-    persist_dir.mkdir(parents=True, exist_ok=True)
-
-    client = chromadb.PersistentClient(path=str(persist_dir))
-    collection = client.get_or_create_collection(name=COLLECTION_NAME)
-    model = SentenceTransformer(model_name)
-    batch_size = 64
-    for start in range(0, len(chunks), batch_size):
-        batch = chunks[start : start + batch_size]
-        texts = [chunk["embedding_text"] for chunk in batch]
-        embeddings = model.encode(texts, normalize_embeddings=True).tolist()
-        collection.add(
-            ids=[chunk.get("vector_id") or chunk["chunk_id"] for chunk in batch],
-            documents=[chunk["chunk_text"] for chunk in batch],
-            embeddings=embeddings,
-            metadatas=[chroma_metadata(chunk) for chunk in batch],
-        )
-    return f"rebuilt:{collection.count()}"
 
 
 def word_count(text: str) -> int:
@@ -1563,7 +1512,8 @@ Generated: `{now_iso()}`
 - Short review-band chunks `15-34 words`: **{findings["short_review_band"]}**
 - Split candidates `>350 words`: **{findings["split_candidates"]}**
 - Very long chunks `>600 words`: **{findings["very_long_chunks"]}**
-- Duplicate normalized chunks: **{findings["duplicate_chunks"]}** across **{findings["duplicate_groups"]}** groups
+- Duplicate normalized chunks: **{findings["duplicate_chunks"]}** across
+  **{findings["duplicate_groups"]}** groups
 - Boilerplate-pattern chunks: **{findings["boilerplate_chunks"]}**
 - Navigation-heavy chunks: **{findings["navigation_heavy_chunks"]}**
 - Chunks without info-type tags: **{findings["no_info_type_tags"]}**
@@ -1589,8 +1539,10 @@ Generated: `{now_iso()}`
 ## Cleaning Guidance
 
 - Do not delete short chunks by length alone.
-- Protect short chunks that contain contact, booking, eligibility, required-document, fee, deadline, or location information.
-- Review very short non-actionable chunks, repeated boilerplate, duplicate normalized text, and long mixed-purpose sections before using Silver data for user-facing recommendations.
+- Protect short chunks that contain contact, booking, eligibility, required-document, fee,
+  deadline, or location information.
+- Review very short non-actionable chunks, repeated boilerplate, duplicate normalized text,
+  and long mixed-purpose sections before using Silver data for user-facing recommendations.
 """
 
 
@@ -1884,14 +1836,26 @@ def write_outputs(
     links: list[dict[str, str]],
     chunks: list[dict[str, str]],
     stats: dict[str, Any],
-    vector_status: str,
     args: argparse.Namespace,
     context: RunContext,
-) -> None:
+) -> str:
     write_csv(PAGES_CSV, pages, PAGE_FIELDS)
     write_csv(LINKS_CSV, links, LINK_FIELDS)
     write_csv(CHUNKS_CSV, chunks, CHUNK_FIELDS)
-    write_sqlite(pages, links, chunks)
+    rebuild_sqlite_metadata(
+        pages_csv=PAGES_CSV,
+        links_csv=LINKS_CSV,
+        chunks_csv=CHUNKS_CSV,
+        sqlite_db=SQLITE_DB,
+    )
+    vector_status = "skipped:--skip-embeddings"
+    if not args.skip_embeddings:
+        vector_count = rebuild_vector_store_from_chunks(
+            chunks_csv=CHUNKS_CSV,
+            vector_dir=VECTOR_DIR,
+            embedding_model=args.embedding_model,
+        )
+        vector_status = f"rebuilt:{vector_count}"
     REPORTS.mkdir(parents=True, exist_ok=True)
     REPORT.write_text(
         render_report(pages, links, chunks, stats, vector_status, args, context),
@@ -1907,6 +1871,7 @@ def write_outputs(
         + "\n",
         encoding="utf-8",
     )
+    return vector_status
 
 
 def parse_args() -> argparse.Namespace:
@@ -1935,10 +1900,7 @@ def main() -> None:
     stamp_records(pages, context)
     stamp_records(links, context)
     stamp_records(chunks, context)
-    vector_status = "skipped:--skip-embeddings"
-    if not args.skip_embeddings:
-        vector_status = rebuild_chroma(chunks, args.embedding_model, VECTOR_DIR)
-    write_outputs(pages, links, chunks, stats, vector_status, args, context)
+    vector_status = write_outputs(pages, links, chunks, stats, args, context)
     print(f"Wrote {len(pages)} pages to {PAGES_CSV.relative_to(ROOT)}")
     print(f"Wrote {len(links)} links to {LINKS_CSV.relative_to(ROOT)}")
     print(f"Wrote {len(chunks)} chunks to {CHUNKS_CSV.relative_to(ROOT)}")

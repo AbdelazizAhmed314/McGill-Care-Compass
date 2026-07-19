@@ -4,49 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
+from mcgill_care_compass.guardrails import (
+    CATEGORY_LIMITATIONS,
+    GENERAL_LIMITATION,
+)
 from mcgill_care_compass.intake_contract import format_intake_summary
 
-CATEGORY_LIMITATIONS = {
-    "health_care": (
-        "This is navigation information only. Use the official source or a qualified "
-        "health professional for personal medical decisions."
-    ),
-    "mental_health": (
-        "This is navigation information only. If there is immediate danger or a crisis, "
-        "use emergency or crisis supports instead of relying on this navigator."
-    ),
-    "insurance": (
-        "This does not decide coverage or reimbursement. Confirm details with the "
-        "official insurer or McGill office listed in the source."
-    ),
-    "immigration_status": (
-        "This is not legal or immigration advice and does not determine status or "
-        "eligibility. Confirm requirements with official immigration sources or a "
-        "qualified advisor."
-    ),
-    "tax": (
-        "This is not tax advice and does not determine residency, filing obligations, "
-        "deductions, credits, or refunds. Confirm details with official tax sources or "
-        "a qualified tax professional."
-    ),
-    "finances": (
-        "This does not decide financial-aid eligibility, award amounts, or application "
-        "outcomes. Confirm details with the official source."
-    ),
-    "work_career": (
-        "This does not decide work authorization or interpret permit conditions. Confirm "
-        "requirements with official sources or a qualified advisor."
-    ),
-    "safety_urgent": (
-        "Urgent safety concerns should use emergency or crisis supports first; this "
-        "navigator should not be used as emergency triage."
-    ),
-}
-
-GENERAL_LIMITATION = (
-    "This is source-grounded navigation information only. Confirm details with the "
-    "official source before acting."
-)
 SILVER_UNREVIEWED_NOTICE = (
     "This result is based on source-grounded Silver data that has not been manually "
     "approved as final recommendation data."
@@ -72,6 +35,14 @@ FALLBACK_MESSAGES = {
     "emergency": (
         "Emergency guidance is shown before regular navigator results. Use emergency "
         "services first if there is immediate danger."
+    ),
+    "system_error": (
+        "Recommendations are temporarily unavailable. Use the official McGill starting "
+        "point and try again later."
+    ),
+    "unsafe_input": (
+        "That free-text request cannot be processed safely. Use a short service-navigation "
+        "question without personal identifiers or instructions to override safeguards."
     ),
 }
 
@@ -131,7 +102,15 @@ def format_retrieval_response(
     status = _response_field(response, "status") or "unknown"
     parts = [f"Status: {status}"]
 
-    if intake is not None:
+    response_query = _response_field(response, "query")
+    guardrail_reasons = set(_response_value(response, "guardrail_reasons") or ())
+    input_guardrail_reasons = guardrail_reasons - {"retrieved_prompt_injection"}
+    suppress_intake = (
+        status == "unsafe_input"
+        or response_query == "[redacted]"
+        or bool(input_guardrail_reasons)
+    )
+    if intake is not None and not suppress_intake:
         intake_summary = format_intake_summary(intake)
         if intake_summary:
             parts.append(intake_summary)
@@ -146,6 +125,13 @@ def format_retrieval_response(
             f"- {_format_emergency_resource(resource)}" for resource in emergency_resources
         )
         parts.append(f"Emergency resources:\n{resources}")
+
+    fallback_resources = tuple(_response_value(response, "fallback_resources") or ())
+    if fallback_resources:
+        resources = "\n".join(
+            f"- {_format_fallback_resource(resource)}" for resource in fallback_resources
+        )
+        parts.append(f"Official fallback resources:\n{resources}")
 
     limitation_notice = _response_field(response, "limitation_notice")
     if limitation_notice:
@@ -279,6 +265,13 @@ def _format_emergency_resource(resource: Mapping[str, object] | object) -> str:
     if source_url:
         parts.append(source_url)
     return " - ".join(parts)
+
+
+def _format_fallback_resource(resource: Mapping[str, object] | object) -> str:
+    label = _response_field(resource, "label") or "Official starting point"
+    action = _response_field(resource, "action")
+    source_url = _response_field(resource, "source_url")
+    return " - ".join(part for part in (label, action, source_url) if part)
 
 
 def _evidence_chunk(evidence: Mapping[str, object] | object) -> Mapping[str, object]:

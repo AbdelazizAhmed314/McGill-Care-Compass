@@ -166,8 +166,10 @@ def ranking_metadata(metadata: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def retrieved_chunk_sort_key(candidate: dict[str, Any]) -> tuple[int, float, float]:
-    """Sort key for Chroma candidates: source authority, freshness, then distance."""
+def retrieved_chunk_sort_key(
+    candidate: dict[str, Any],
+) -> tuple[int, float, float, str, str, str]:
+    """Sort candidates deterministically after authority, distance, and freshness."""
 
     metadata = candidate.get("metadata", candidate) or {}
     priority = metadata.get("source_priority_rank", "")
@@ -191,7 +193,14 @@ def retrieved_chunk_sort_key(candidate: dict[str, Any]) -> tuple[int, float, flo
         distance = float(candidate.get("distance", 0.0))
     except (TypeError, ValueError):
         distance = 0.0
-    return source_rank, -freshness, distance
+    canonical_url = str(metadata.get("canonical_url", metadata.get("url", ""))).casefold()
+    stable_id = str(
+        metadata.get("chunk_id")
+        or metadata.get("vector_id")
+        or candidate.get("id", "")
+    ).casefold()
+    document = str(candidate.get("document", "")).casefold()
+    return source_rank, distance, -freshness, canonical_url, stable_id, document
 
 
 def rank_retrieved_chunks(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:

@@ -27,6 +27,7 @@ data/silver/processed/
 data/silver/rag/*.sqlite
 data/silver/rag/*.sqlite-*
 data/silver/vector_store/
+data/silver/maintenance/
 
 # Removed pre-v1 local artifact paths; retained to avoid accidental commits if regenerated locally.
 data/raw/

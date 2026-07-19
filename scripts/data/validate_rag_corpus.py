@@ -39,6 +39,7 @@ WORD_RE = re.compile(r"[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)?")
 ALLOWED_REVIEW_STATUS = {"silver_unreviewed", "silver_reviewed", "gold_approved", "rejected"}
 ALLOWED_LABEL_METHOD = {"deterministic_keyword"}
 ALLOWED_LABEL_CONFIDENCE = {"low", "medium", "high"}
+HASH_GOVERNED_ARTIFACTS = frozenset({"pages_csv", "links_csv", "chunks_csv"})
 
 def relative_path(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
@@ -211,7 +212,9 @@ def collect_quality_warnings(chunks: pd.DataFrame) -> list[str]:
     very_short_non_actionable = chunks[(word_counts < 15) & ~actionable]
     long_chunks = chunks[word_counts > 350]
     normalized = chunk_text.str.lower().str.replace(r"[^a-z0-9]+", " ", regex=True).str.strip()
-    duplicate_chunks = int(normalized[normalized.duplicated(keep=False) & normalized.ne("")].shape[0])
+    duplicate_chunks = int(
+        normalized[normalized.duplicated(keep=False) & normalized.ne("")].shape[0]
+    )
     boilerplate = chunk_text.str.contains(
         r"column 1|faculty & staff|join our team|related services|quick links",
         case=False,
@@ -343,11 +346,13 @@ def validate_manifest(
             f"Manifest artifact path mismatch for {artifact_name}",
             errors,
         )
-        require(
-            artifact.get("sha256") == file_hash(path),
-            f"Manifest artifact hash mismatch for {artifact_name}",
-            errors,
-        )
+        require(path.exists(), f"Missing manifest artifact {relative_path(path)}", errors)
+        if path.exists() and artifact_name in HASH_GOVERNED_ARTIFACTS:
+            require(
+                artifact.get("sha256") == file_hash(path),
+                f"Manifest artifact hash mismatch for {artifact_name}",
+                errors,
+            )
         if expected_rows is not None:
             require(
                 artifact.get("rows") == expected_rows,

@@ -25,8 +25,7 @@ from mcgill_care_compass.retrieval import (  # noqa: E402
     NEED_TYPE_LABELS,
     STUDENT_TYPE_LABELS,
     RetrievalIntake,
-    VectorStoreUnavailable,
-    retrieve_matches,
+    retrieve_matches_safely,
 )
 
 
@@ -246,15 +245,12 @@ def run_demo(args: argparse.Namespace) -> None:
     intake = build_intake_from_terminal()
     timings["intake"] = time.perf_counter() - intake_start
     retrieval_start = time.perf_counter()
-    try:
-        response = retrieve_matches(
-            intake,
-            limit=args.evidence_limit if args.llm else args.limit,
-            retrieval_limit=args.retrieval_limit,
-            rebuild_if_missing=args.rebuild_vector_store,
-        )
-    except VectorStoreUnavailable as exc:
-        raise SystemExit(str(exc)) from exc
+    response = retrieve_matches_safely(
+        intake,
+        limit=args.evidence_limit if args.llm else args.limit,
+        retrieval_limit=args.retrieval_limit,
+        rebuild_if_missing=args.rebuild_vector_store,
+    )
     timings["retrieval"] = time.perf_counter() - retrieval_start
 
     llm_result = None
