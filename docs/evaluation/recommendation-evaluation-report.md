@@ -5,8 +5,8 @@
 - Corpus run ID: `20260701T223504Z`
 - Chunk CSV SHA-256: `e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12`
 - Embedding model: `sentence-transformers/all-MiniLM-L6-v2`
-- Git HEAD: `d8c7850d88c45f6df6e3350d6dc122f59dec5689`
-- Dirty worktree: True
+- Git HEAD: `701b3e1890daf2cbced7588d8f66ed001410436d`
+- Dirty worktree: False
 - Implementation SHA-256: `8ce2403319e30134fcda8fc7e6369d67a50fe3ed6694583ce5f2b1d39b46a8d8`
 - Overall result: PASS
 - Top-three relevance: 10/10 (100.0%)
