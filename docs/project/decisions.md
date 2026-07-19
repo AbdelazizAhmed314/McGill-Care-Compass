@@ -57,3 +57,19 @@ Decision: keep `risk_level` for this PR if renaming is not low-risk, but documen
 Reason: many chunks are marked `high_risk` because their category is tax, finances, immigration, insurance, health care, or mental health. That does not mean each chunk is urgent, unsafe, or out of scope.
 
 Impact: future work should either rename this concept to `topic_sensitivity` and derive it from the taxonomy, or remove it from the corpus and let app logic maintain the sensitive-topic list directly.
+
+## 2026-07-19 - Use FastAPI and React/Vite as the active web architecture
+
+Decision: replace the placeholder Streamlit delivery path with a versioned
+FastAPI backend and a responsive React/Vite frontend. Production serves the
+compiled frontend and API from one container and one origin.
+
+Reason: the API contract can support the web application now and a future
+mobile client without duplicating retrieval, safety, or maintenance logic. A
+single-origin deployment also reduces production CORS and operational
+complexity.
+
+Impact: Streamlit is no longer the active interface direction. The public v1
+intake is structured-only, expensive retrieval resources are reused per
+process, Chroma is built from committed chunks during image construction, and
+all clients must preserve emergency-first routing and safe error responses.

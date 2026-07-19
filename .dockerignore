@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.pytest_cache
+.ruff_cache
+.tmp
+logs
+web/node_modules
+web/dist
+data/bronze/raw
+data/silver/processed
+data/silver/rag
+data/silver/vector_store

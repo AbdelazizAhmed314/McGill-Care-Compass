@@ -7,16 +7,39 @@ on:
     branches: [develop]
 
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --frozen
       - name: Lint
         run: uv run ruff check .
       - name: Test
         run: uv run pytest
+      - name: Validate committed corpus
+        run: uv run python scripts/data/validate_rag_corpus.py
+      - name: Prepare reports without local vector build
+        run: uv run python scripts/prepare_runtime.py --skip-vector-store
       - name: Import smoke test
-        run: uv run python -c "import mcgill_care_compass; print(mcgill_care_compass.__version__)"
+        run: uv run python -c "from mcgill_care_compass.api.app import app; print(app.title)"
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Test
+        run: npm run test
+      - name: Build
+        run: npm run build
