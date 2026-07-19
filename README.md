@@ -8,6 +8,7 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 
 - Product contract: [docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
 - Project plan: [docs/project/Project-Plan-High-Level.md](docs/project/Project-Plan-High-Level.md)
+- Issues #7/#8 delivery status: [docs/project/Issues-07-08-PR-Readiness-Checklist.md](docs/project/Issues-07-08-PR-Readiness-Checklist.md)
 - Team workload appendix: [docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md](docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md)
 - Data evidence: [data/README.md](data/README.md)
 - Agent/collaboration contract: [AGENTS.md](AGENTS.md)
@@ -55,6 +56,46 @@ Run the terminal RAG intake demo without the LLM layer:
 uv run python scripts/demo_issue4_terminal_intake.py
 ```
 
+The terminal navigator returns bounded `emergency`, `unsafe_input`, `unsupported`,
+`no_match`, `low_confidence`, and `system_error` responses when it cannot safely show a
+recommendation. These responses include official fallback links and never expose
+retrieval exception details.
+
+### Operations and Evaluation
+
+Rebuild only the ignored runtime artifacts from the tracked Silver CSVs:
+
+```powershell
+uv run python scripts/prepare_runtime.py
+```
+
+Check CSV/SQLite parity and verify that Chroma matches the exact chunk hash, pipeline run,
+embedding model, schema version, and row count:
+
+```powershell
+uv run python scripts/health_check.py --json
+```
+
+Generate ignored local JSON and Markdown maintenance reports:
+
+```powershell
+uv run python scripts/data/generate_maintenance_report.py
+```
+
+Use `--fail-on-attention` when maintenance findings—including changed/new pages—should fail a CI
+or release gate.
+
+Run the fixed Issue #8 scenarios and refresh the version-controlled evaluation reports:
+
+```powershell
+uv run python scripts/evaluate_recommendations.py
+```
+
+The evaluation command exits nonzero if top-three relevance is below 90%, a supported
+scenario does not produce a normal match, or a required source-link or guardrail check
+fails. See [runtime operations](docs/workflow/runtime-operations.md) for update and
+rollback procedures.
+
 ### Optional LLM/API Mode
 
 The terminal demo works without an API key by default. To enable LLM-written
@@ -96,7 +137,8 @@ Use timing diagnostics when investigating latency:
 uv run python scripts/demo_issue4_terminal_intake.py --llm --debug-timing
 ```
 
-The Streamlit app is retained only as a placeholder intake shell until the guardrails, retrieval logic, and response layer are finalized:
+The Streamlit app is retained only as a placeholder intake shell. The operational
+navigator, maintenance, health, and evaluation interfaces are currently CLI-based:
 
 ```powershell
 uv run streamlit run src/mcgill_care_compass/app.py

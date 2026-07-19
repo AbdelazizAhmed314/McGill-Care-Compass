@@ -19,6 +19,9 @@ creates source-grounded chunks, and builds a local vector index.
 | Silver | [`silver/reports/rag_pipeline_report.md`](silver/reports/rag_pipeline_report.md) | Human-readable v1 pipeline report. | Commit-ready. |
 | Silver | [`silver/reports/rag_corpus_quality_report.md`](silver/reports/rag_corpus_quality_report.md) | Chunk-quality warnings and cleaning metrics. | Commit-ready. |
 | Silver | [`silver/reports/rag_run_manifest.json`](silver/reports/rag_run_manifest.json) | Machine-readable manifest with version, config hashes, artifact hashes, and counts. | Commit-ready. |
+| Silver | `silver/maintenance/` | Locally generated freshness, failure, missing-data, coverage, and chunk-quality reports. | Ignored by git. |
+| Evaluation | [`evaluation/recommendation_scenarios.yml`](evaluation/recommendation_scenarios.yml) | Version-2 fixed relevance, safety, attack, and benign-control scenarios. | Commit-ready. |
+| Evaluation | [`evaluation/recommendation_evaluation_report.json`](evaluation/recommendation_evaluation_report.json) | Reproducible machine-readable evaluation result. | Commit-ready. |
 | Gold | [`gold/`](gold/) | Reserved for reviewed, release-ready data. | README only for now. |
 
 Gold is intentionally empty in v1. A file should enter Gold only after explicit
@@ -29,16 +32,18 @@ team review of Silver outputs.
 The latest governed v1 run produces:
 
 ```text
-Pages: 500
-Links: 22,727
-Chunks: 4,228
+Pages: 490
+Links: 22,548
+Chunks: 4,239
 Categories: 11
 Pipeline version: 1.0.0
 Embedding model: sentence-transformers/all-MiniLM-L6-v2
 ```
 
-The run manifest is the source of truth for exact run ID, artifact hashes, and
-configuration hashes.
+The run manifest is the source of truth for the exact run ID, committed CSV hashes,
+and configuration hashes. Hashes recorded for ignored runtime files and human-readable
+reports are informational: SQLite is validated by table parity, reports by presence,
+and Chroma by the complete corpus signature.
 
 ## Workflow
 
@@ -59,6 +64,9 @@ source-inputs/rag_seed_urls.csv
 
 The committed CSV outputs are the reviewable source of truth. Chroma is rebuilt
 from [`silver/datasets/rag_chunks.csv`](silver/datasets/rag_chunks.csv); SQLite, raw HTML, and clean text are local debug/runtime artifacts.
+The corpus builder and `prepare_runtime.py` use the same atomic SQLite and Chroma
+rebuilders. Chroma is signed with the exact chunk bytes, row count, run ID, embedding
+model, and artifact schema before it replaces the active store.
 
 ## Version Governance
 
@@ -76,8 +84,10 @@ Every page, link, and chunk row carries:
 - `link_priority_config_version`
 - `embedding_model`
 
-[`silver/reports/rag_run_manifest.json`](silver/reports/rag_run_manifest.json) verifies that the CSVs, SQLite DB, reports,
-and vector store belong to the same generated corpus after a local rebuild.
+[`silver/reports/rag_run_manifest.json`](silver/reports/rag_run_manifest.json) links the
+artifacts to the same run. Validation byte-checks the committed CSVs, verifies SQLite
+table parity and report presence, and leaves exact Chroma signature validation to the
+runtime health check.
 
 ## Commands
 
@@ -98,6 +108,16 @@ Validate the corpus:
 ```bash
 uv run python scripts/data/validate_rag_corpus.py
 ```
+
+Generate the local maintenance reports without rebuilding or restamping the corpus:
+
+```bash
+uv run python scripts/data/generate_maintenance_report.py
+```
+
+Add `--fail-on-attention` to return exit code 1 when the report identifies maintenance work,
+including changed or new source pages, failed or stale sources, metadata/coverage gaps, or
+chunk-quality findings.
 
 Run a local retrieval smoke query:
 

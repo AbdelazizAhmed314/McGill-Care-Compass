@@ -44,9 +44,11 @@ Every active Silver row must include:
 - `link_priority_config_version`
 - `embedding_model`
 
-[`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json) must match the generated CSVs,
-SQLite DB, report, and vector store count. Validation fails if the manifest and
-artifacts disagree.
+[`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json)
+must match the committed CSV bytes, run metadata, artifact paths, and row counts.
+Validation also requires SQLite table parity and declared report presence. The health
+check independently fails when any Chroma corpus-signature field disagrees. Recorded
+SQLite and report hashes are provenance metadata, not byte-reproducibility gates.
 
 ## Storage Policy
 

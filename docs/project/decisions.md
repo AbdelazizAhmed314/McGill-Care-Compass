@@ -57,3 +57,40 @@ Decision: keep `risk_level` for this PR if renaming is not low-risk, but documen
 Reason: many chunks are marked `high_risk` because their category is tax, finances, immigration, insurance, health care, or mental health. That does not mean each chunk is urgent, unsafe, or out of scope.
 
 Impact: future work should either rename this concept to `topic_sensitivity` and derive it from the taxonomy, or remove it from the corpus and let app logic maintain the sensitive-topic list directly.
+
+## 2026-07-19 - Rank semantic relevance before freshness within an authority tier
+
+Decision: rank retrieved candidates by source authority, semantic distance, then freshness.
+
+Reason: Issue #8 evaluation showed that tiny freshness-score differences between pages from the
+same official publisher displaced substantially closer results, including the exact Emergency
+Loans and Academic Advising pages. Freshness remains a tie-break signal and is reported for
+maintenance, but it should not override query relevance within the same authority tier.
+
+Impact: official-source precedence is unchanged, while top-three results better reflect the fixed
+student scenario. The scenario report records exact chunk IDs, URLs, corpus run IDs, and the
+embedding model for reproducibility.
+
+## 2026-07-19 - Bind runtime health to an exact corpus signature
+
+Decision: identify derived Chroma data with the exact chunk CSV hash, count, pipeline run,
+embedding model, and artifact schema; build SQLite and Chroma beside the active artifacts before
+replacement.
+
+Reason: count parity cannot detect changed text or metadata when row counts remain stable, and
+in-place rebuilding can destroy a working runtime before a replacement succeeds.
+
+Impact: stale or corrupt derived data returns an unhealthy check and a bounded `system_error`;
+failed preparation retains the last usable runtime.
+
+## 2026-07-19 - Measure adversarial detection and benign pass-through separately
+
+Decision: preserve emergency response precedence while redacting unsafe emergency text, reject
+direct prompt injection in user or retrieved-source text, and require both attack and benign-control
+scenario groups to pass.
+
+Reason: attack-only tests can hide false positives, and retrieval-only checks do not protect future
+callers of the reusable LLM response function.
+
+Impact: the evaluation report exposes attack-detection and benign-pass-through rates separately and
+continues to document the limits of deterministic English patterns.

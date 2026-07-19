@@ -39,7 +39,10 @@ Bronze is unprocessed and local. Silver is processed, queryable, and reviewable,
 
 ## Current Run Snapshot
 
-The latest v1 run contains 500 pages, 22,727 discovered links, 4,228 chunks, and 11 categories. Exact counts, hashes, model/version values, and artifact paths live in [`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json).
+The committed v1 run `20260701T223504Z` contains 490 pages, 22,548 discovered links,
+4,239 chunks, and 11 categories. Exact counts, committed CSV hashes,
+model/version values, and artifact paths live in
+[`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json).
 
 ## Commands
 
@@ -79,6 +82,9 @@ uv run python scripts/data/query_rag_corpus.py \
 ## Operating Rules
 
 - Rebuild Chroma from [`data/silver/datasets/rag_chunks.csv`](../../data/silver/datasets/rag_chunks.csv); do not commit the vector store.
+- Full and metadata-only corpus builds route SQLite and Chroma through the shared atomic runtime
+  rebuilders. The candidate artifacts must pass row-count and complete corpus-signature validation
+  before replacing the active runtime.
 - Treat `risk_level` as legacy topic-sensitivity metadata, not actual chunk danger.
 - If taxonomy, questionnaire IDs, source authority, or metadata rules change, update the source-input files and rerun the pipeline.
 - Use Silver chunks for future app retrieval only with source links, limitation wording, and evidence checks.

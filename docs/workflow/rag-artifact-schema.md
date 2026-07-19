@@ -41,8 +41,12 @@ Every page, link, and chunk row must include the same governance fields:
 | `link_priority_config_version` | Version of the link-priority logic. |
 | `embedding_model` | Embedding model used to build vectors. |
 
-The validator checks that the CSV rows, manifest, SQLite DB, and Chroma count
-belong to the same generated corpus.
+The corpus validator byte-checks the committed CSVs against the manifest, checks
+SQLite table parity, and confirms that declared reports exist. The runtime health
+check separately requires Chroma to match the exact chunk CSV hash, row count, run ID,
+embedding model, and artifact/signature schema versions. SQLite bytes and rendered
+report bytes are not release gates because they are derived presentation/runtime
+artifacts rather than the committed corpus source of truth.
 
 ## Page Schema
 
@@ -157,4 +161,6 @@ uv run ruff check .
 ```
 
 The validator checks schema columns, source terms, chunk size, heading prefixes,
-metadata tags, review/provenance fields, SQLite parity, manifest consistency, artifact hashes, quality report presence, and Chroma vector count.
+metadata tags, review/provenance fields, SQLite parity, manifest consistency,
+committed CSV hashes, report presence, and Chroma vector count. Run the health check
+for complete Chroma signature validation.

@@ -19,6 +19,7 @@ The navigator provides grounded service navigation, not professional advice. It 
 | Recruitment from upcoming McGill newcomer cohorts is lower than expected. | Medium | Medium | Recruit early, use short predefined testing sessions, and supplement with proxy users only if participation is insufficient. |
 | Retrieved healthcare content is misunderstood as clinical advice or service availability. | Medium | High | Present healthcare chunks as source-linked navigation context only; include limitations and direct users to qualified services. |
 | Matching rules produce ties or unstable rankings. | Medium | Medium | Use deterministic tie-breakers and test repeated runs against fixed scenarios. |
+| Adversarial user or retrieved-source text attempts to override safeguards, extract hidden instructions, or fabricate sources. | Medium | High | Apply deterministic checks before retrieval and at the LLM boundary, reject injected source chunks, redact blocked text, and evaluate attacks plus benign lookalikes. |
 
 ## Source Authority Rules
 
@@ -39,6 +40,10 @@ If retrieved sources conflict, the tool should prefer the best-supported route u
 3. If the need requires official government, healthcare, insurance, tax, immigration, or eligibility information, rank official source-backed chunks above general support pages.
 4. If two services match the same need with equal authority, break the tie by specificity to the student's situation, then accessibility/location, then most recently verified source.
 5. If sources materially conflict, disclose the difference, explain why the chosen route was preferred, and provide official contacts or source links the user can use to verify with a human.
+6. Adversarial inspection runs before response construction, while emergency routing retains
+   response precedence. A combined emergency/attack stays `emergency` but redacts its query and
+   bypasses retrieval and LLM use. Other defined instruction-override, prompt-extraction,
+   source-fabrication, role-manipulation, and pasted-identifier patterns return `unsafe_input`.
 
 ## Tie-Breaking Rules
 
@@ -76,6 +81,8 @@ Use this framing instead:
 - The MVP should not collect sensitive identifiers such as student ID, SIN, passport number, medical record number, or financial account details.
 - The MVP should avoid storing free-text descriptions that may contain sensitive personal information.
 - Logged events should be minimized and should not include sensitive identifiers.
+- Free text matching a pasted student ID, SIN, passport, or medical-record value pattern should be
+  blocked and redacted from displayed output.
 - Source chunks must include official URLs, retrieved dates, source-updated dates where available, and source terms metadata.
 
 ## Scope Control
@@ -95,6 +102,10 @@ Before final release, verify:
 - High-risk scenarios show limitation wording.
 - Unsupported scenarios fail gracefully.
 - Empty-result cases do not invent services.
+- Defined adversarial prompts are blocked before retrieval and never echoed back.
+- Emergency inputs containing blocked text still escalate while redacting that text.
+- Retrieved prompt-injection patterns in source text or display metadata are excluded from
+  recommendations and LLM evidence.
 - Every recommendation includes source links.
 - Retrieved chunks include source and terms metadata.
 - Matching uses documented routing precedence and tie-breakers.
