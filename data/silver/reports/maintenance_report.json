@@ -104,7 +104,7 @@
     "links": 22548,
     "pages": 490
   },
-  "generated_at": "2026-07-17T15:05:51.575672+00:00",
+  "generated_at": "2026-07-18T23:59:49.096858+00:00",
   "inputs": {
     "chunks_csv": "data/silver/datasets/rag_chunks.csv",
     "links_csv": "data/silver/datasets/rag_links.csv",

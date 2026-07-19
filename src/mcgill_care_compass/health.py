@@ -109,7 +109,7 @@ def _check_vector_store(*, require_vector_store: bool) -> HealthCheckResult:
             status,
             (
                 "missing local Chroma vector store; rebuild with "
-                "scripts/demo_issue4_terminal_intake.py --rebuild-vector-store"
+                "uv run python scripts/prepare_runtime.py --rebuild-vector-store"
             ),
         )
     try:

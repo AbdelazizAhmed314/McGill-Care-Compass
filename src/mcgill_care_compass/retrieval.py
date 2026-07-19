@@ -329,14 +329,14 @@ def get_chroma_collection(
     except Exception as exc:  # Chroma raises different errors across versions.
         raise VectorStoreUnavailable(
             "Local Chroma vector store is missing. Rebuild the ignored vector index with:\n"
-            "uv run python scripts/demo_issue4_terminal_intake.py --rebuild-vector-store"
+            "uv run python scripts/prepare_runtime.py --rebuild-vector-store"
         ) from exc
 
     if actual_count != expected_count:
         raise VectorStoreUnavailable(
             f"Local Chroma vector store has {actual_count} chunks, but "
             f"{chunks_csv.relative_to(ROOT)} has {expected_count}. Rebuild with:\n"
-            "uv run python scripts/demo_issue4_terminal_intake.py --rebuild-vector-store"
+            "uv run python scripts/prepare_runtime.py --rebuild-vector-store"
         )
     return collection
 
@@ -515,6 +515,8 @@ def retrieve_matches(
     retrieval_limit: int = 21,
     rebuild_if_missing: bool = False,
     embedding_model: str = EMBEDDING_MODEL,
+    collection: Any | None = None,
+    embedding_encoder: Any | None = None,
 ) -> RetrievalResponse:
     """Retrieve ranked RAG evidence for structured intake answers."""
 
@@ -552,7 +554,8 @@ def retrieve_matches(
         )
 
     try:
-        collection = get_chroma_collection(rebuild_if_missing=rebuild_if_missing)
+        if collection is None:
+            collection = get_chroma_collection(rebuild_if_missing=rebuild_if_missing)
         total_chunks = collection.count()
     except Exception as exc:
         return system_error_response(
@@ -574,10 +577,14 @@ def retrieve_matches(
         )
 
     try:
-        from sentence_transformers import SentenceTransformer
+        if embedding_encoder is None:
+            from sentence_transformers import SentenceTransformer
 
-        model = SentenceTransformer(embedding_model)
-        query_embedding = model.encode([query], normalize_embeddings=True)[0].tolist()
+            embedding_encoder = SentenceTransformer(embedding_model)
+        query_embedding = embedding_encoder.encode(
+            [query],
+            normalize_embeddings=True,
+        )[0].tolist()
     except Exception as exc:
         return system_error_response(
             intake,
