@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import mcgill_care_compass.retrieval as retrieval_module
 from mcgill_care_compass.explanations import format_retrieved_chunk_recommendation
+from mcgill_care_compass.guardrails import limitation_notice_for_category
 from mcgill_care_compass.retrieval import (
     RetrievalIntake,
     chroma_where,
@@ -367,3 +368,4 @@ def test_emergency_precedes_attack_detection_and_redacts_query(monkeypatch) -> N
     assert response.status == "emergency"
     assert response.query == "[redacted]"
     assert "sensitive_identifier" in response.guardrail_reasons
+    assert response.limitation_notice == limitation_notice_for_category("safety_urgent")

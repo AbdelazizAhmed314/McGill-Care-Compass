@@ -622,10 +622,7 @@ def retrieve_matches(
             emergency_resources=emergency_resources(),
             guardrail_reasons=unsafe_reasons,
             safety_notice=safety_notice,
-            limitation_notice=(
-                "This navigator cannot assess symptoms, determine whether a situation is "
-                "an emergency, or replace emergency services."
-            ),
+            limitation_notice=limitation_notice_for_category("safety_urgent"),
             message="Emergency guidance is shown before regular navigator results.",
         )
     if unsafe_reasons:
@@ -638,7 +635,9 @@ def retrieve_matches(
             backup_results=(),
             fallback_resources=official_fallback_resources(intake.category_id),
             guardrail_reasons=unsafe_reasons,
-            limitation_notice=unsupported_notice(),
+            limitation_notice=(
+                limitation_notice_for_category(intake.category_id) or unsupported_notice()
+            ),
             message=(
                 "The optional question contained information or instructions that cannot "
                 "be processed safely. Remove sensitive identifiers or instruction-like text."

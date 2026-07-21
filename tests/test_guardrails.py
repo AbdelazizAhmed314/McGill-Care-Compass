@@ -60,6 +60,8 @@ def test_benign_official_source_questions_are_not_attacks() -> None:
         == ()
     )
     assert adversarial_input_reasons("Generate official contact links for McGill.") == ()
+    assert adversarial_input_reasons("international student work permit rules") == ()
+    assert adversarial_input_reasons("new student orientation and language support") == ()
 
 
 def test_retrieved_evidence_screening_does_not_treat_identifiers_as_instructions() -> None:

@@ -101,9 +101,10 @@ SOURCE_FABRICATION_PATTERNS = (
     ),
 )
 SENSITIVE_VALUE_PATTERN = re.compile(
-    r"\b(?:student(?: id| identification| number| id number)?|mcgill id|"
+    r"\b(?:student(?: id(?: number)?| identification(?: number)?| number)|mcgill id|"
     r"social insurance number|sin|passport(?: number)?|medical record(?: number)?)\b"
-    r"\s*(?:is|:|=|#)?\s*[a-z0-9-]{4,}",
+    r"\s*(?:(?:is)\s+|[:=#]\s*|\s+(?=[a-z0-9-]*\d))"
+    r"(?=[a-z0-9-]*\d)[a-z0-9-]{4,}",
     re.IGNORECASE,
 )
 
@@ -174,8 +175,9 @@ def limitation_notice_for_category(category_id: str, *, review_status: str = "")
 
     limitations: list[str] = []
     if requires_limitation_notice(category_id):
+        template_key = "emergency" if category_id == "safety_urgent" else category_id
         limitations.append(
-            LIMITATION_TEMPLATES.get(category_id, LIMITATION_TEMPLATES["unsupported"])
+            LIMITATION_TEMPLATES.get(template_key, LIMITATION_TEMPLATES["unsupported"])
         )
     if review_status == "silver_unreviewed":
         limitations.append(SILVER_DATA_NOTICE)

@@ -1,6 +1,8 @@
 import csv
 import sqlite3
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -51,6 +53,68 @@ def test_corpus_signature_rejects_mixed_governance_values(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="exactly one"):
         corpus_signature(chunks)
+
+
+def test_vector_build_closes_client_before_atomic_swap(monkeypatch, tmp_path) -> None:
+    chunks = tmp_path / "chunks.csv"
+    vector_dir = tmp_path / "building"
+    rows = signature_rows(1)
+    rows[0].update(
+        {
+            "embedding_text": "official service evidence",
+            "chunk_text": "Official service evidence.",
+        }
+    )
+    write_csv(chunks, rows)
+    expected_signature = corpus_signature(chunks)
+
+    class FakeEmbeddings(list):
+        def tolist(self):
+            return list(self)
+
+    class FakeModel:
+        def encode(self, texts, *, normalize_embeddings):  # noqa: ANN001
+            assert normalize_embeddings is True
+            return FakeEmbeddings([[0.1, 0.2] for _ in texts])
+
+    class FakeCollection:
+        metadata = expected_signature.to_collection_metadata()
+        added = 0
+
+        def add(self, *, ids, **kwargs):  # noqa: ANN003
+            self.added += len(ids)
+
+        def count(self):
+            return self.added
+
+    collection = FakeCollection()
+
+    class FakeClient:
+        closed = False
+
+        def get_or_create_collection(self, **kwargs):  # noqa: ANN003
+            return collection
+
+        def close(self):
+            self.closed = True
+
+    client = FakeClient()
+    monkeypatch.setitem(
+        sys.modules,
+        "chromadb",
+        SimpleNamespace(PersistentClient=lambda path: client),
+    )
+    monkeypatch.setattr(retrieval_module, "load_embedding_model", lambda *args: FakeModel())
+
+    count = retrieval_module._build_vector_store_at(
+        chunks_csv=chunks,
+        vector_dir=vector_dir,
+        embedding_model="model-1",
+        batch_size=1,
+    )
+
+    assert count == 1
+    assert client.closed is True
 
 
 def test_failed_vector_build_preserves_existing_store(monkeypatch, tmp_path) -> None:

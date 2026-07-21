@@ -154,6 +154,20 @@ def test_intake_summary_normalizes_ui_aliases_to_stable_ids() -> None:
     assert "campus_location=downtown" in summary
 
 
+def test_intake_summary_never_echoes_optional_query() -> None:
+    summary = format_intake_summary(
+        {
+            "category_id": "academics",
+            "urgency_level": "routine",
+            "query": "private student-authored context",
+        }
+    )
+
+    assert "category_id=academics" in summary
+    assert "private student-authored context" not in summary
+    assert "query=" not in summary
+
+
 def test_format_retrieval_response_handles_matched_shape() -> None:
     primary_chunk = {
         "canonical_url": "https://www.mcgill.ca/internationalstudents/health",

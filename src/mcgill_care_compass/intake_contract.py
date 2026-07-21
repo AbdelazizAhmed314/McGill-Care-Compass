@@ -131,6 +131,7 @@ def format_intake_summary(intake: Mapping[str, object] | object) -> str:
     """Render selected intake values with stable field ids."""
 
     fields = normalized_intake_fields(intake)
+    fields.pop("query", None)
     if not fields:
         return ""
     return "Intake fields: " + "; ".join(
