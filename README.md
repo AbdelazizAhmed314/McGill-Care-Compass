@@ -16,7 +16,9 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 
 | Path | Purpose |
 | --- | --- |
-| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Guardrails, retrieval/ranking, explanation formatting, health/maintenance logic, and the versioned FastAPI application. |\n| [`web/`](web/) | Responsive React/Vite/TypeScript navigator and internal status interface. |\n| [`scripts/prepare_runtime.py`](scripts/prepare_runtime.py) | Validates committed data, generates reports, and prepares the local Chroma runtime. |
+| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Guardrails, retrieval/ranking, explanation formatting, health/maintenance logic, and the versioned FastAPI application. |
+| [`web/`](web/) | Responsive React/Vite/TypeScript navigator and internal status interface. |
+| [`scripts/prepare_runtime.py`](scripts/prepare_runtime.py) | Validates committed data, generates reports, and atomically prepares local SQLite and Chroma runtime artifacts. |
 | [`tests/`](tests/) | Unit and behavior tests for RAG pipeline helpers, ranking, and safety rules. |
 | [`data/source-inputs/`](data/source-inputs/) | Seed URL and questionnaire metadata configuration shared by the pipeline and UI. |
 | [`data/bronze/`](data/README.md) | Raw unprocessed source captures generated locally and ignored by git. |
@@ -102,6 +104,13 @@ Run a basic app/data health check before internal demos:
 
 ```powershell
 uv run python scripts/health_check.py
+```
+
+Generate operational maintenance findings and run the version-controlled recommendation evaluation:
+
+```powershell
+uv run python scripts/data/generate_maintenance_report.py --fail-on-error
+uv run python scripts/evaluate_recommendations.py
 ```
 
 Run the FastAPI backend:

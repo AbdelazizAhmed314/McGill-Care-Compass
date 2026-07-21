@@ -17,7 +17,6 @@ dependencies = [
     "requests>=2.34.2",
     "sentence-transformers>=5.1.0",
     "torch>=2.12.1",
-    "streamlit>=1.36.0",
     "uvicorn[standard]>=0.35.0",
 ]
 

@@ -218,8 +218,6 @@ def print_evidence(label: str, evidence) -> None:
     print(f"- Evidence preview: {preview}")
 
 
-
-
 def _print_debug_timings(timings: dict[str, float]) -> None:
     """Print timing diagnostics to stderr so recommendation output stays clean."""
 
@@ -309,6 +307,7 @@ def run_demo(args: argparse.Namespace) -> None:
     timings["total"] = time.perf_counter() - total_start
     if args.debug_timing:
         _print_debug_timings(timings)
+
 
 def parse_args() -> argparse.Namespace:
     """Parse terminal demo arguments."""

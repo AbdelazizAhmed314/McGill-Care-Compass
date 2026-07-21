@@ -49,6 +49,10 @@ FALLBACK_MESSAGES = {
         "Emergency guidance is shown before regular navigator results. Use emergency "
         "services first if there is immediate danger."
     ),
+    "unsafe_input": (
+        "The optional question cannot be processed safely. Remove sensitive identifiers "
+        "or instruction-like text and try again."
+    ),
     "system_error": (
         "Source-grounded recommendations are temporarily unavailable. Run the health "
         "check and rebuild local retrieval artifacts before using navigator output."
@@ -126,6 +130,13 @@ def format_retrieval_response(
             f"- {_format_emergency_resource(resource)}" for resource in emergency_resources
         )
         parts.append(f"Emergency resources:\n{resources}")
+
+    fallback_resources = tuple(_response_value(response, "fallback_resources") or ())
+    if fallback_resources:
+        resources = "\n".join(
+            f"- {_format_fallback_resource(resource)}" for resource in fallback_resources
+        )
+        parts.append(f"Official fallback resources:\n{resources}")
 
     limitation_notice = _response_field(response, "limitation_notice")
     if limitation_notice:
@@ -248,6 +259,13 @@ def _format_retrieved_evidence(evidence: Mapping[str, object] | object) -> str:
     if limitation and limitation not in formatted:
         formatted = f"{formatted}\nRetriever limitation: {limitation}"
     return formatted
+
+
+def _format_fallback_resource(resource: Mapping[str, object] | object) -> str:
+    label = _response_field(resource, "label") or "Official starting point"
+    action = _response_field(resource, "action")
+    source_url = _response_field(resource, "source_url")
+    return " ? ".join(part for part in (label, action, source_url) if part)
 
 
 def _format_emergency_resource(resource: Mapping[str, object] | object) -> str:

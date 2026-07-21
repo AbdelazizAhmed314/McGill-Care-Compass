@@ -166,7 +166,6 @@ def test_conflicting_equal_authority_evidence_is_passed_to_llm_pack() -> None:
     )
 
 
-
 def test_groups_same_page_chunks_into_one_distinct_option() -> None:
     intake = RetrievalIntake(category_id="insurance", need_type="contact")
     first = make_evidence(
@@ -190,8 +189,7 @@ def test_groups_same_page_chunks_into_one_distinct_option() -> None:
     assert len(pack.options) == 2
     assert [chunk.chunk_id for chunk in pack.options[0].chunks] == ["same-1", "same-2"]
     option_urls = {
-        option.chunks[0].canonical_url.split("?", 1)[0].rstrip("/")
-        for option in pack.options
+        option.chunks[0].canonical_url.split("?", 1)[0].rstrip("/") for option in pack.options
     }
     assert len(option_urls) == 2
 
@@ -243,7 +241,10 @@ def test_llm_rejects_official_url_not_backed_by_cited_chunk() -> None:
     )
 
     assert not result.used_llm
-    assert "unavailable URL" in result.fallback_reason
+    assert result.fallback_reason == (
+        "LLM output failed grounding validation; deterministic fallback used."
+    )
+
 
 def test_emergency_and_low_confidence_skip_llm() -> None:
     evidence = [make_evidence("good", "Call the official insurance office for contact help.")]
@@ -337,7 +338,9 @@ def test_hallucinated_source_ids_are_rejected() -> None:
     )
 
     assert not result.used_llm
-    assert "unavailable source IDs" in result.fallback_reason
+    assert result.fallback_reason == (
+        "LLM output failed grounding validation; deterministic fallback used."
+    )
 
 
 def test_global_env_takes_priority_over_dotenv(monkeypatch, tmp_path) -> None:

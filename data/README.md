@@ -105,12 +105,26 @@ Use strict local-artifact validation only after rebuilding ignored SQLite and Ch
 uv run python scripts/data/validate_rag_corpus.py --require-local-artifacts
 ```
 
-Generate maintenance outputs for source freshness, broken-link/fetch signals,
-missing data, and category coverage:
+Generate ignored operational maintenance outputs for freshness, drift, fetch failures,
+missing metadata, category coverage, and chunk-quality findings:
 
 ```bash
 uv run python scripts/data/generate_maintenance_report.py
+uv run python scripts/data/generate_maintenance_report.py --fail-on-error
 ```
+
+Use `--fail-on-attention` for the stricter reviewer gate. Reports are written under
+`silver/maintenance/` and are not committed because they describe the local operational run.
+
+Run the fixed, version-controlled recommendation and safety evaluation:
+
+```bash
+uv run python scripts/evaluate_recommendations.py
+```
+
+The scenario source is committed under `evaluation/`. Evaluation evidence is tied to corpus and
+implementation signatures; it supports the Issue 8 quality package but does not replace participant
+usability testing.
 
 Run a local retrieval smoke query:
 

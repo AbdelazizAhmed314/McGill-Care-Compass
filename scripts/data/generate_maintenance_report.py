@@ -1,9 +1,10 @@
-"""Generate maintenance reports for committed Silver RAG artifacts."""
+"""Generate local RAG maintenance reports."""
 
 from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,50 +13,50 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from mcgill_care_compass.maintenance import (  # noqa: E402
-    MaintenanceReportPaths,
-    write_maintenance_report,
+    DEFAULT_JSON_REPORT,
+    DEFAULT_MARKDOWN_REPORT,
+    generate_maintenance_reports,
 )
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse CLI arguments."""
-
-    parser = argparse.ArgumentParser(description="Generate McGill Care Compass maintenance reports.")
-    parser.add_argument("--pages-csv", type=Path, default=ROOT / "data/silver/datasets/rag_pages.csv")
-    parser.add_argument("--links-csv", type=Path, default=ROOT / "data/silver/datasets/rag_links.csv")
-    parser.add_argument("--chunks-csv", type=Path, default=ROOT / "data/silver/datasets/rag_chunks.csv")
+    parser = argparse.ArgumentParser(description="Generate RAG maintenance JSON and Markdown.")
+    parser.add_argument("--json-output", type=Path, default=DEFAULT_JSON_REPORT)
+    parser.add_argument("--markdown-output", type=Path, default=DEFAULT_MARKDOWN_REPORT)
+    parser.add_argument("--stale-after-days", type=int, default=30)
     parser.add_argument(
-        "--markdown-report",
-        type=Path,
-        default=ROOT / "data/silver/reports/maintenance_report.md",
+        "--as-of",
+        type=date.fromisoformat,
+        help="Override report date (YYYY-MM-DD).",
     )
     parser.add_argument(
-        "--json-report",
-        type=Path,
-        default=ROOT / "data/silver/reports/maintenance_report.json",
+        "--fail-on-attention",
+        action="store_true",
+        help="Exit 1 when the generated report requires maintenance review.",
+    )
+    parser.add_argument(
+        "--fail-on-error",
+        action="store_true",
+        help="Exit 1 only for integrity-blocking maintenance errors.",
     )
     return parser.parse_args()
 
 
-def main() -> None:
-    """Generate report files and print their locations."""
-
+def main() -> int:
     args = parse_args()
-    paths = MaintenanceReportPaths(
-        pages_csv=args.pages_csv,
-        links_csv=args.links_csv,
-        chunks_csv=args.chunks_csv,
-        markdown_report=args.markdown_report,
-        json_report=args.json_report,
+    report = generate_maintenance_reports(
+        json_path=args.json_output,
+        markdown_path=args.markdown_output,
+        as_of=args.as_of,
+        stale_after_days=args.stale_after_days,
     )
-    report = write_maintenance_report(paths)
-    print("Maintenance report generated.")
-    print(f"Pages: {report['counts']['pages']}")
-    print(f"Links: {report['counts']['links']}")
-    print(f"Chunks: {report['counts']['chunks']}")
-    print(f"Markdown: {paths.markdown_report}")
-    print(f"JSON: {paths.json_report}")
+    print(f"Wrote JSON report to {args.json_output}")
+    print(f"Wrote Markdown report to {args.markdown_output}")
+    print("Maintenance review required: " + ("yes" if report["requires_attention"] else "no"))
+    if args.fail_on_error and report["has_errors"]:
+        return 1
+    return 1 if args.fail_on_attention and report["requires_attention"] else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

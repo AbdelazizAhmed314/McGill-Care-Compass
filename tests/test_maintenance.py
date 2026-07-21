@@ -1,114 +1,142 @@
-from pathlib import Path
+from datetime import date
 
-import pandas as pd
-
+import mcgill_care_compass.maintenance as maintenance_module
 from mcgill_care_compass.maintenance import (
-    MaintenanceReportPaths,
     build_maintenance_report,
-    write_maintenance_report,
+    format_maintenance_markdown,
 )
 
 
-def test_build_maintenance_report_summarizes_outputs(tmp_path: Path) -> None:
-    pages = pd.DataFrame(
+def test_maintenance_separates_failed_fetches_from_intentional_link_skips() -> None:
+    pages = [
+        {
+            "canonical_url": "https://www.mcgill.ca/good",
+            "http_status": "200",
+            "drift_status": "unchanged",
+            "retrieved_at": "2026-07-18T00:00:00+00:00",
+        },
+        {
+            "canonical_url": "https://www.mcgill.ca/missing",
+            "http_status": "404",
+            "drift_status": "fetch_failed",
+            "retrieved_at": "2026-06-01T00:00:00+00:00",
+            "fetch_error": "HTTP 404",
+        },
+    ]
+    links = [
+        {
+            "source_canonical_url": "https://www.mcgill.ca/good",
+            "target_canonical_url": "https://www.mcgill.ca/duplicate",
+            "link_type": "in_scope",
+            "crawl_decision": "not_crawled",
+            "skip_reason": "duplicate_url",
+        }
+    ]
+
+    report = build_maintenance_report(pages, links, [], as_of=date(2026, 7, 19))
+
+    assert report["failed_sources"]["count"] == 1
+    assert report["failed_sources"]["records"][0]["canonical_url"].endswith("/missing")
+    assert report["intentional_link_skips"]["count"] == 1
+    assert report["intentional_link_skips"]["by_reason"] == {"duplicate_url": 1}
+
+
+def test_maintenance_classifies_chunk_quality_and_category_coverage() -> None:
+    chunks = [
+        {
+            "chunk_id": "short",
+            "chunk_text": "Quick Links",
+            "category_id": "housing",
+            "nearby_links": "[]",
+        },
+        {
+            "chunk_id": "duplicate-a",
+            "chunk_text": "Same useful text for students to review with official staff.",
+            "category_id": "housing",
+            "has_contact_info": "true",
+        },
+        {
+            "chunk_id": "duplicate-b",
+            "chunk_text": "Same useful text for students to review with official staff!",
+            "category_id": "housing",
+            "has_contact_info": "true",
+        },
+    ]
+
+    report = build_maintenance_report([], [], chunks, as_of=date(2026, 7, 19))
+
+    assert report["chunk_quality"]["very_short_non_actionable"]["count"] == 1
+    assert report["chunk_quality"]["boilerplate_pattern"]["count"] == 1
+    assert report["chunk_quality"]["duplicate_normalized_text"]["count"] == 2
+    assert report["category_coverage"]["by_category"]["housing"]["chunks"] == 3
+    assert report["chunk_quality"]["boilerplate_pattern"]["examples"] == [
+        {"chunk_id": "short", "canonical_url": ""}
+    ]
+
+
+def test_maintenance_markdown_contains_actionable_examples() -> None:
+    report = build_maintenance_report(
         [
             {
-                "canonical_url": "https://example.test/ok",
-                "http_status": "200",
-                "retrieved_at": "2026-07-01T00:00:00+00:00",
-                "source_updated_at": "",
-                "freshness_score": "0.4",
+                "canonical_url": "https://www.mcgill.ca/changed",
                 "drift_status": "changed",
-                "fetch_error": "",
-                "category_id": "insurance",
-            },
-            {
-                "canonical_url": "https://example.test/fail",
-                "http_status": "404",
-                "retrieved_at": "2026-07-02T00:00:00+00:00",
-                "source_updated_at": "2026-06-01",
-                "freshness_score": "0.8",
-                "drift_status": "fetch_failed",
-                "fetch_error": "not found",
-                "category_id": "tax",
-            },
-        ]
-    )
-    links = pd.DataFrame(
-        [
-            {
-                "source_canonical_url": "https://example.test/ok",
-                "target_canonical_url": "https://example.test/fail",
-                "link_type": "in_scope",
-                "crawl_decision": "not_crawled",
-                "skip_reason": "depth_limit",
-            }
-        ]
-    )
-    chunks = pd.DataFrame(
-        [
-            {
-                "chunk_id": "chunk-1",
-                "canonical_url": "https://example.test/ok",
-                "category_id": "insurance",
-                "chunk_text": "Use the official source.",
-                "retrieved_at": "2026-07-01T00:00:00+00:00",
+                "retrieved_at": "2026-07-18T00:00:00+00:00",
                 "source_updated_at": "",
-                "review_status": "silver_unreviewed",
-                "label_confidence": "high",
-                "freshness_score": "0.4",
             }
-        ]
+        ],
+        [
+            {
+                "target_canonical_url": "https://www.mcgill.ca/duplicate",
+                "crawl_decision": "not_crawled",
+                "skip_reason": "duplicate_url",
+            }
+        ],
+        [
+            {
+                "chunk_id": "short",
+                "canonical_url": "https://www.mcgill.ca/changed",
+                "chunk_text": "Quick Links",
+                "category_id": "housing",
+            }
+        ],
+        as_of=date(2026, 7, 19),
     )
-    pages_csv = tmp_path / "pages.csv"
-    links_csv = tmp_path / "links.csv"
-    chunks_csv = tmp_path / "chunks.csv"
-    pages.to_csv(pages_csv, index=False)
-    links.to_csv(links_csv, index=False)
-    chunks.to_csv(chunks_csv, index=False)
+
+    markdown = format_maintenance_markdown(report)
+
+    assert "### Changed examples" in markdown
+    assert "https://www.mcgill.ca/changed" in markdown
+    assert "duplicate_url: 1" in markdown
+    assert "chunk_id=short" in markdown
+
+
+def test_changed_or_new_sources_require_attention_even_without_other_findings(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        maintenance_module,
+        "_missing_report",
+        lambda *args: {"rows_with_missing_data": 0, "missing_by_field": {}, "examples": []},
+    )
+    monkeypatch.setattr(
+        maintenance_module,
+        "_coverage_report",
+        lambda *args: {"by_category": {}, "categories_without_chunks": []},
+    )
+    monkeypatch.setattr(maintenance_module, "_chunk_quality_report", lambda *args, **kwargs: {})
 
     report = build_maintenance_report(
-        MaintenanceReportPaths(
-            pages_csv=pages_csv,
-            links_csv=links_csv,
-            chunks_csv=chunks_csv,
-            markdown_report=tmp_path / "report.md",
-            json_report=tmp_path / "report.json",
-        )
+        [
+            {
+                "canonical_url": "https://www.mcgill.ca/changed",
+                "http_status": "200",
+                "drift_status": "changed",
+                "retrieved_at": "2026-07-19T00:00:00+00:00",
+            }
+        ],
+        [],
+        [],
+        as_of=date(2026, 7, 19),
     )
 
-    assert report["broken_links"]["non_200_pages"] == 1
-    assert report["broken_links"]["not_crawled_links"] == 1
-    assert report["source_freshness"]["chunks_low_freshness_score"] == 1
-    assert "tax" in report["category_coverage"]["observed_categories"]
-
-
-def test_write_maintenance_report_creates_markdown_and_json(tmp_path: Path) -> None:
-    pages_csv = tmp_path / "pages.csv"
-    links_csv = tmp_path / "links.csv"
-    chunks_csv = tmp_path / "chunks.csv"
-    pd.DataFrame([{
-        "canonical_url": "u",
-        "category_id": "insurance",
-    }]).to_csv(pages_csv, index=False)
-    pd.DataFrame([{"source_canonical_url": "u", "target_canonical_url": "v"}]).to_csv(
-        links_csv,
-        index=False,
-    )
-    pd.DataFrame([{"chunk_id": "c", "category_id": "insurance"}]).to_csv(chunks_csv, index=False)
-    markdown = tmp_path / "maintenance.md"
-    json_report = tmp_path / "maintenance.json"
-
-    write_maintenance_report(
-        MaintenanceReportPaths(
-            pages_csv=pages_csv,
-            links_csv=links_csv,
-            chunks_csv=chunks_csv,
-            markdown_report=markdown,
-            json_report=json_report,
-        )
-    )
-
-    assert markdown.exists()
-    assert json_report.exists()
-    assert "Category Coverage Output" in markdown.read_text(encoding="utf-8")
+    assert report["requires_attention"] is True

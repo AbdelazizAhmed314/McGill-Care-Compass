@@ -207,9 +207,7 @@ def test_format_retrieval_response_does_not_render_fallback_backups() -> None:
     response = {
         "status": "low_confidence",
         "primary_result": None,
-        "backup_results": (
-            {"heading_path": "Rejected chunk", "chunk_text": "Rejected evidence"},
-        ),
+        "backup_results": ({"heading_path": "Rejected chunk", "chunk_text": "Rejected evidence"},),
         "message": "The retriever found chunks, but none passed the quality gate.",
     }
 

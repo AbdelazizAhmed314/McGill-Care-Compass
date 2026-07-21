@@ -91,3 +91,43 @@ aligned.
 Impact: React renders the validated structured response as cards while the CLI
 renders the same response as Markdown. If the model is unavailable, both clients
 fall back to the same distinct grouped options.
+
+## 2026-07-21 - Use contextual source authority
+
+Decision: rank the responsible official source for the requested service or decision first, rather than applying one global publisher order. Within an equal contextual authority tier, semantic distance precedes freshness and stable tie-breakers.
+
+Reason: McGill is authoritative for McGill services, while government, public-system, or plan-administrator sources are authoritative for the decisions they own. A global hierarchy can incorrectly bury the responsible source.
+
+Impact: ranking receives category and jurisdiction context, remains deterministic, and cannot use intake jurisdiction as a professional or legal determination.
+
+## 2026-07-21 - Enforce guardrails at input, evidence, and response boundaries
+
+Decision: normalize and screen optional text before retrieval, screen retrieved evidence before display or model use, and validate every model-cited source ID and URL against approved evidence. Governed limitation wording is injected by code.
+
+Reason: domain privacy and prompt-injection risks occur at more than one boundary. Model instructions alone cannot enforce privacy, citation, or limitation contracts.
+
+Impact: emergency routing retains precedence; unsafe requests fail before Chroma or the model; rejected evidence is excluded; and provider or validation failures use a generic grounded fallback.
+
+## 2026-07-21 - Sign and atomically prepare runtime artifacts
+
+Decision: derive ignored SQLite and Chroma artifacts in temporary sibling paths, bind both to the exact governed corpus signature, validate them, and replace active artifacts only after success.
+
+Reason: an interrupted rebuild must not destroy the last valid runtime or combine an index with the wrong chunk corpus.
+
+Impact: readiness verifies counts and signatures. Runtime preparation never restamps or recrawls committed source artifacts.
+
+## 2026-07-21 - Use privacy-safe structured operational logs
+
+Decision: emit JSON Lines using a strict field allowlist and exclude intake text, source bodies, prompts, responses, and identifiers.
+
+Reason: operational diagnosis needs correlation, status, timing, stage, and exception class?not student-authored or retrieved content.
+
+Impact: API responses receive request IDs, failures remain diagnosable, and logs stay within the product privacy boundary.
+
+## 2026-07-21 - Adopt the fixed evaluation package as an Issue 8 baseline
+
+Decision: version the labeled scenario set and deterministic evaluator now, while keeping the participant usability study in Issue 8.
+
+Reason: fixed expected categories, service types, pass rules, safety outcomes, and artifact signatures make regressions reproducible without claiming that automated checks prove usability.
+
+Impact: Issue 7 can verify integration safety and relevance consistently; Issue 8 remains responsible for final scenario results, remediation, and at least five participant sessions.

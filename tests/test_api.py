@@ -139,8 +139,7 @@ def test_matched_result_uses_public_evidence_shape(monkeypatch) -> None:
             "category_id": "housing",
             "heading_path": "Housing support",
             "chunk_text": (
-                "Visit the official housing support page to review available "
-                "starting points."
+                "Visit the official housing support page to review available starting points."
             ),
             "canonical_url": "https://www.mcgill.ca/example",
             "info_type_tags": "general_navigation",
@@ -241,8 +240,6 @@ def test_request_rejects_extra_and_invalid_fields() -> None:
     assert "do-not-accept" not in response.text
 
 
-
-
 def test_optional_query_is_used_but_not_echoed(monkeypatch) -> None:
     captured: list[str] = []
     domain_response = RetrievalResponse(
@@ -290,6 +287,7 @@ def test_optional_query_rejects_sensitive_identifiers() -> None:
 
     assert response.status_code == 422
     assert "123456789" not in response.text
+
 
 def test_maintenance_report_is_read_only(monkeypatch, tmp_path) -> None:
     report_path = tmp_path / "maintenance.json"

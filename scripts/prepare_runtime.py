@@ -13,7 +13,7 @@ for import_path in (ROOT, SRC):
         sys.path.insert(0, str(import_path))
 
 from mcgill_care_compass.health import format_health_report, run_health_checks  # noqa: E402
-from mcgill_care_compass.maintenance import write_maintenance_report  # noqa: E402
+from mcgill_care_compass.maintenance import generate_maintenance_reports  # noqa: E402
 from mcgill_care_compass.retrieval import (  # noqa: E402
     CHUNKS_CSV,
     VECTOR_DIR,
@@ -21,6 +21,7 @@ from mcgill_care_compass.retrieval import (  # noqa: E402
     get_chroma_collection,
     rebuild_vector_store_from_chunks,
 )
+from mcgill_care_compass.runtime import rebuild_sqlite_metadata  # noqa: E402
 from scripts.data import validate_rag_corpus  # noqa: E402
 
 
@@ -53,8 +54,11 @@ def main() -> None:
             print(f"- {error}")
         raise SystemExit(1)
 
-    report = write_maintenance_report()
+    report = generate_maintenance_reports()
     print(f"Maintenance report generated for {report['counts']['chunks']} chunks.")
+
+    sqlite_counts = rebuild_sqlite_metadata()
+    print(f"SQLite metadata ready with {sqlite_counts['chunks']} chunks.")
 
     if not args.skip_vector_store:
         count = ensure_vector_store(force_rebuild=args.rebuild_vector_store)

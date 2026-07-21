@@ -2,19 +2,28 @@
 
 from __future__ import annotations
 
+import os
 import shutil
+import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import pandas as pd
 
+from mcgill_care_compass.corpus_signature import CorpusSignature, corpus_signature
 from mcgill_care_compass.guardrails import (
     EmergencyResource,
+    OfficialFallbackResource,
+    adversarial_evidence_reasons,
+    adversarial_input_reasons,
     emergency_notice,
     emergency_resources,
     limitation_notice_for_category,
+    official_fallback_resources,
     system_error_notice,
     unsupported_notice,
 )
@@ -152,6 +161,8 @@ class RetrievalResponse:
     primary_result: RetrievedEvidence | None
     backup_results: tuple[RetrievedEvidence, ...]
     emergency_resources: tuple[EmergencyResource, ...] = ()
+    fallback_resources: tuple[OfficialFallbackResource, ...] = ()
+    guardrail_reasons: tuple[str, ...] = ()
     safety_notice: str | None = None
     limitation_notice: str | None = None
     message: str = ""
@@ -273,31 +284,84 @@ def rebuild_vector_store_from_chunks(
     embedding_model: str = EMBEDDING_MODEL,
     batch_size: int = 64,
 ) -> int:
-    """Rebuild the ignored local Chroma index from committed Silver chunks."""
+    """Build and validate Chroma beside the active store, then swap atomically."""
+    vector_dir.parent.mkdir(parents=True, exist_ok=True)
+    temporary_dir = Path(
+        tempfile.mkdtemp(prefix=f".{vector_dir.name}.building-", dir=vector_dir.parent)
+    )
+    backup_dir = vector_dir.with_name(f".{vector_dir.name}.backup-{uuid4().hex}")
+    moved_previous = False
+    try:
+        count = _build_vector_store_at(
+            chunks_csv=chunks_csv,
+            vector_dir=temporary_dir,
+            embedding_model=embedding_model,
+            batch_size=batch_size,
+        )
+        if vector_dir.exists():
+            vector_dir.rename(backup_dir)
+            moved_previous = True
+        temporary_dir.rename(vector_dir)
+    except Exception:
+        if moved_previous and not vector_dir.exists() and backup_dir.exists():
+            backup_dir.rename(vector_dir)
+        if temporary_dir.exists():
+            shutil.rmtree(temporary_dir, ignore_errors=True)
+        raise
+    if backup_dir.exists():
+        shutil.rmtree(backup_dir, ignore_errors=True)
+    return count
 
+
+def _build_vector_store_at(
+    *, chunks_csv: Path, vector_dir: Path, embedding_model: str, batch_size: int
+) -> int:
+    """Build a complete signature-bearing vector store at an inactive path."""
     import chromadb
+
+    signature = corpus_signature(chunks_csv)
+    if signature.embedding_model != embedding_model:
+        raise ValueError("Embedding model does not match the governed chunk corpus.")
+    chunks = pd.read_csv(chunks_csv).fillna("").astype(str).to_dict(orient="records")
+    client = chromadb.PersistentClient(path=str(vector_dir))
+    try:
+        collection = client.get_or_create_collection(
+            name=COLLECTION_NAME, metadata=signature.to_collection_metadata()
+        )
+        model = load_embedding_model(embedding_model, _embedding_local_only())
+        for start in range(0, len(chunks), batch_size):
+            batch = chunks[start : start + batch_size]
+            embeddings = model.encode(
+                [chunk["embedding_text"] for chunk in batch], normalize_embeddings=True
+            ).tolist()
+            collection.add(
+                ids=[chunk.get("vector_id") or chunk["chunk_id"] for chunk in batch],
+                documents=[chunk["chunk_text"] for chunk in batch],
+                embeddings=embeddings,
+                metadatas=[chroma_metadata(chunk) for chunk in batch],
+            )
+        actual_count = int(collection.count())
+        actual_signature = CorpusSignature.from_collection_metadata(collection.metadata)
+        if actual_count != signature.chunk_count or actual_signature != signature:
+            raise VectorStoreUnavailable("New vector store failed corpus-signature validation.")
+        return actual_count
+    finally:
+        close = getattr(client, "close", None)
+        if callable(close):
+            close()
+
+
+@lru_cache(maxsize=8)
+def load_embedding_model(embedding_model: str, local_only: bool):
+    """Load each embedding model configuration once per process."""
     from sentence_transformers import SentenceTransformer
 
-    chunks = pd.read_csv(chunks_csv).fillna("").astype(str).to_dict(orient="records")
-    if vector_dir.exists():
-        shutil.rmtree(vector_dir)
-    vector_dir.parent.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=str(vector_dir))
-    collection = client.get_or_create_collection(name=COLLECTION_NAME)
-    model = SentenceTransformer(embedding_model)
-    for start in range(0, len(chunks), batch_size):
-        batch = chunks[start : start + batch_size]
-        embeddings = model.encode(
-            [chunk["embedding_text"] for chunk in batch],
-            normalize_embeddings=True,
-        ).tolist()
-        collection.add(
-            ids=[chunk.get("vector_id") or chunk["chunk_id"] for chunk in batch],
-            documents=[chunk["chunk_text"] for chunk in batch],
-            embeddings=embeddings,
-            metadatas=[chroma_metadata(chunk) for chunk in batch],
-        )
-    return collection.count()
+    options = {"local_files_only": True} if local_only else {}
+    return SentenceTransformer(embedding_model, **options)
+
+
+def _embedding_local_only() -> bool:
+    return os.getenv("MCC_EMBEDDING_LOCAL_ONLY", "").casefold() in {"1", "true", "yes"}
 
 
 def get_chroma_collection(
@@ -306,49 +370,73 @@ def get_chroma_collection(
     chunks_csv: Path = CHUNKS_CSV,
     vector_dir: Path = VECTOR_DIR,
 ):
-    """Return the Chroma collection, rebuilding ignored local vectors if requested."""
+    """Return a signature-valid collection, rebuilding invalid stores when requested."""
+    try:
+        return _open_valid_collection(chunks_csv=chunks_csv, vector_dir=vector_dir)
+    except VectorStoreUnavailable:
+        if not rebuild_if_missing:
+            raise
+    rebuild_vector_store_from_chunks(chunks_csv=chunks_csv, vector_dir=vector_dir)
+    return _open_valid_collection(chunks_csv=chunks_csv, vector_dir=vector_dir)
 
+
+def _open_valid_collection(*, chunks_csv: Path, vector_dir: Path):
     import chromadb
 
-    expected_count = count_csv_rows(chunks_csv)
-    if rebuild_if_missing:
-        rebuilt_count = rebuild_vector_store_from_chunks(
-            chunks_csv=chunks_csv,
-            vector_dir=vector_dir,
-        )
-        if rebuilt_count != expected_count:
-            raise VectorStoreUnavailable(
-                f"Rebuilt Chroma with {rebuilt_count} chunks, but "
-                f"{chunks_csv.relative_to(ROOT)} has {expected_count}."
-            )
-
+    expected_signature = corpus_signature(chunks_csv)
     try:
         client = chromadb.PersistentClient(path=str(vector_dir))
         collection = client.get_collection(COLLECTION_NAME)
-        actual_count = collection.count()
-    except Exception as exc:  # Chroma raises different errors across versions.
+        actual_count = int(collection.count())
+        actual_signature = CorpusSignature.from_collection_metadata(collection.metadata)
+    except Exception as exc:
         raise VectorStoreUnavailable(
-            "Local Chroma vector store is missing. Rebuild the ignored vector index with:\n"
-            "uv run python scripts/prepare_runtime.py --rebuild-vector-store"
+            "Local Chroma vector store is missing or invalid. Rebuild with:\n"
+            "uv run python scripts/prepare_runtime.py"
         ) from exc
-
-    if actual_count != expected_count:
+    if actual_count != expected_signature.chunk_count or actual_signature != expected_signature:
         raise VectorStoreUnavailable(
-            f"Local Chroma vector store has {actual_count} chunks, but "
-            f"{chunks_csv.relative_to(ROOT)} has {expected_count}. Rebuild with:\n"
-            "uv run python scripts/prepare_runtime.py --rebuild-vector-store"
+            "Local Chroma vector store does not match the governed chunk corpus. "
+            "Rebuild with:\nuv run python scripts/prepare_runtime.py"
         )
     return collection
+
+
+def evidence_adversarial_reasons(
+    document: str, metadata: Mapping[str, Any] | None = None
+) -> tuple[str, ...]:
+    """Scan every source-text field that may be displayed or sent to the LLM."""
+    source = metadata or {}
+    reasons: list[str] = []
+    texts = (
+        document,
+        *(
+            str(source.get(field, ""))
+            for field in (
+                "heading_path",
+                "section_heading",
+                "page_title",
+                "title",
+                "source_publisher",
+            )
+        ),
+    )
+    for text in texts:
+        for reason in adversarial_evidence_reasons(text):
+            if reason not in reasons:
+                reasons.append(reason)
+    return tuple(reasons)
 
 
 def quality_warnings(document: str, metadata: dict[str, Any]) -> tuple[str, ...]:
     """Return transparent evidence-quality warnings for a retrieved chunk."""
 
     warnings: list[str] = []
+    if evidence_adversarial_reasons(document, metadata):
+        warnings.append("prompt_injection_pattern")
     words = document.split()
     context_text = " ".join(
-        str(metadata.get(field, ""))
-        for field in ("heading_path", "section_heading")
+        str(metadata.get(field, "")) for field in ("heading_path", "section_heading")
     )
     lower_text = f"{context_text} {document}".lower()
     has_action_tag = any(
@@ -381,9 +469,10 @@ def evidence_passes(document: str, metadata: dict[str, Any]) -> bool:
     """Return whether a chunk is safe enough to show as recommendation evidence."""
 
     warnings = set(quality_warnings(document, metadata))
+    if "prompt_injection_pattern" in warnings:
+        return False
     context_text = " ".join(
-        str(metadata.get(field, ""))
-        for field in ("heading_path", "section_heading")
+        str(metadata.get(field, "")) for field in ("heading_path", "section_heading")
     )
     lower_text = f"{context_text} {document}".lower()
     if any(pattern in lower_text for pattern in SEVERE_BOILERPLATE_PATTERNS):
@@ -474,8 +563,6 @@ def evidence_from_candidate(
     )
 
 
-
-
 def system_error_response(
     intake: RetrievalIntake,
     *,
@@ -499,6 +586,7 @@ def system_error_response(
         relaxed_level=0,
         primary_result=None,
         backup_results=(),
+        fallback_resources=official_fallback_resources(intake.category_id),
         limitation_notice=system_error_notice(),
         message=(
             "Source-grounded recommendations are temporarily unavailable. Run the health "
@@ -521,22 +609,40 @@ def retrieve_matches(
     """Retrieve ranked RAG evidence for structured intake answers."""
 
     query = intake.query.strip() or default_query_from_intake(intake)
+    unsafe_reasons = adversarial_input_reasons(intake.query)
     safety_notice = emergency_notice(intake.urgency_level) if is_emergency_intake(intake) else None
     if safety_notice:
         return RetrievalResponse(
             status="emergency",
-            query=query,
+            query="[redacted]" if unsafe_reasons else query,
             matched_filters={},
             relaxed_level=0,
             primary_result=None,
             backup_results=(),
             emergency_resources=emergency_resources(),
+            guardrail_reasons=unsafe_reasons,
             safety_notice=safety_notice,
             limitation_notice=(
                 "This navigator cannot assess symptoms, determine whether a situation is "
                 "an emergency, or replace emergency services."
             ),
             message="Emergency guidance is shown before regular navigator results.",
+        )
+    if unsafe_reasons:
+        return RetrievalResponse(
+            status="unsafe_input",
+            query="[redacted]",
+            matched_filters={},
+            relaxed_level=0,
+            primary_result=None,
+            backup_results=(),
+            fallback_resources=official_fallback_resources(intake.category_id),
+            guardrail_reasons=unsafe_reasons,
+            limitation_notice=unsupported_notice(),
+            message=(
+                "The optional question contained information or instructions that cannot "
+                "be processed safely. Remove sensitive identifiers or instruction-like text."
+            ),
         )
     if not is_supported_category(intake.category_id):
         return RetrievalResponse(
@@ -546,6 +652,7 @@ def retrieve_matches(
             relaxed_level=0,
             primary_result=None,
             backup_results=(),
+            fallback_resources=official_fallback_resources(intake.category_id),
             safety_notice=safety_notice,
             message=(
                 f"{unsupported_notice()} Choose one of the supported categories or "
@@ -572,15 +679,15 @@ def retrieve_matches(
             relaxed_level=0,
             primary_result=None,
             backup_results=(),
+            fallback_resources=official_fallback_resources(intake.category_id),
             safety_notice=safety_notice,
+            limitation_notice=limitation_for_intake(intake, "silver_unreviewed"),
             message="The local vector store contains no chunks.",
         )
 
     try:
         if embedding_encoder is None:
-            from sentence_transformers import SentenceTransformer
-
-            embedding_encoder = SentenceTransformer(embedding_model)
+            embedding_encoder = load_embedding_model(embedding_model, _embedding_local_only())
         query_embedding = embedding_encoder.encode(
             [query],
             normalize_embeddings=True,
@@ -593,6 +700,7 @@ def retrieve_matches(
             error_type=type(exc).__name__,
         )
     fallback_candidates: list[dict[str, Any]] = []
+    blocked_prompt_injection = False
     for relaxed_level, metadata_filter in enumerate(filter_steps_for_intake(intake)):
         try:
             result = collection.query(
@@ -622,8 +730,16 @@ def retrieve_matches(
             candidates.append(candidate)
         if not candidates:
             continue
-        ranked = rank_retrieved_chunks(candidates)
+        ranked = rank_retrieved_chunks(
+            candidates, category_id=intake.category_id, jurisdiction=intake.jurisdiction
+        )
         fallback_candidates = fallback_candidates or ranked
+        blocked_prompt_injection = blocked_prompt_injection or any(
+            evidence_adversarial_reasons(
+                str(candidate.get("document", "")), candidate.get("metadata", {})
+            )
+            for candidate in ranked
+        )
         passing = [
             evidence_from_candidate(candidate, intake=intake, matched_filters=metadata_filter)
             for candidate in ranked
@@ -639,6 +755,9 @@ def retrieve_matches(
                 relaxed_level=relaxed_level,
                 primary_result=primary,
                 backup_results=tuple(passing[1:limit]),
+                guardrail_reasons=(
+                    ("retrieved_prompt_injection",) if blocked_prompt_injection else ()
+                ),
                 safety_notice=safety_notice,
                 limitation_notice=primary.limitation,
             )
@@ -651,6 +770,8 @@ def retrieve_matches(
             relaxed_level=len(filter_steps_for_intake(intake)) - 1,
             primary_result=None,
             backup_results=(),
+            fallback_resources=official_fallback_resources(intake.category_id),
+            guardrail_reasons=(("retrieved_prompt_injection",) if blocked_prompt_injection else ()),
             limitation_notice=limitation_for_intake(intake, "silver_unreviewed"),
             message=(
                 "The retriever found chunks, but the top evidence looked too generic, "
@@ -665,11 +786,49 @@ def retrieve_matches(
         relaxed_level=len(filter_steps_for_intake(intake)) - 1,
         primary_result=None,
         backup_results=(),
+        fallback_resources=official_fallback_resources(intake.category_id),
+        guardrail_reasons=(("retrieved_prompt_injection",) if blocked_prompt_injection else ()),
         safety_notice=safety_notice,
         limitation_notice=limitation_for_intake(intake, "silver_unreviewed"),
-        message=(
-            "No source-grounded match was found after strict and relaxed metadata filters."
-        ),
+        message=("No source-grounded match was found after strict and relaxed metadata filters."),
     )
 
 
+def retrieve_matches_safely(
+    intake: RetrievalIntake,
+    *,
+    retriever: Any | None = None,
+    error_handler: Any | None = None,
+    collection_loader: Any | None = None,
+    embedding_loader: Any | None = None,
+    **kwargs: Any,
+) -> RetrievalResponse:
+    """Run any retriever with controlled dependencies and a bounded failure response."""
+
+    try:
+        if collection_loader is not None:
+            kwargs["collection"] = collection_loader(
+                rebuild_if_missing=kwargs.get("rebuild_if_missing", False)
+            )
+        if embedding_loader is not None:
+            kwargs["embedding_encoder"] = embedding_loader(
+                kwargs.get("embedding_model", EMBEDDING_MODEL),
+                _embedding_local_only(),
+            )
+        return (retriever or retrieve_matches)(intake, **kwargs)
+    except Exception as exc:
+        if error_handler is not None:
+            error_handler(exc, stage="retrieval", category_id=intake.category_id)
+        else:
+            log_event(
+                "retrieval_system_error",
+                status="system_error",
+                category_id=intake.category_id,
+                error_type=type(exc).__name__,
+            )
+        query = (
+            "[redacted]"
+            if adversarial_input_reasons(intake.query)
+            else (intake.query.strip() or default_query_from_intake(intake))
+        )
+        return system_error_response(intake, query=query, error_type=type(exc).__name__)

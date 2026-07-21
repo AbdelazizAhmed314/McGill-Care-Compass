@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -23,6 +24,9 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Report missing Chroma as a warning instead of a failing deployment check.",
     )
+    parser.add_argument(
+        "--json", action="store_true", help="Print the structured health report as JSON."
+    )
     return parser.parse_args()
 
 
@@ -31,7 +35,7 @@ def main() -> None:
 
     args = parse_args()
     report = run_health_checks(require_vector_store=not args.allow_missing_vector_store)
-    print(format_health_report(report))
+    print(json.dumps(report.to_dict(), indent=2) if args.json else format_health_report(report))
     if not report.ok:
         raise SystemExit(1)
 

@@ -110,9 +110,7 @@ def normalized_intake_fields(intake: Mapping[str, object] | object) -> dict[str,
         if value:
             normalized[field_id] = value
     return {
-        field_id: normalized[field_id]
-        for field_id in INTAKE_FIELD_IDS
-        if field_id in normalized
+        field_id: normalized[field_id] for field_id in INTAKE_FIELD_IDS if field_id in normalized
     }
 
 

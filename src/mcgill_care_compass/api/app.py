@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -58,7 +60,18 @@ def create_app() -> FastAPI:
 
     @application.middleware("http")
     async def security_headers(request: Request, call_next):
+        request_id = uuid4().hex
+        started = time.perf_counter()
         response = await call_next(request)
+        log_event(
+            "api_request",
+            request_id=request_id,
+            route=request.url.path,
+            status=response.status_code,
+            duration_ms=round((time.perf_counter() - started) * 1000, 2),
+            client_type="web_or_api",
+        )
+        response.headers["X-Request-ID"] = request_id
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"

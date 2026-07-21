@@ -29,6 +29,7 @@ RecommendationStatus = Literal[
     "no_match",
     "low_confidence",
     "system_error",
+    "unsafe_input",
 ]
 
 SENSITIVE_QUERY_PATTERNS = (
@@ -298,8 +299,7 @@ class RecommendationResponseModel(StrictModel):
                 option_entries = [(option, {}) for option in pack.options]
 
         evidence_results = [
-            _evidence_from_option(option, entry, intake)
-            for option, entry in option_entries
+            _evidence_from_option(option, entry, intake) for option, entry in option_entries
         ]
         if not evidence_results:
             legacy_items = [
@@ -307,10 +307,7 @@ class RecommendationResponseModel(StrictModel):
                 for item in (response.primary_result, *response.backup_results)
                 if item is not None
             ][:3]
-            evidence_results = [
-                _evidence_from_item(item, intake=intake)
-                for item in legacy_items
-            ]
+            evidence_results = [_evidence_from_item(item, intake=intake) for item in legacy_items]
 
         limitations = [
             str(item).strip()
@@ -338,6 +335,16 @@ class RecommendationResponseModel(StrictModel):
                 )
                 for item in evidence_results
                 if item.canonical_url
+            ]
+        if not official_sources:
+            official_sources = [
+                OfficialSourceResponse(
+                    label=item.label,
+                    url=item.source_url,
+                    source_id=f"fallback:{response.status}",
+                )
+                for item in response.fallback_resources
+                if item.source_url
             ]
 
         opening_summary = str(raw_output.get("opening_summary", "")).strip()
@@ -372,20 +379,15 @@ class RecommendationResponseModel(StrictModel):
             conflict_disclosure=ConflictDisclosureResponse(
                 has_conflict=bool(conflict.get("has_conflict", False)),
                 what_differs=str(conflict.get("what_differs", "")),
-                why_this_route_was_chosen=str(
-                    conflict.get("why_this_route_was_chosen", "")
-                ),
+                why_this_route_was_chosen=str(conflict.get("why_this_route_was_chosen", "")),
                 how_to_double_check=str(conflict.get("how_to_double_check", "")),
                 source_ids_considered=[
-                    str(item)
-                    for item in conflict.get("source_ids_considered", []) or []
+                    str(item) for item in conflict.get("source_ids_considered", []) or []
                 ],
             ),
             official_sources=official_sources,
             generation_mode=(
-                "llm"
-                if presentation is not None and presentation.used_llm
-                else "deterministic"
+                "llm" if presentation is not None and presentation.used_llm else "deterministic"
             ),
         )
 
@@ -404,8 +406,7 @@ def _evidence_from_option(
         representative,
         intake=intake,
         title=str(entry.get("title", "")).strip() or option.title,
-        match_reason=str(entry.get("why_this_matched", "")).strip()
-        or representative.match_reason,
+        match_reason=str(entry.get("why_this_matched", "")).strip() or representative.match_reason,
         next_step=str(entry.get("recommended_next_step", "")).strip()
         or recommended_next_step(representative.raw_chunk),
         source_ids=source_ids or [item.chunk_id for item in option.chunks if item.chunk_id],
@@ -425,10 +426,7 @@ def _evidence_from_item(
 ) -> EvidenceResponse:
     raw = item.raw_chunk
     category_id = str(raw.get("category_id") or (intake.category_id if intake else ""))
-    category_label = str(
-        raw.get("category_label")
-        or CATEGORY_LABELS.get(category_id, category_id)
-    )
+    category_label = str(raw.get("category_label") or CATEGORY_LABELS.get(category_id, category_id))
     support_items = supporting or (item,)
     support_details = [_developer_response(value) for value in support_items]
     return EvidenceResponse(

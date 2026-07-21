@@ -428,7 +428,7 @@ Start with this action: [specific source-derived action]. Use the official sourc
 
 ## Handoff
 
-- Issue 4/6 now has a terminal RAG path for structured intake, metadata filters, vector retrieval, deterministic formatting, and optional LLM response writing; the Streamlit intake shell remains a placeholder until the guardrails, retrieval logic, and response layer are finalized for UI wiring.
-- Issue 5 should use the result layout, wording standards, and appendix examples as the explanation-layer contract; the optional LLM layer must preserve source grounding and validated source IDs.
-- Issue 7 should harden emergency, high-risk, unsupported, no-match, conflict-disclosure, and system-error behavior into final guardrail checks.
-- Issue 8 should convert the appendix examples into evaluation scenarios with expected category, source-link, evidence-pass, and safety-note checks.
+- Issues 4/6 provide the shared structured-intake, vector-retrieval, ranking, grouping, deterministic formatting, and optional validated LLM pipeline.
+- Issue 7 wires that pipeline to the FastAPI/React web app while retaining the CLI renderer; the web includes the optional privacy-guarded short question, the governed response sections, and a user-controlled developer-details toggle.
+- Issue 7 also owns emergency, high-risk, adversarial-input, unsupported, no-match, conflict-disclosure, system-error, maintenance, health, logging, and internal runtime behavior.
+- Issue 8 owns the fixed recommendation evaluation and participant usability evidence; the included scenario package is a reproducible baseline, not a substitute for the required usability sessions.
