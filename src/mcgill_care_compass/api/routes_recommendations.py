@@ -4,10 +4,10 @@ from fastapi import APIRouter
 
 from mcgill_care_compass.api.runtime import get_retrieval_runtime
 from mcgill_care_compass.api.schemas import RecommendationRequest, RecommendationResponseModel
+from mcgill_care_compass.recommendation_pipeline import run_recommendation_pipeline
 from mcgill_care_compass.retrieval import (
     is_emergency_intake,
     is_supported_category,
-    retrieve_matches,
     system_error_response,
 )
 
@@ -19,7 +19,12 @@ def recommendations(request: RecommendationRequest) -> RecommendationResponseMod
     intake = request.to_domain()
 
     if is_emergency_intake(intake) or not is_supported_category(intake.category_id):
-        return RecommendationResponseModel.from_domain(retrieve_matches(intake))
+        pipeline = run_recommendation_pipeline(intake)
+        return RecommendationResponseModel.from_domain(
+            pipeline.retrieval,
+            intake=intake,
+            presentation=pipeline.presentation,
+        )
 
     try:
         runtime = get_retrieval_runtime()
@@ -30,11 +35,15 @@ def recommendations(request: RecommendationRequest) -> RecommendationResponseMod
             error_code="retrieval_runtime_unavailable",
             error_type=type(exc).__name__,
         )
-        return RecommendationResponseModel.from_domain(response)
+        return RecommendationResponseModel.from_domain(response, intake=intake)
 
-    result = retrieve_matches(
+    pipeline = run_recommendation_pipeline(
         intake,
         collection=runtime.collection,
         embedding_encoder=runtime.embedding_encoder,
     )
-    return RecommendationResponseModel.from_domain(result)
+    return RecommendationResponseModel.from_domain(
+        pipeline.retrieval,
+        intake=intake,
+        presentation=pipeline.presentation,
+    )

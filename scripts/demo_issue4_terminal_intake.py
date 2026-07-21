@@ -18,7 +18,9 @@ from mcgill_care_compass.explanations import (  # noqa: E402
     chunk_debug_metadata,
     format_retrieval_response,
 )
-from mcgill_care_compass.llm_response import generate_llm_response  # noqa: E402
+from mcgill_care_compass.recommendation_pipeline import (  # noqa: E402
+    run_recommendation_pipeline,
+)
 from mcgill_care_compass.retrieval import (  # noqa: E402
     CATEGORY_LABELS,
     JURISDICTION_LABELS,
@@ -246,31 +248,34 @@ def run_demo(args: argparse.Namespace) -> None:
     intake = build_intake_from_terminal()
     timings["intake"] = time.perf_counter() - intake_start
     retrieval_start = time.perf_counter()
+    llm_result = None
+    formatted = ""
     try:
-        response = retrieve_matches(
-            intake,
-            limit=args.evidence_limit if args.llm else args.limit,
-            retrieval_limit=args.retrieval_limit,
-            rebuild_if_missing=args.rebuild_vector_store,
-        )
+        if args.llm:
+            pipeline = run_recommendation_pipeline(
+                intake,
+                model=args.model,
+                retrieval_limit=args.retrieval_limit,
+                evidence_limit=args.evidence_limit,
+                max_options=args.max_options,
+                rebuild_if_missing=args.rebuild_vector_store,
+                collect_timings=args.debug_timing,
+            )
+            response = pipeline.retrieval
+            llm_result = pipeline.presentation
+            formatted = llm_result.markdown
+        else:
+            response = retrieve_matches(
+                intake,
+                limit=args.limit,
+                retrieval_limit=args.retrieval_limit,
+                rebuild_if_missing=args.rebuild_vector_store,
+            )
     except VectorStoreUnavailable as exc:
         raise SystemExit(str(exc)) from exc
     timings["retrieval"] = time.perf_counter() - retrieval_start
-
-    llm_result = None
-    formatted = ""
-    if args.llm:
-        llm_result = generate_llm_response(
-            intake,
-            response,
-            model=args.model,
-            evidence_limit=args.evidence_limit,
-            max_options=args.max_options,
-            collect_timings=args.debug_timing,
-        )
-        formatted = llm_result.markdown
-        if args.debug_timing:
-            timings.update({f"llm.{key}": value for key, value in llm_result.timings.items()})
+    if args.debug_timing and llm_result is not None:
+        timings.update({f"llm.{key}": value for key, value in llm_result.timings.items()})
 
     display_start = time.perf_counter()
     print("\n" + "=" * 72)

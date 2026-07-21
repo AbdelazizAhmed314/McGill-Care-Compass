@@ -70,6 +70,24 @@ single-origin deployment also reduces production CORS and operational
 complexity.
 
 Impact: Streamlit is no longer the active interface direction. The public v1
-intake is structured-only, expensive retrieval resources are reused per
+intake is structured-first with one optional short, non-persistent query; expensive retrieval resources are reused per
 process, Chroma is built from committed chunks during image construction, and
 all clients must preserve emergency-first routing and safe error responses.
+
+
+## 2026-07-21 - Share one ranked evidence and LLM response pipeline
+
+Decision: the CLI LLM path and FastAPI recommendation endpoint use one pipeline
+with the same defaults: retrieve 21 vector candidates, retain up to 15 approved
+chunks, group by normalized canonical page/service into up to 3 distinct
+options, use up to 5 chunks per option, and validate all model-cited source IDs
+and URLs.
+
+Reason: a retrieved chunk is evidence, not a standalone service recommendation.
+Grouping evidence before response writing prevents multiple cards for the same
+page and keeps CLI and web ranking, evidence use, and user-facing wording
+aligned.
+
+Impact: React renders the validated structured response as cards while the CLI
+renders the same response as Markdown. If the model is unavailable, both clients
+fall back to the same distinct grouped options.

@@ -19,6 +19,7 @@ def make_evidence(
     confidence: str = "high",
     warnings: tuple[str, ...] = (),
     source_group: str = "mcgill",
+    canonical_url: str = "",
 ) -> RetrievedEvidence:
     raw_chunk = {
         "chunk_id": chunk_id,
@@ -26,7 +27,7 @@ def make_evidence(
         "category_id": category_id,
         "heading_path": heading_path,
         "chunk_text": text,
-        "canonical_url": f"https://www.mcgill.ca/{chunk_id}",
+        "canonical_url": canonical_url or f"https://www.mcgill.ca/{chunk_id}",
         "info_type_tags": tags,
         "source_group": source_group,
         "source_publisher": "McGill University",
@@ -71,6 +72,7 @@ def test_build_evidence_pack_caps_chunks_options_and_chunks_per_option() -> None
             f"chunk-{index}",
             f"Call the official office for insurance coverage contact step {index}.",
             heading_path=f"Route {index // 5} > Contact",
+            canonical_url=f"https://www.mcgill.ca/route-{index // 5}",
         )
         for index in range(20)
     ]
@@ -95,6 +97,7 @@ def test_not_all_approved_chunks_must_be_used() -> None:
             f"chunk-{index}",
             f"Call the official office for insurance coverage contact step {index}.",
             heading_path=f"Route {index // 5} > Contact",
+            canonical_url=f"https://www.mcgill.ca/route-{index // 5}",
         )
         for index in range(16)
     ]
@@ -146,6 +149,7 @@ def test_conflicting_equal_authority_evidence_is_passed_to_llm_pack() -> None:
     second = make_evidence(
         "fee-2",
         "The insurance fee is $250 and students may submit the form.",
+        canonical_url=first.canonical_url,
     )
 
     pack = build_evidence_pack(
@@ -160,6 +164,86 @@ def test_conflicting_equal_authority_evidence_is_passed_to_llm_pack() -> None:
         reason.startswith("conflicting_requirement_status")
         for reason in pack.options[0].conflict_reasons
     )
+
+
+
+def test_groups_same_page_chunks_into_one_distinct_option() -> None:
+    intake = RetrievalIntake(category_id="insurance", need_type="contact")
+    first = make_evidence(
+        "same-1",
+        "Contact the official insurance office for help.",
+        canonical_url="https://www.mcgill.ca/insurance/contact/?utm_source=test#office",
+    )
+    second = make_evidence(
+        "same-2",
+        "Email the official insurance office using the listed route.",
+        canonical_url="https://www.mcgill.ca/insurance/contact",
+    )
+    other = make_evidence(
+        "other",
+        "Visit the official insurer page for another contact route.",
+        canonical_url="https://www.mcgill.ca/insurance/other",
+    )
+
+    pack = build_evidence_pack(intake, make_response([first, second, other]))
+
+    assert len(pack.options) == 2
+    assert [chunk.chunk_id for chunk in pack.options[0].chunks] == ["same-1", "same-2"]
+    option_urls = {
+        option.chunks[0].canonical_url.split("?", 1)[0].rstrip("/")
+        for option in pack.options
+    }
+    assert len(option_urls) == 2
+
+
+def test_llm_rejects_official_url_not_backed_by_cited_chunk() -> None:
+    evidence = [
+        make_evidence(
+            "good-url",
+            "Contact the official insurance office for help.",
+            canonical_url="https://www.mcgill.ca/insurance/contact",
+        )
+    ]
+    output = {
+        "status": "matched",
+        "opening_summary": "Start with the official insurance contact.",
+        "primary_recommendation": {
+            "title": "Insurance contact",
+            "why_this_matched": "It matches the contact request.",
+            "recommended_next_step": "Use the official contact route.",
+            "source_ids_used": ["good-url"],
+        },
+        "backup_options": [],
+        "limitations": [],
+        "conflict_disclosure": {
+            "has_conflict": False,
+            "what_differs": "",
+            "why_this_route_was_chosen": "",
+            "how_to_double_check": "",
+            "source_ids_considered": [],
+        },
+        "official_sources": [
+            {
+                "label": "Invented route",
+                "url": "https://example.com/invented",
+                "source_id": "good-url",
+            }
+        ],
+    }
+    client = SimpleNamespace(
+        responses=SimpleNamespace(
+            create=lambda **kwargs: SimpleNamespace(output_text=json.dumps(output))
+        )
+    )
+
+    result = generate_llm_response(
+        RetrievalIntake(category_id="insurance", need_type="contact"),
+        make_response(evidence),
+        client=client,
+    )
+
+    assert not result.used_llm
+    assert "unavailable URL" in result.fallback_reason
 
 def test_emergency_and_low_confidence_skip_llm() -> None:
     evidence = [make_evidence("good", "Call the official insurance office for contact help.")]

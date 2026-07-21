@@ -11,7 +11,15 @@ import mcgill_care_compass.api.routes_maintenance as maintenance_routes
 import mcgill_care_compass.api.routes_recommendations as recommendation_routes
 from mcgill_care_compass.api.app import create_app
 from mcgill_care_compass.health import HealthCheckResult, HealthReport
-from mcgill_care_compass.retrieval import RetrievalResponse, RetrievedEvidence
+from mcgill_care_compass.llm_response import (
+    LlmResponseResult,
+    build_evidence_pack,
+)
+from mcgill_care_compass.retrieval import (
+    RetrievalIntake,
+    RetrievalResponse,
+    RetrievedEvidence,
+)
 
 app_module = import_module("mcgill_care_compass.api.app")
 client = TestClient(create_app())
@@ -115,7 +123,7 @@ def test_matched_result_uses_public_evidence_shape(monkeypatch) -> None:
         chunk_id="chunk-1",
         vector_id="chunk-1",
         title="Housing support",
-        chunk_text="Use the official housing support page to review available starting points.",
+        chunk_text="Visit the official housing support page to review available starting points.",
         canonical_url="https://www.mcgill.ca/example",
         source_publisher="McGill University",
         retrieved_at="2026-07-01",
@@ -125,7 +133,21 @@ def test_matched_result_uses_public_evidence_shape(monkeypatch) -> None:
         distance=0.1,
         match_reason="Matched housing.",
         limitation="Confirm with the official source.",
-        raw_chunk={},
+        raw_chunk={
+            "chunk_id": "chunk-1",
+            "vector_id": "chunk-1",
+            "category_id": "housing",
+            "heading_path": "Housing support",
+            "chunk_text": (
+                "Visit the official housing support page to review available "
+                "starting points."
+            ),
+            "canonical_url": "https://www.mcgill.ca/example",
+            "info_type_tags": "general_navigation",
+            "source_publisher": "McGill University",
+            "source_group": "mcgill",
+            "authority_level": "official_university",
+        },
         quality_warnings=(),
     )
     domain_response = RetrievalResponse(
@@ -141,10 +163,53 @@ def test_matched_result_uses_public_evidence_shape(monkeypatch) -> None:
         "get_retrieval_runtime",
         lambda: SimpleNamespace(collection=object(), embedding_encoder=object()),
     )
+    intake = RetrievalIntake(
+        category_id="housing",
+        need_type="general_navigation",
+        student_type="international_student",
+        jurisdiction="mcgill",
+    )
+    pack = build_evidence_pack(intake, domain_response)
+    llm_output = {
+        "status": "matched",
+        "opening_summary": "Start with the official housing support route.",
+        "primary_recommendation": {
+            "title": "Housing support route",
+            "why_this_matched": "It directly addresses the selected housing need.",
+            "recommended_next_step": (
+                "Open the housing support page and review its listed starting points."
+            ),
+            "source_ids_used": ["chunk-1"],
+        },
+        "backup_options": [],
+        "limitations": ["Confirm current details with the responsible office."],
+        "conflict_disclosure": {
+            "has_conflict": False,
+            "what_differs": "",
+            "why_this_route_was_chosen": "",
+            "how_to_double_check": "",
+            "source_ids_considered": [],
+        },
+        "official_sources": [
+            {
+                "label": "Housing support",
+                "url": "https://www.mcgill.ca/example",
+                "source_id": "chunk-1",
+            }
+        ],
+    }
     monkeypatch.setattr(
         recommendation_routes,
-        "retrieve_matches",
-        lambda *_args, **_kwargs: domain_response,
+        "run_recommendation_pipeline",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            retrieval=domain_response,
+            presentation=LlmResponseResult(
+                markdown="",
+                used_llm=True,
+                raw_output=llm_output,
+                evidence_pack=pack,
+            ),
+        ),
     )
 
     response = client.post("/api/v1/recommendations", json=valid_request())
@@ -152,6 +217,16 @@ def test_matched_result_uses_public_evidence_shape(monkeypatch) -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["primary_result"]["canonical_url"] == "https://www.mcgill.ca/example"
+    assert payload["primary_result"]["recommended_next_step"] == (
+        "Open the housing support page and review its listed starting points."
+    )
+    assert payload["primary_result"]["source_ids_used"] == ["chunk-1"]
+    assert payload["generation_mode"] == "llm"
+    assert payload["primary_result"]["developer_details"]["chunk_id"] == "chunk-1"
+    assert payload["intake_summary"][0] == {
+        "label": "Main need",
+        "value": "Housing and basic needs",
+    }
     assert "query" not in payload
     assert "raw_chunk" not in payload["primary_result"]
 
@@ -165,6 +240,56 @@ def test_request_rejects_extra_and_invalid_fields() -> None:
     assert response.status_code == 422
     assert "do-not-accept" not in response.text
 
+
+
+
+def test_optional_query_is_used_but_not_echoed(monkeypatch) -> None:
+    captured: list[str] = []
+    domain_response = RetrievalResponse(
+        status="no_match",
+        query="not exposed",
+        matched_filters={"category_id": "housing"},
+        relaxed_level=0,
+        primary_result=None,
+        backup_results=(),
+        message="No source-grounded match was found.",
+    )
+    monkeypatch.setattr(
+        recommendation_routes,
+        "get_retrieval_runtime",
+        lambda: SimpleNamespace(collection=object(), embedding_encoder=object()),
+    )
+
+    def capture(intake, **_kwargs):
+        captured.append(intake.query)
+        return SimpleNamespace(
+            retrieval=domain_response,
+            presentation=LlmResponseResult(markdown="", used_llm=False),
+        )
+
+    monkeypatch.setattr(recommendation_routes, "run_recommendation_pipeline", capture)
+
+    response = client.post(
+        "/api/v1/recommendations",
+        json=valid_request(query="Where can I learn about tenant rights?"),
+    )
+
+    assert response.status_code == 200
+    assert captured == ["Where can I learn about tenant rights?"]
+    assert "Where can I learn about tenant rights?" not in response.text
+    assert {"label": "Optional short question", "value": "Provided (not stored)"} in (
+        response.json()["intake_summary"]
+    )
+
+
+def test_optional_query_rejects_sensitive_identifiers() -> None:
+    response = client.post(
+        "/api/v1/recommendations",
+        json=valid_request(query="My student ID is 123456789"),
+    )
+
+    assert response.status_code == 422
+    assert "123456789" not in response.text
 
 def test_maintenance_report_is_read_only(monkeypatch, tmp_path) -> None:
     report_path = tmp_path / "maintenance.json"

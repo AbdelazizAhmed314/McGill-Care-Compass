@@ -8,7 +8,7 @@ RUN npm run build
 
 FROM ghcr.io/astral-sh/uv:0.10.2 AS uv-bin
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim AS app-runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -25,8 +25,13 @@ COPY scripts/ ./scripts/
 COPY data/ ./data/
 COPY --from=web-build /app/web/dist ./web/dist/
 
-RUN uv sync --frozen --no-dev && \
-    .venv/bin/python scripts/prepare_runtime.py
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+FROM app-runtime AS runtime
+
+RUN chmod -R u+w data/silver && \
+    .venv/bin/python scripts/prepare_runtime.py --rebuild-vector-store
 
 EXPOSE 8000
 

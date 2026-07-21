@@ -8,6 +8,8 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ""
 
+type ValidationDetail = { msg?: string }
+
 async function request<T>(
   path: string,
   init?: RequestInit,
@@ -22,7 +24,12 @@ async function request<T>(
   })
 
   if (!response.ok && !acceptNonOk) {
-    throw new Error(`Request failed with status ${response.status}`)
+    let message = `Request failed with status ${response.status}`
+    if (response.status === 422) {
+      const body = (await response.json().catch(() => null)) as { detail?: ValidationDetail[] } | null
+      message = body?.detail?.[0]?.msg?.replace(/^Value error, /, "") ?? message
+    }
+    throw new Error(message)
   }
   return (await response.json()) as T
 }

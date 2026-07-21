@@ -171,8 +171,12 @@ function NavigatorPage() {
     setError("")
     try {
       setResult(await api.recommendations(request))
-    } catch {
-      setError("The navigator could not complete this request. Please try again later.")
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The navigator could not complete this request. Please try again later.",
+      )
     } finally {
       setBusy(false)
     }

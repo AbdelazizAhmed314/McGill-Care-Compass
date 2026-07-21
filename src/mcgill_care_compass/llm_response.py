@@ -10,12 +10,17 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from mcgill_care_compass.explanations import format_retrieval_response
 from mcgill_care_compass.rag_ranking import source_priority_rank
 from mcgill_care_compass.retrieval import RetrievalIntake, RetrievalResponse, RetrievedEvidence
 
 DEFAULT_LLM_MODEL = "gpt-5.6-luna"
+DEFAULT_RETRIEVAL_LIMIT = 21
+DEFAULT_EVIDENCE_LIMIT = 15
+DEFAULT_MAX_OPTIONS = 3
+DEFAULT_MAX_CHUNKS_PER_OPTION = 5
 SAFE_LLM_STATUSES = {"matched"}
 FALLBACK_STATUSES = {"emergency", "unsupported", "no_match", "low_confidence"}
 MATERIAL_INFO_TAGS = {
@@ -89,6 +94,24 @@ class EvidencePack:
             if chunk.chunk_id
         }
 
+    @property
+    def source_urls(self) -> dict[str, str]:
+        return {
+            chunk.chunk_id: normalize_canonical_url(chunk.canonical_url)
+            for option in self.options
+            for chunk in option.chunks
+            if chunk.chunk_id
+        }
+
+    @property
+    def chunk_option_ids(self) -> dict[str, str]:
+        return {
+            chunk.chunk_id: option.option_id
+            for option in self.options
+            for chunk in option.chunks
+            if chunk.chunk_id
+        }
+
 
 @dataclass(frozen=True)
 class LlmResponseResult:
@@ -100,6 +123,7 @@ class LlmResponseResult:
     model: str = DEFAULT_LLM_MODEL
     raw_output: Mapping[str, Any] = field(default_factory=dict)
     timings: Mapping[str, float] = field(default_factory=dict)
+    evidence_pack: EvidencePack | None = None
 
 
 LLM_RESPONSE_SCHEMA: dict[str, Any] = {
@@ -190,9 +214,9 @@ def build_evidence_pack(
     intake: RetrievalIntake,
     response: RetrievalResponse,
     *,
-    evidence_limit: int = 15,
-    max_options: int = 3,
-    max_chunks_per_option: int = 5,
+    evidence_limit: int = DEFAULT_EVIDENCE_LIMIT,
+    max_options: int = DEFAULT_MAX_OPTIONS,
+    max_chunks_per_option: int = DEFAULT_MAX_CHUNKS_PER_OPTION,
 ) -> EvidencePack:
     """Group approved retrieval evidence into recommendation options for the LLM."""
 
@@ -309,9 +333,9 @@ def generate_llm_response(
     *,
     client: Any | None = None,
     model: str | None = None,
-    evidence_limit: int = 15,
-    max_options: int = 3,
-    max_chunks_per_option: int = 5,
+    evidence_limit: int = DEFAULT_EVIDENCE_LIMIT,
+    max_options: int = DEFAULT_MAX_OPTIONS,
+    max_chunks_per_option: int = DEFAULT_MAX_CHUNKS_PER_OPTION,
     collect_timings: bool = False,
 ) -> LlmResponseResult:
     """Generate a structured LLM answer or return deterministic fallback Markdown."""
@@ -326,7 +350,11 @@ def generate_llm_response(
         max_chunks_per_option=max_chunks_per_option,
     )
     timings["evidence_pack"] = time.perf_counter() - pack_start
-    fallback_response = _limited_retrieval_response(response, max_options=max_options)
+    fallback_response = _limited_retrieval_response(
+        response,
+        pack=pack,
+        max_options=max_options,
+    )
     fallback_format_start = time.perf_counter()
     fallback = format_retrieval_response(fallback_response, intake=intake)
     timings["fallback_format"] = time.perf_counter() - fallback_format_start
@@ -339,6 +367,7 @@ def generate_llm_response(
             fallback_reason=pack.fallback_reason or f"Evidence pack status: {pack.status}",
             model=selected_model,
             timings=timings if collect_timings else {},
+            evidence_pack=pack,
         )
 
     if client is None and not api_key:
@@ -348,6 +377,7 @@ def generate_llm_response(
             fallback_reason="OPENAI_API_KEY is not set.",
             model=selected_model,
             timings=timings if collect_timings else {},
+            evidence_pack=pack,
         )
 
     try:
@@ -364,7 +394,12 @@ def generate_llm_response(
         )
         timings["openai_call"] = time.perf_counter() - openai_start
         output = _parse_response_output(raw)
-        validate_llm_sources(output, pack.allowed_chunk_ids)
+        validate_llm_sources(
+            output,
+            pack.allowed_chunk_ids,
+            allowed_source_urls=pack.source_urls,
+            allowed_option_ids=pack.chunk_option_ids,
+        )
         if output.get("status") != "matched":
             return LlmResponseResult(
                 markdown=fallback,
@@ -373,6 +408,7 @@ def generate_llm_response(
                 model=selected_model,
                 raw_output=output,
                 timings=timings if collect_timings else {},
+                evidence_pack=pack,
             )
         response_format_start = time.perf_counter()
         markdown = format_llm_response(output)
@@ -383,6 +419,7 @@ def generate_llm_response(
             model=selected_model,
             raw_output=output,
             timings=timings if collect_timings else {},
+            evidence_pack=pack,
         )
     except Exception as exc:  # pragma: no cover - exact SDK exceptions vary.
         return LlmResponseResult(
@@ -391,6 +428,7 @@ def generate_llm_response(
             fallback_reason=f"LLM response unavailable: {exc}",
             model=selected_model,
             timings=timings if collect_timings else {},
+            evidence_pack=pack,
         )
 
 
@@ -398,18 +436,29 @@ def generate_llm_response(
 def _limited_retrieval_response(
     response: RetrievalResponse,
     *,
+    pack: EvidencePack,
     max_options: int,
 ) -> RetrievalResponse:
-    """Limit deterministic fallback display without changing retrieval evidence used by LLM."""
+    """Render the same distinct grouped options when the LLM is unavailable."""
 
-    backup_limit = max(max_options - 1, 0) if response.primary_result else max(max_options, 0)
+    grouped = [
+        option.chunks[0]
+        for option in pack.options[: max(max_options, 0)]
+        if option.chunks
+    ]
+    primary = grouped[0] if grouped else response.primary_result
+    if grouped:
+        backups = tuple(grouped[1:])
+    else:
+        backup_limit = max(max_options - 1, 0) if primary else max(max_options, 0)
+        backups = tuple(response.backup_results[:backup_limit])
     return RetrievalResponse(
         status=response.status,
         query=response.query,
         matched_filters=response.matched_filters,
         relaxed_level=response.relaxed_level,
-        primary_result=response.primary_result,
-        backup_results=tuple(response.backup_results[:backup_limit]),
+        primary_result=primary,
+        backup_results=backups,
         emergency_resources=response.emergency_resources,
         safety_notice=response.safety_notice,
         limitation_notice=response.limitation_notice,
@@ -467,8 +516,14 @@ def _clean_env_value(value: str | None) -> str:
         return ""
     return cleaned
 
-def validate_llm_sources(output: Mapping[str, Any], allowed_chunk_ids: set[str]) -> None:
-    """Raise ValueError if the model cites a source ID outside the evidence pack."""
+def validate_llm_sources(
+    output: Mapping[str, Any],
+    allowed_chunk_ids: set[str],
+    *,
+    allowed_source_urls: Mapping[str, str] | None = None,
+    allowed_option_ids: Mapping[str, str] | None = None,
+) -> None:
+    """Reject citations and official URLs outside the approved evidence pack."""
 
     cited: set[str] = set()
     for key in ("primary_recommendation",):
@@ -484,6 +539,45 @@ def validate_llm_sources(output: Mapping[str, Any], allowed_chunk_ids: set[str])
     unknown = cited - allowed_chunk_ids
     if unknown:
         raise ValueError(f"LLM cited unavailable source IDs: {', '.join(sorted(unknown))}")
+
+    if allowed_option_ids is not None and output.get("status") == "matched":
+        used_options: set[str] = set()
+        recommendations = [
+            output.get("primary_recommendation", {}),
+            *(output.get("backup_options", []) or []),
+        ]
+        for recommendation in recommendations:
+            source_ids = [
+                str(item)
+                for item in recommendation.get("source_ids_used", []) or []
+            ]
+            option_ids = {
+                allowed_option_ids[item]
+                for item in source_ids
+                if item in allowed_option_ids
+            }
+            if not source_ids or len(option_ids) != 1:
+                raise ValueError(
+                    "Each recommendation must cite evidence from exactly one option."
+                )
+            option_id = next(iter(option_ids))
+            if option_id in used_options:
+                raise ValueError("LLM returned duplicate recommendation options.")
+            used_options.add(option_id)
+
+    if allowed_source_urls is None:
+        return
+    seen_urls: set[str] = set()
+    for source in output.get("official_sources", []) or []:
+        source_id = str(source.get("source_id", ""))
+        actual_url = normalize_canonical_url(str(source.get("url", "")))
+        expected_url = allowed_source_urls.get(source_id, "")
+        if expected_url and actual_url != expected_url:
+            raise ValueError(f"LLM cited an unavailable URL for source ID {source_id}.")
+        if actual_url in seen_urls:
+            raise ValueError("LLM returned duplicate official source pages.")
+        if actual_url:
+            seen_urls.add(actual_url)
 
 
 def format_llm_response(output: Mapping[str, Any]) -> str:
@@ -548,18 +642,48 @@ def _group_evidence(chunks: Sequence[RetrievedEvidence]) -> list[list[RetrievedE
     groups: dict[str, list[RetrievedEvidence]] = defaultdict(list)
     for chunk in chunks:
         groups[_group_key(chunk)].append(chunk)
-    return sorted(groups.values(), key=lambda group: _best_rank(group[0]))
+    ranked_groups = [
+        sorted(group, key=_best_rank)
+        for group in groups.values()
+    ]
+    return sorted(ranked_groups, key=lambda group: _best_rank(group[0]))
 
 
 def _group_key(evidence: RetrievedEvidence) -> str:
     chunk = evidence.raw_chunk
     category = _field(chunk, "category_id")
+    canonical_url = normalize_canonical_url(evidence.canonical_url)
+    if canonical_url:
+        return f"{category}:url:{canonical_url}"
     title = _option_title(evidence).casefold()
     if " > " in title:
         title = title.split(" > ", 1)[0]
-    if not title:
-        title = _source_family(_field(chunk, "canonical_url"))
-    return f"{category}:{title}"
+    return f"{category}:title:{title or 'official-starting-point'}"
+
+
+def normalize_canonical_url(url: str) -> str:
+    """Return a stable page key while preserving meaningful query parameters."""
+
+    value = str(url or "").strip()
+    if not value:
+        return ""
+    parsed = urlsplit(value)
+    filtered_query = [
+        (key, item)
+        for key, item in parse_qsl(parsed.query, keep_blank_values=True)
+        if not key.casefold().startswith("utm_")
+        and key.casefold() not in {"fbclid", "gclid"}
+    ]
+    path = parsed.path.rstrip("/") or "/"
+    return urlunsplit(
+        (
+            parsed.scheme.casefold(),
+            parsed.netloc.casefold(),
+            path,
+            urlencode(filtered_query),
+            "",
+        )
+    )
 
 
 def _option_title(evidence: RetrievedEvidence) -> str:
@@ -629,7 +753,9 @@ def _build_messages(intake: RetrievalIntake, pack: EvidencePack) -> list[dict[st
             "If chunks appear to conflict, decide whether they describe different routes, "
             "contexts, offices, deadlines, fees, documents, or requirements. Choose the "
             "best-supported route using authority, intake relevance, specificity, and "
-            "non-duplicative corroboration. Disclose what differs and give a human "
+            "non-duplicative corroboration. Return at most one recommendation and one "
+            "official source per provided option; never present chunks from the same "
+            "option as separate backups. Disclose what differs and give a human "
             "verification step from the provided evidence. Return conflicting_evidence "
             "only if no route can be presented without inventing facts."
         ),

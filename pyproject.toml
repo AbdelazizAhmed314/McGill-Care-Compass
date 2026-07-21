@@ -16,6 +16,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "requests>=2.34.2",
     "sentence-transformers>=5.1.0",
+    "torch>=2.12.1",
     "streamlit>=1.36.0",
     "uvicorn[standard]>=0.35.0",
 ]
@@ -33,6 +34,14 @@ dev = [
 
 [tool.uv]
 package = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcgill_care_compass"]

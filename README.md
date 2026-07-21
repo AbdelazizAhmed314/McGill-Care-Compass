@@ -1,6 +1,6 @@
 # McGill Care Compass
 
-McGill Care Compass: Newcomer Service Navigator is a source-grounded service-navigation tool for newcomer students at McGill. It helps students identify relevant McGill, government, healthcare, financial, tax, work, housing, language, and community services through structured intake and transparent matching.
+McGill Care Compass: Newcomer Service Navigator is a source-grounded service-navigation tool for newcomer students at McGill. It helps students identify relevant McGill, government, healthcare, financial, tax, work, housing, language, and community services through structured-first intake, an optional privacy-guarded short question, and transparent matching.
 
 This is a navigator, not an open-ended advice chatbot. Recommendations must be grounded in retrieved source chunks from the governed RAG corpus, include official source links, and avoid medical, legal, immigration, tax, insurance, or financial eligibility decisions.
 
@@ -56,10 +56,11 @@ Run the terminal RAG intake demo without the LLM layer:
 uv run python scripts/demo_issue4_terminal_intake.py
 ```
 
-### Optional LLM/API Mode
+### Shared LLM/API Mode
 
-The terminal demo works without an API key by default. To enable LLM-written
-responses, set this environment variable:
+The CLI `--llm` path and the web `/api/v1/recommendations` endpoint use the same recommendation pipeline: retrieve 21 vector candidates, retain up to 15 approved chunks, group them into up to 3 distinct page/service options, use up to 5 chunks per option, and validate the structured model response. Without an API key, both clients use the same grouped deterministic fallback.
+
+To enable LLM-written responses, set this environment variable:
 
 ```text
 OPENAI_API_KEY=...

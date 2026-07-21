@@ -74,7 +74,7 @@ Use this framing instead:
 ## Data And Privacy Assumptions
 
 - The MVP should not collect sensitive identifiers such as student ID, SIN, passport number, medical record number, or financial account details.
-- The MVP should avoid storing free-text descriptions that may contain sensitive personal information.
+- The optional short question is limited to 300 characters, used ephemerally, screened for common identifier patterns, and must not be logged, echoed in results, or stored by the app. When the configured LLM response layer is enabled, the question and approved evidence are processed by that provider with response storage disabled, and the UI must disclose this processing.
 - Logged events should be minimized and should not include sensitive identifiers.
 - Source chunks must include official URLs, retrieved dates, source-updated dates where available, and source terms metadata.
 

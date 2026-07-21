@@ -21,7 +21,7 @@ The current data layer is a Silver RAG corpus. It is queryable, but `silver_unre
 
 ## Core Journey
 
-A newcomer student opens the navigator, answers a short structured intake, reviews the selected profile, and receives source-grounded starting points. The app should never ask the student to type a private narrative or prove status.
+A newcomer student opens the navigator, answers a short structured-first intake, may add one optional short question, reviews the selected profile, and receives source-grounded starting points. The app should never ask the student to type a private narrative or prove status.
 
 ```mermaid
 flowchart TD
@@ -87,7 +87,7 @@ flowchart TD
 ## Intake Design Rules
 
 - Use pre-written controls: select boxes, radio groups, segmented controls, and checkboxes.
-- Avoid unrestricted free text in the MVP.
+- Allow one optional short question of at most 300 characters; warn against sensitive details, reject common identifier patterns, use it only for the current retrieval request, and never log or echo it in results.
 - Always offer "unsure" where a student may not know an answer.
 - Show only one Stage 2 category questionnaire after the main need maps to a taxonomy.
 - Show Stage 3 only for complex categories where one extra route question materially improves routing.
@@ -110,6 +110,7 @@ These questions appear for every student and define the initial profile and rout
 | `campus_location` | Which location is most relevant? | Downtown; Macdonald; off campus in Montreal; outside Montreal; online/remote; unsure | Campus or location-aware routing. | Address, residence, or eligibility. |
 | `language_preference` | What language would you prefer for support? | English; French; English/French; another language; no preference | Language-aware wording and source display. | Guaranteed service language. |
 | `delivery_preference` | How would you prefer to start? | online; phone; in person; email/web form; no preference; unsure | Access-method ranking and presentation. | Availability or appointment access. |
+| `optional_query` | Is there a short general question you want the navigator to consider? | Optional text, maximum 300 characters. | Adds ephemeral retrieval context after structured filters. | Any eligibility, diagnosis, status, or professional decision. |
 
 ## Stage 2 And Stage 3 Matrix
 
@@ -146,7 +147,7 @@ High-risk categories should default to `needs_official_confirmation` unless a la
 
 ## RAG Profile Contract
 
-The UI stores selected answer IDs and derived filters, not sensitive free text. `need_type` maps to chunk `info_type_tags` and boolean metadata. Legacy `risk_level` is derived by the system and should be treated as topic sensitivity, not actual chunk danger.
+The UI stores selected answer IDs and derived filters. An optional short query is processed ephemerally for the current request, is not logged or echoed in the response, and must not contain sensitive information. `need_type` maps to chunk `info_type_tags` and boolean metadata. Legacy `risk_level` is derived by the system and should be treated as topic sensitivity, not actual chunk danger.
 
 ```json
 {
@@ -208,7 +209,7 @@ The UI stores selected answer IDs and derived filters, not sensitive free text. 
 
 ## Evidence Requirements
 
-Issue 4 should return a top-k evidence set, not a single best vector. Each evidence item should include `chunk_id`, `vector_id`, `chunk_text`, `heading_path`, `canonical_url`, `source_publisher`, `authority_level`, `review_status`, `label_method`, `label_confidence`, `retrieved_at`, matched filters, and ranking score.
+The shared CLI/web pipeline retrieves 21 vector candidates, retains up to 15 approved chunks, groups chunks by normalized canonical page/service into up to 3 distinct recommendation options, and supplies up to 5 chunks per option to the validated response writer. Each evidence item should include `chunk_id`, `vector_id`, `chunk_text`, `heading_path`, `canonical_url`, `source_publisher`, `authority_level`, `review_status`, `label_method`, `label_confidence`, `retrieved_at`, matched filters, and ranking score.
 
 The response layer must fail the evidence set when top chunks are boilerplate-heavy, generic, contradictory, outside the selected category, or too weak to support a concrete next step. User-facing summaries should come from `chunk_text` and safe source metadata. Debug-only fields such as hashes, token counts, `chunk_id`, `vector_id`, `label_method`, and `label_confidence` should stay out of the normal student UI.
 
@@ -267,7 +268,7 @@ Results should be compact, scannable, and source-grounded.
 | Important limit | Topic template plus evidence status. | Required for high-risk and `silver_unreviewed` cases. |
 | Official source | `canonical_url`. | Always visible. |
 | Source details | Publisher, terms, retrieved/source-updated date. | Show in compact expandable table. |
-| Developer evidence | chunk IDs, vector IDs, review status, label method/confidence. | Keep in debug/evaluation views, not normal UI. |
+| Developer evidence | chunk IDs, vector IDs, heading path, review status, label method/confidence, distance, and quality warnings. | Hide by default and reveal only through the explicit Developer mode toggle. |
 
 ### Standard Results Wireframe
 
@@ -389,7 +390,7 @@ Start with this action: [specific source-derived action]. Use the official sourc
 - Users see Stage 1, exactly one Stage 2 category questionnaire, and optional Stage 3 only for `health_care`, `insurance`, `immigration_status`, `finances`, `work_career`, and `tax`.
 - Delivery preference affects ranking and presentation, not eligibility or availability.
 - Applicability/profile fit narrows evidence; it does not decide official outcomes.
-- The MVP avoids sensitive free text and private identifiers.
+- The MVP permits only an optional, short, non-persistent retrieval question and rejects common private-identifier patterns; it does not permit sensitive narratives.
 - The corpus is Silver and `silver_unreviewed`; prototype answers must display limits and source grounding.
 
 **Expected category:** `insurance`
