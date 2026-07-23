@@ -328,7 +328,7 @@ def _build_vector_store_at(
         collection = client.get_or_create_collection(
             name=COLLECTION_NAME, metadata=signature.to_collection_metadata()
         )
-        model = load_embedding_model(embedding_model, _embedding_local_only())
+        model = load_embedding_model(embedding_model, embedding_local_only())
         for start in range(0, len(chunks), batch_size):
             batch = chunks[start : start + batch_size]
             embeddings = model.encode(
@@ -360,7 +360,7 @@ def load_embedding_model(embedding_model: str, local_only: bool):
     return SentenceTransformer(embedding_model, **options)
 
 
-def _embedding_local_only() -> bool:
+def embedding_local_only() -> bool:
     return os.getenv("MCC_EMBEDDING_LOCAL_ONLY", "").casefold() in {"1", "true", "yes"}
 
 
@@ -686,7 +686,7 @@ def retrieve_matches(
 
     try:
         if embedding_encoder is None:
-            embedding_encoder = load_embedding_model(embedding_model, _embedding_local_only())
+            embedding_encoder = load_embedding_model(embedding_model, embedding_local_only())
         query_embedding = embedding_encoder.encode(
             [query],
             normalize_embeddings=True,
@@ -812,7 +812,7 @@ def retrieve_matches_safely(
         if embedding_loader is not None:
             kwargs["embedding_encoder"] = embedding_loader(
                 kwargs.get("embedding_model", EMBEDDING_MODEL),
-                _embedding_local_only(),
+                embedding_local_only(),
             )
         return (retriever or retrieve_matches)(intake, **kwargs)
     except Exception as exc:

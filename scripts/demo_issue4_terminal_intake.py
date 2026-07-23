@@ -218,6 +218,16 @@ def print_evidence(label: str, evidence) -> None:
     print(f"- Evidence preview: {preview}")
 
 
+def query_display_status(intake_query: str, response_query: str) -> str:
+    """Describe optional-query handling without echoing student-authored text."""
+
+    if response_query == "[redacted]":
+        return "Redacted by safety guardrail"
+    if intake_query.strip():
+        return "Provided (not displayed)"
+    return "Not provided"
+
+
 def _print_debug_timings(timings: dict[str, float]) -> None:
     """Print timing diagnostics to stderr so recommendation output stays clean."""
 
@@ -278,7 +288,7 @@ def run_demo(args: argparse.Namespace) -> None:
     display_start = time.perf_counter()
     print("\n" + "=" * 72)
     print(f"Status: {response.status}")
-    print(f"Query: {response.query}")
+    print(f"Optional query: {query_display_status(intake.query, response.query)}")
     print(f"Matched filters: {response.matched_filters or 'none'}")
     print(f"Relaxed filter level: {response.relaxed_level}")
     if response.safety_notice:

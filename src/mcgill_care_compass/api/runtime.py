@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
-from mcgill_care_compass.retrieval import EMBEDDING_MODEL, get_chroma_collection
+from mcgill_care_compass.retrieval import (
+    EMBEDDING_MODEL,
+    embedding_local_only,
+    get_chroma_collection,
+    load_embedding_model,
+)
 
 
 @dataclass(frozen=True)
@@ -21,11 +26,9 @@ class RetrievalRuntime:
 def get_retrieval_runtime() -> RetrievalRuntime:
     """Load Chroma and the embedding model once for this application process."""
 
-    from sentence_transformers import SentenceTransformer
-
     return RetrievalRuntime(
         collection=get_chroma_collection(),
-        embedding_encoder=SentenceTransformer(EMBEDDING_MODEL),
+        embedding_encoder=load_embedding_model(EMBEDDING_MODEL, embedding_local_only()),
     )
 
 

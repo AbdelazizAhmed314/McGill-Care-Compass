@@ -6,6 +6,7 @@ from collections.abc import Iterable, Mapping
 
 from mcgill_care_compass.guardrails import LIMITATION_TEMPLATES
 from mcgill_care_compass.intake_contract import format_intake_summary
+from mcgill_care_compass.presentation import recommended_next_step
 
 CATEGORY_LIMITATIONS = {
     "health_care": LIMITATION_TEMPLATES["health_care"],
@@ -185,20 +186,7 @@ def _chunk_starting_point(chunk: Mapping[str, object]) -> str:
 
 
 def _chunk_next_step(chunk: Mapping[str, object]) -> str:
-    info_tags = _chunk_field(chunk, "info_type_tags")
-    if "emergency_info" in info_tags:
-        return "Use the official emergency or crisis instructions shown in the source first."
-    if "booking_steps" in info_tags:
-        return "Use the official source section for booking, application, or access steps."
-    if "required_docs" in info_tags:
-        return "Use the official source section to confirm required documents or forms."
-    if "costs_coverage" in info_tags:
-        return "Use the official source section to confirm costs, coverage, or payment details."
-    if "eligibility" in info_tags:
-        return "Use the official source section to confirm any eligibility criteria that may apply."
-    if "contact" in info_tags:
-        return "Use the official source section for the contact route or office listed."
-    return DEFAULT_CHUNK_NEXT_STEP
+    return recommended_next_step(chunk)
 
 
 def _chunk_source_details(chunk: Mapping[str, object]) -> str:

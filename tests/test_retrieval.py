@@ -193,7 +193,10 @@ def test_retrieved_evidence_can_feed_mustafa_formatter() -> None:
     assert evidence.raw_chunk["chunk_text"] == candidate["document"]
     assert "Service: International Health Insurance > Coverage" in explanation
     assert "Why this matched: Matched selected context" in explanation
-    assert "Suggested next step: Use the official source section to confirm costs" in explanation
+    assert (
+        "Suggested next step: Use the official source to confirm costs, coverage, or payment "
+        "details in the section" in explanation
+    )
     assert "Official source: https://www.mcgill.ca/internationalstudents/health" in explanation
 
 

@@ -17,6 +17,20 @@ maintenance_cli = load_script(
     "maintenance_cli", ROOT / "scripts" / "data" / "generate_maintenance_report.py"
 )
 evaluation_cli = load_script("evaluation_cli", ROOT / "scripts" / "evaluate_recommendations.py")
+terminal_cli = load_script(
+    "terminal_cli", ROOT / "scripts" / "demo_issue4_terminal_intake.py"
+)
+
+
+def test_terminal_query_status_never_echoes_free_text() -> None:
+    query = "student-authored context"
+
+    assert terminal_cli.query_display_status(query, query) == "Provided (not displayed)"
+    assert (
+        terminal_cli.query_display_status(query, "[redacted]")
+        == "Redacted by safety guardrail"
+    )
+    assert terminal_cli.query_display_status("", "structured intake") == "Not provided"
 
 
 def test_maintenance_strict_mode_returns_one_when_attention_is_required(

@@ -40,7 +40,10 @@ def test_format_retrieved_chunk_recommendation_uses_rag_chunk_contract() -> None
 
     assert "Service: International Health Insurance > Coverage" in explanation
     assert "Why this matched: Matched insurance and costs/coverage filters." in explanation
-    assert "Suggested next step: Use the official source section to confirm costs" in explanation
+    assert (
+        "Suggested next step: Use the official source to confirm costs, coverage, or payment "
+        "details in the section" in explanation
+    )
     assert "Official source: https://www.mcgill.ca/internationalstudents/health" in explanation
     assert "Publisher: McGill University" in explanation
     assert "Source evidence: Review the International Health Insurance page" in explanation
@@ -64,7 +67,10 @@ def test_format_retrieved_chunk_recommendation_falls_back_without_action_tags() 
     )
 
     assert "Service: Finding a resource" in explanation
-    assert "Suggested next step: Review the official source section" in explanation
+    assert (
+        "Suggested next step: Open the official source and follow the guidance in the section"
+        in explanation
+    )
     assert "Terms: allows_non_commercial_or_link_and_paraphrase" in explanation
     assert "cannot diagnose symptoms" in explanation
 

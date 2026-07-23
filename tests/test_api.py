@@ -22,6 +22,7 @@ from mcgill_care_compass.retrieval import (
 )
 
 app_module = import_module("mcgill_care_compass.api.app")
+runtime_module = import_module("mcgill_care_compass.api.runtime")
 client = TestClient(create_app())
 
 
@@ -299,6 +300,28 @@ def test_maintenance_report_is_read_only(monkeypatch, tmp_path) -> None:
     assert response.status_code == 200
     assert response.json()["counts"]["chunks"] == 3
     assert client.post("/api/v1/maintenance/report").status_code == 405
+
+
+def test_web_runtime_reuses_shared_local_embedding_loader(monkeypatch) -> None:
+    collection = object()
+    encoder = object()
+    calls: list[tuple[str, bool]] = []
+    runtime_module.clear_retrieval_runtime()
+    monkeypatch.setenv("MCC_EMBEDDING_LOCAL_ONLY", "1")
+    monkeypatch.setattr(runtime_module, "get_chroma_collection", lambda: collection)
+
+    def load_model(model: str, local_only: bool):
+        calls.append((model, local_only))
+        return encoder
+
+    monkeypatch.setattr(runtime_module, "load_embedding_model", load_model)
+
+    runtime = runtime_module.get_retrieval_runtime()
+
+    assert runtime.collection is collection
+    assert runtime.embedding_encoder is encoder
+    assert calls == [(runtime_module.EMBEDDING_MODEL, True)]
+    runtime_module.clear_retrieval_runtime()
 
 
 def test_production_lifespan_preloads_retrieval_runtime(monkeypatch) -> None:
