@@ -284,64 +284,290 @@ def _page_styles() -> None:
     st.markdown(
         """
         <style>
+        :root {
+            --mcgill-red: #ed1b2f;
+            --mcgill-red-dark: #c8102e;
+            --ink: #111111;
+            --muted: #5f6368;
+            --line: #d8d8d8;
+            --paper: #ffffff;
+            --warm-grey: #f5f4f1;
+        }
         .stApp {
-            background:
-                radial-gradient(circle at 100% 0%, rgba(237, 27, 47, 0.08), transparent 30rem),
-                #f7f8fa;
+            background: var(--paper);
+            color: var(--ink);
         }
         .block-container {
-            max-width: 1120px;
-            padding-top: 2rem;
-            padding-bottom: 4rem;
+            max-width: 1240px;
+            padding-top: 1rem;
+            padding-bottom: 5rem;
+        }
+        header[data-testid="stHeader"] {
+            background: rgba(255, 255, 255, 0.96);
+            border-bottom: 1px solid #eeeeee;
+        }
+        section[data-testid="stSidebar"] {
+            background: var(--warm-grey);
+            border-right: 1px solid #dedbd6;
+        }
+        section[data-testid="stSidebar"] h3 {
+            color: var(--ink);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 1.55rem;
+            font-weight: 500;
+        }
+        .mcc-topbar {
+            align-items: stretch;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2.75rem;
+            min-height: 82px;
+        }
+        .mcc-brand {
+            align-items: center;
+            background: var(--mcgill-red);
+            color: white;
+            display: flex;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            letter-spacing: -0.04em;
+            padding: 0.6rem 2rem 0.75rem;
+        }
+        .mcc-product {
+            align-items: center;
+            color: var(--ink);
+            display: flex;
+            font-size: 0.95rem;
+            font-weight: 750;
+            gap: 1.2rem;
+            letter-spacing: 0.01em;
+            padding: 0 0.25rem;
+        }
+        .mcc-language {
+            border: 2px solid var(--ink);
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            padding: 0.35rem 0.5rem;
         }
         .mcc-hero {
-            background: linear-gradient(125deg, #15243a 0%, #263d59 72%, #8f1830 100%);
-            border-radius: 1.25rem;
-            color: white;
-            padding: 2.2rem 2.4rem;
-            margin-bottom: 1.4rem;
-            box-shadow: 0 16px 45px rgba(21, 36, 58, 0.18);
+            align-items: stretch;
+            display: grid;
+            gap: clamp(2rem, 6vw, 5rem);
+            grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+            margin-bottom: 3rem;
+            min-height: 430px;
+        }
+        .mcc-hero-copy {
+            align-self: center;
+            padding: 2.5rem 0;
         }
         .mcc-eyebrow {
-            color: #ffb7bf;
-            font-size: 0.78rem;
+            color: var(--mcgill-red);
+            font-size: 0.8rem;
             font-weight: 800;
-            letter-spacing: 0.12em;
-            margin-bottom: 0.55rem;
+            letter-spacing: 0.14em;
+            margin-bottom: 1.1rem;
             text-transform: uppercase;
         }
         .mcc-hero h1 {
-            color: white;
-            font-size: clamp(2rem, 5vw, 3.4rem);
-            letter-spacing: -0.04em;
-            line-height: 1.02;
+            color: var(--ink);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(3.2rem, 7vw, 6.1rem);
+            font-weight: 400;
+            letter-spacing: -0.055em;
+            line-height: 0.94;
             margin: 0;
         }
-        .mcc-hero p {
-            color: #eef3f8;
-            font-size: 1.05rem;
+        .mcc-hero h1 strong {
+            display: block;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 0.78em;
+            font-weight: 750;
+            letter-spacing: -0.06em;
+            line-height: 1.02;
+            margin-top: 0.18em;
+        }
+        .mcc-hero-copy > p {
+            color: #3c3c3c;
+            font-size: 1.08rem;
             line-height: 1.6;
-            margin: 0.9rem 0 0;
-            max-width: 46rem;
+            margin: 1.65rem 0 1.7rem;
+            max-width: 38rem;
+        }
+        .mcc-start-link {
+            border-bottom: 4px solid var(--mcgill-red);
+            color: var(--mcgill-red);
+            display: inline-block;
+            font-size: 1.15rem;
+            font-weight: 700;
+            padding-bottom: 0.2rem;
+        }
+        .mcc-route-panel {
+            background: var(--mcgill-red);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+            padding: clamp(2rem, 5vw, 4rem);
+            position: relative;
+        }
+        .mcc-route-panel::after {
+            border: 60px solid rgba(255, 255, 255, 0.11);
+            border-radius: 50%;
+            content: "";
+            height: 300px;
+            position: absolute;
+            right: -140px;
+            top: -130px;
+            width: 300px;
+        }
+        .mcc-route-panel h2 {
+            color: white;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 400;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            margin: 0 0 2rem;
+            max-width: 24rem;
+        }
+        .mcc-route-step {
+            align-items: baseline;
+            border-top: 1px solid rgba(255, 255, 255, 0.56);
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: 2.2rem 1fr;
+            padding: 1rem 0;
+            position: relative;
+            z-index: 1;
+        }
+        .mcc-route-step span {
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
+        .mcc-route-step strong {
+            font-size: 1.02rem;
+            font-weight: 700;
         }
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background: white;
-            border-color: #dfe4ea;
-            border-radius: 1rem;
+            border: 1px solid var(--line);
+            border-radius: 0.2rem;
+            box-shadow: 0 10px 30px rgba(17, 17, 17, 0.06);
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] h2 {
+            color: var(--ink);
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 400;
+            letter-spacing: -0.035em;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] h4 {
+            border-left: 5px solid var(--mcgill-red);
+            color: var(--ink);
+            font-size: 1.08rem;
+            font-weight: 800;
+            margin-top: 1.4rem;
+            padding-left: 0.75rem;
+        }
+        div[data-baseweb="select"] > div,
+        div[data-testid="stTextArea"] textarea {
+            background: #ffffff;
+            border-color: #a9a9a9;
+            border-radius: 0.15rem;
+        }
+        div[data-baseweb="select"] > div:focus-within,
+        div[data-testid="stTextArea"] textarea:focus {
+            border-color: var(--mcgill-red);
+            box-shadow: 0 0 0 1px var(--mcgill-red);
+        }
+        div[data-testid="stWidgetLabel"] p {
+            color: #272727;
+            font-weight: 700;
+        }
+        div[data-testid="stButton"] button,
+        div[data-testid="stLinkButton"] a {
+            border-radius: 0.15rem;
+            min-height: 3rem;
         }
         div[data-testid="stButton"] button[kind="primary"] {
-            background: #d41f3a;
-            border-color: #d41f3a;
-            font-weight: 750;
+            background: var(--mcgill-red);
+            border-color: var(--mcgill-red);
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
         }
         div[data-testid="stButton"] button[kind="primary"]:hover {
-            background: #b31831;
-            border-color: #b31831;
+            background: var(--mcgill-red-dark);
+            border-color: var(--mcgill-red-dark);
+        }
+        div[data-testid="stLinkButton"] a {
+            border: 2px solid var(--ink);
+            color: var(--ink);
+            font-weight: 750;
+        }
+        div[data-testid="stLinkButton"] a:hover {
+            background: var(--mcgill-red);
+            border-color: var(--mcgill-red);
+            color: white;
+        }
+        div[data-testid="stAlert"] {
+            border-radius: 0.15rem;
+        }
+        hr {
+            border-color: var(--line);
         }
         .mcc-kicker {
-            color: #5e6b7b;
-            font-size: 0.9rem;
+            color: var(--muted);
+            font-size: 0.83rem;
+            font-weight: 700;
+            letter-spacing: 0.035em;
             line-height: 1.55;
+            margin-bottom: 1.3rem;
+            text-transform: uppercase;
+        }
+        @media (max-width: 850px) {
+            .mcc-topbar {
+                margin-bottom: 1.5rem;
+                min-height: 68px;
+            }
+            .mcc-brand {
+                font-size: 2rem;
+                padding: 0.5rem 1.25rem 0.65rem;
+            }
+            .mcc-product {
+                font-size: 0.78rem;
+            }
+            .mcc-product-label {
+                display: none;
+            }
+            .mcc-hero {
+                gap: 1.5rem;
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+            .mcc-hero-copy {
+                padding: 1rem 0;
+            }
+            .mcc-route-panel {
+                min-height: 330px;
+            }
+        }
+        @media (max-width: 520px) {
+            .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            .mcc-hero h1 {
+                font-size: 3.25rem;
+            }
+            .mcc-route-panel {
+                padding: 2rem 1.5rem;
+            }
         }
         </style>
         """,
@@ -661,13 +887,35 @@ def main() -> None:
 
     st.markdown(
         """
+        <header class="mcc-topbar">
+            <div class="mcc-brand">McGill</div>
+            <div class="mcc-product">
+                <span class="mcc-product-label">Care Compass · Newcomer support</span>
+                <span class="mcc-language">EN</span>
+            </div>
+        </header>
         <section class="mcc-hero">
-            <div class="mcc-eyebrow">Newcomer Service Navigator</div>
-            <h1>Find an official place to start.</h1>
-            <p>
-                Answer a short, private intake and get source-grounded McGill,
-                Quebec, and Canada service links—with clear next steps and limits.
-            </p>
+            <div class="mcc-hero-copy">
+                <div class="mcc-eyebrow">Newcomer Service Navigator</div>
+                <h1>Find your way.<strong>Start with an official source.</strong></h1>
+                <p>
+                    Answer a short, private intake and get source-grounded McGill,
+                    Quebec, and Canada service links—with clear next steps and limits.
+                </p>
+                <span class="mcc-start-link">Start your search ↓</span>
+            </div>
+            <div class="mcc-route-panel">
+                <h2>A clear route from question to next step.</h2>
+                <div class="mcc-route-step">
+                    <span>01</span><strong>Choose what you need</strong>
+                </div>
+                <div class="mcc-route-step">
+                    <span>02</span><strong>Review source-grounded matches</strong>
+                </div>
+                <div class="mcc-route-step">
+                    <span>03</span><strong>Verify on the official source</strong>
+                </div>
+            </div>
         </section>
         """,
         unsafe_allow_html=True,
