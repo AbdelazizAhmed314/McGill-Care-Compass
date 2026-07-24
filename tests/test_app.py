@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from streamlit.testing.v1 import AppTest
 
 from mcgill_care_compass.app import (
@@ -108,3 +110,12 @@ def test_streamlit_app_initial_render_has_no_exception() -> None:
     assert "#### Route details" in markdown_values
     assert "#### Optional question" in markdown_values
     assert any(button.label == "Find official starting points" for button in app.button)
+
+
+def test_streamlit_app_does_not_configure_decorative_emoji_icons() -> None:
+    source = Path("src/mcgill_care_compass/app.py").read_text(encoding="utf-8")
+
+    assert "icon=" not in source
+    assert "page_icon=" not in source
+    for emoji in ("🚨", "⚠️", "🛡️", "ℹ️", "✅", "✓", "🧭"):
+        assert emoji not in source

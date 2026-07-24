@@ -861,7 +861,6 @@ def _render_action_plan(
                 "The source appears relevant, but the retrieved evidence is not specific "
                 "enough to safely generate a step-by-step plan. Use the official source "
                 "or contact the responsible service for current instructions.",
-                icon="ℹ️",
             )
         else:
             if plan.before_you_start:
@@ -899,9 +898,9 @@ def _render_action_plan(
         if verified:
             st.caption(f"Source update or retrieval date: {verified}")
 
-        st.info(plan.verification_note, icon="✓")
+        st.info(plan.verification_note)
         if plan.limitation:
-            st.warning(plan.limitation, icon="⚠️")
+            st.warning(plan.limitation)
 
         _render_grounding_details(plan)
 
@@ -954,26 +953,26 @@ def _render_response(response: RetrievalResponse, intake: RetrievalIntake) -> No
         st.caption(f"Based on your submitted choices: {summary}")
 
         if response.status == "emergency":
-            st.error(response.safety_notice or response.message, icon="🚨")
+            st.error(response.safety_notice or response.message)
             if response.limitation_notice:
-                st.warning(response.limitation_notice, icon="⚠️")
+                st.warning(response.limitation_notice)
             _render_official_resources(response.emergency_resources, emergency=True)
             return
 
         if response.status == "unsafe_input":
-            st.error(response.message, icon="🛡️")
+            st.error(response.message)
             _render_official_resources(response.fallback_resources, emergency=False)
             return
 
         if response.status in {"unsupported", "no_match", "low_confidence", "system_error"}:
             if response.status == "system_error":
-                st.error(response.message, icon="⚠️")
+                st.error(response.message)
                 st.caption(
                     "For this local prototype, confirm that the runtime was prepared before "
                     "starting the web interface."
                 )
             else:
-                st.warning(response.message, icon="ℹ️")
+                st.warning(response.message)
             if response.limitation_notice:
                 st.info(response.limitation_notice)
             _render_official_resources(response.fallback_resources, emergency=False)
@@ -988,7 +987,6 @@ def _render_response(response: RetrievalResponse, intake: RetrievalIntake) -> No
             st.warning(
                 "A source was retrieved, but it could not be converted into a safely "
                 "grounded action plan. Open the official source for current instructions.",
-                icon="ℹ️",
             )
             if response.primary_result.canonical_url:
                 st.link_button(
@@ -1027,7 +1025,6 @@ def main() -> None:
 
     st.set_page_config(
         page_title="McGill Care Compass",
-        page_icon="🧭",
         layout="wide",
         initial_sidebar_state="expanded",
     )
