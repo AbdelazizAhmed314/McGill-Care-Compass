@@ -144,7 +144,10 @@ uv run streamlit run src/mcgill_care_compass/app.py
 ```
 
 The web interface uses the same deterministic RAG retrieval and guardrail path as the
-terminal prototype and does not require an API key. See the
+terminal prototype. Its response layer groups related evidence into a numbered action
+plan, maps every step to an exact supporting source sentence, and fails closed when the
+retrieved material is too weak to support specific instructions. It does not require an
+API key. See the
 [local web interface tutorial](docs/workflow/local-web-interface.md) for setup, usage,
 fallback behavior, and a suggested demonstration.
 

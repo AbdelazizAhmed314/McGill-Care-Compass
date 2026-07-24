@@ -5,10 +5,8 @@ from mcgill_care_compass.app import (
     build_retrieval_intake,
     category_options,
     display_title_for_evidence,
-    friendly_match_explanation,
     intake_summary_items,
     need_choices_for_category,
-    next_step_for_evidence,
     route_choices_for_category,
     source_section_for_evidence,
 )
@@ -70,28 +68,7 @@ def test_web_summary_uses_friendly_labels() -> None:
     assert "Route context: McGill International Health Insurance" in summary
 
 
-def test_web_next_step_is_derived_from_governed_evidence_tags() -> None:
-    evidence = RetrievedEvidence(
-        chunk_id="chunk-1",
-        vector_id="vector-1",
-        title="Activate IHI",
-        chunk_text="Use the official activation page.",
-        canonical_url="https://www.mcgill.ca/internationalstudents/health",
-        source_publisher="McGill University",
-        retrieved_at="2026-07-01",
-        source_updated_at="",
-        review_status="silver_unreviewed",
-        label_confidence="high",
-        distance=0.1,
-        match_reason="Matched insurance.",
-        limitation="Confirm coverage with the official source.",
-        raw_chunk={"info_type_tags": "booking_steps|contact"},
-    )
-
-    assert "booking, application, or access steps" in next_step_for_evidence(evidence)
-
-
-def test_web_response_simplifies_title_and_match_language() -> None:
+def test_web_response_simplifies_source_title() -> None:
     evidence = RetrievedEvidence(
         chunk_id="chunk-1",
         vector_id="vector-1",
@@ -111,27 +88,10 @@ def test_web_response_simplifies_title_and_match_language() -> None:
         limitation="Use the official source.",
         raw_chunk={"info_type_tags": "booking_steps"},
     )
-    intake = build_retrieval_intake(
-        category_id="health_care",
-        need_type="general_navigation",
-        student_type="newcomer",
-        jurisdiction="canada",
-        urgency_level="routine",
-        language="en",
-        campus_location="",
-        delivery_preference="",
-        route_context="",
-        query="",
-    )
-
     assert display_title_for_evidence(evidence) == "Primary Care Access Point"
     assert source_section_for_evidence(evidence) == (
         "Obtain a clinical assessment › Call back schedule by region"
     )
-    explanation = friendly_match_explanation(intake)
-    assert "Healthcare access" in explanation
-    assert "general navigation" in explanation
-    assert "category_id" not in explanation
 
 
 def test_streamlit_app_initial_render_has_no_exception() -> None:
@@ -147,6 +107,4 @@ def test_streamlit_app_initial_render_has_no_exception() -> None:
     assert "#### Urgency and access preferences" in markdown_values
     assert "#### Route details" in markdown_values
     assert "#### Optional question" in markdown_values
-    assert any(
-        button.label == "Find official starting points" for button in app.button
-    )
+    assert any(button.label == "Find official starting points" for button in app.button)

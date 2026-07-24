@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import os
-import textwrap
 from collections.abc import Sequence
 from typing import Any
 
 import streamlit as st
 
+from mcgill_care_compass.response_plans import (
+    GroundedActionPlan,
+    GroundedPlanItem,
+    build_response_plans,
+)
 from mcgill_care_compass.retrieval import (
     CATEGORY_LABELS,
     JURISDICTION_LABELS,
@@ -234,35 +238,8 @@ def intake_summary_items(intake: RetrievalIntake) -> tuple[str, ...]:
         f"Location: {CAMPUS_LABELS.get(intake.campus_location, 'Unsure')}",
         f"Language: {LANGUAGE_LABELS.get(intake.language, 'No preference')}",
         f"Start preference: {DELIVERY_LABELS.get(intake.delivery_preference, 'No preference')}",
-        *(
-            (f"Route context: {intake.route_context}",)
-            if intake.route_context
-            else ()
-        ),
+        *((f"Route context: {intake.route_context}",) if intake.route_context else ()),
     )
-
-
-def next_step_for_evidence(evidence: RetrievedEvidence) -> str:
-    """Return conservative next-step wording based on governed evidence tags."""
-
-    tags = str(evidence.raw_chunk.get("info_type_tags", ""))
-    if "emergency_info" in tags:
-        return "Follow the emergency or crisis instructions in the official source first."
-    if "booking_steps" in tags:
-        return "Open the official source and follow its booking, application, or access steps."
-    if "required_docs" in tags:
-        return "Open the official source to confirm the required documents or forms."
-    if "costs_coverage" in tags:
-        return "Open the official source to confirm current costs, coverage, or payment details."
-    if "eligibility" in tags:
-        return (
-            "Review the official criteria, then confirm your situation with the responsible office."
-        )
-    if "contact" in tags:
-        return "Use the official source to contact the listed office or service."
-    if "location" in tags:
-        return "Open the official source to confirm the location and access instructions."
-    return "Review the official source for the current steps and contact route."
 
 
 def display_title_for_evidence(evidence: RetrievedEvidence) -> str:
@@ -277,28 +254,6 @@ def source_section_for_evidence(evidence: RetrievedEvidence) -> str:
 
     parts = [part.strip() for part in evidence.title.split(">") if part.strip()]
     return " › ".join(parts[1:])
-
-
-def friendly_match_explanation(intake: RetrievalIntake) -> str:
-    """Explain a match using user-facing labels instead of filter IDs."""
-
-    category = CATEGORY_LABELS.get(intake.category_id, "the selected service area")
-    need = NEED_TYPE_LABELS.get(intake.need_type, "general navigation")
-    explanation = (
-        f"This official source is shown because you selected {category} and asked for "
-        f"{need.lower()}."
-    )
-    context = [
-        STUDENT_TYPE_LABELS.get(intake.student_type, ""),
-        JURISDICTION_LABELS.get(intake.jurisdiction, ""),
-        intake.route_context,
-    ]
-    selected_context = [value for value in context if value]
-    if selected_context:
-        explanation += (
-            f" The additional context ({', '.join(selected_context)}) helped narrow the match."
-        )
-    return explanation
 
 
 def _clear_results() -> None:
@@ -598,28 +553,6 @@ def _page_styles() -> None:
             margin: -0.4rem 0 1.4rem;
             max-width: 48rem;
         }
-        .mcc-next-step {
-            background: #fff2f3;
-            border-left: 6px solid var(--mcgill-red);
-            margin: 1.25rem 0;
-            padding: 1.1rem 1.25rem;
-        }
-        .mcc-next-step-label {
-            color: var(--mcgill-red-dark);
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 850;
-            letter-spacing: 0.09em;
-            margin-bottom: 0.4rem;
-            text-transform: uppercase;
-        }
-        .mcc-next-step p {
-            color: var(--ink);
-            font-size: 1.06rem;
-            font-weight: 650;
-            line-height: 1.5;
-            margin: 0;
-        }
         @media (max-width: 850px) {
             .mcc-topbar {
                 margin-bottom: 1.5rem;
@@ -710,9 +643,7 @@ def _render_intake() -> tuple[RetrievalIntake | None, bool]:
 
     if category_id == UNSUPPORTED_CATEGORY:
         need_type = "general_navigation"
-        st.info(
-            "The navigator will show a safe fallback for needs outside its current categories."
-        )
+        st.info("The navigator will show a safe fallback for needs outside its current categories.")
     else:
         need_choices = need_choices_for_category(category_id)
         need_type = st.selectbox(
@@ -855,60 +786,124 @@ def _render_source_details(evidence: RetrievedEvidence) -> None:
         st.markdown(f"**{label}:** {value}")
 
 
-def _render_evidence(
-    evidence: RetrievedEvidence,
-    intake: RetrievalIntake,
+def _evidence_for_plan_item(
+    plan: GroundedActionPlan,
+    item: GroundedPlanItem,
+) -> RetrievedEvidence:
+    for evidence in plan.evidence:
+        if evidence.chunk_id == item.source_id:
+            return evidence
+    return plan.primary_source
+
+
+def _render_action_step(
+    plan: GroundedActionPlan,
+    item: GroundedPlanItem,
+    index: int,
+) -> None:
+    with st.container(border=True):
+        number, content = st.columns([0.12, 0.88])
+        with number:
+            st.markdown(f"### {index}")
+        with content:
+            st.write(item.text)
+            st.caption(f"Supported by: {item.source_label}")
+
+
+def _render_grounding_details(plan: GroundedActionPlan) -> None:
+    with st.expander("See the evidence behind this plan"):
+        st.caption(
+            "Each instruction below is linked to the exact retrieved sentence used to "
+            "construct it. These excerpts are evidence, not additional instructions."
+        )
+        for index, item in enumerate(plan.action_steps, start=1):
+            st.markdown(f"**Step {index} evidence**")
+            st.write(f"“{item.supporting_text}”")
+            st.caption(item.source_label)
+
+    with st.expander("Official source details"):
+        seen_urls: set[str] = set()
+        for evidence in plan.evidence:
+            source_key = evidence.canonical_url or evidence.chunk_id
+            if source_key in seen_urls:
+                continue
+            seen_urls.add(source_key)
+            st.markdown(f"**{display_title_for_evidence(evidence)}**")
+            source_section = source_section_for_evidence(evidence)
+            if source_section:
+                st.caption(f"Source section: {source_section}")
+            _render_source_details(evidence)
+            if evidence.canonical_url:
+                st.markdown(f"[Open this official source ↗]({evidence.canonical_url})")
+            if len(seen_urls) >= 3:
+                break
+
+
+def _render_action_plan(
+    plan: GroundedActionPlan,
     *,
     primary: bool,
 ) -> None:
-    label = "Primary starting point" if primary else "Backup starting point"
+    label = "Recommended starting point" if primary else "Alternative official route"
+    source = plan.primary_source
     with st.container(border=True):
         st.caption(label.upper())
-        st.markdown(f"### {display_title_for_evidence(evidence)}")
-        if evidence.source_publisher:
-            st.caption(evidence.source_publisher)
-        source_section = source_section_for_evidence(evidence)
-        if source_section:
-            st.caption(f"Source section: {source_section}")
+        st.markdown(f"### {plan.title}")
+        if source.source_publisher:
+            st.caption(source.source_publisher)
 
-        st.markdown("**Why you are seeing this**")
-        st.write(friendly_match_explanation(intake))
+        st.write(plan.summary)
+        st.markdown("**Why this route fits your request**")
+        st.write(plan.why_this_route)
 
-        st.markdown(
-            (
-                '<div class="mcc-next-step">'
-                '<span class="mcc-next-step-label">What to do next</span>'
-                f"<p>{next_step_for_evidence(evidence)}</p>"
-                "</div>"
-            ),
-            unsafe_allow_html=True,
+        if plan.status != "actionable":
+            st.warning(
+                "The source appears relevant, but the retrieved evidence is not specific "
+                "enough to safely generate a step-by-step plan. Use the official source "
+                "or contact the responsible service for current instructions.",
+                icon="ℹ️",
+            )
+        else:
+            if plan.before_you_start:
+                st.markdown("#### Before you start")
+                st.caption(
+                    "These are conditions or preparation details stated by the source. "
+                    "They are not an eligibility decision."
+                )
+                for item in plan.before_you_start:
+                    st.markdown(f"- {item.text}")
+
+            st.markdown("#### Steps to take")
+            st.caption(
+                "These steps are organized from retrieved official instructions. "
+                "Nothing has been added from outside the approved evidence."
+            )
+            for index, item in enumerate(plan.action_steps, start=1):
+                _render_action_step(plan, item, index)
+
+            if plan.expected_outcomes:
+                st.markdown("#### What the source says may happen next")
+                for item in plan.expected_outcomes:
+                    st.markdown(f"- {item.text}")
+
+        source_for_link = (
+            _evidence_for_plan_item(plan, plan.action_steps[0]) if plan.action_steps else source
         )
-
-        if evidence.canonical_url:
+        if source_for_link.canonical_url:
             st.link_button(
-                "Open official source ↗",
-                evidence.canonical_url,
+                "Open the official source and verify ↗",
+                source_for_link.canonical_url,
                 use_container_width=True,
             )
+        verified = source_for_link.source_updated_at or source_for_link.retrieved_at
+        if verified:
+            st.caption(f"Source update or retrieval date: {verified}")
 
-        if evidence.limitation:
-            st.warning(evidence.limitation, icon="⚠️")
+        st.info(plan.verification_note, icon="✓")
+        if plan.limitation:
+            st.warning(plan.limitation, icon="⚠️")
 
-        preview = textwrap.shorten(
-            evidence.chunk_text.replace("\n", " "),
-            width=420,
-            placeholder="…",
-        )
-        if preview:
-            with st.expander("Read the official source excerpt"):
-                st.write(preview)
-                st.caption(
-                    "Official pages can contain dense details. Open the source above to "
-                    "confirm the section in full."
-                )
-
-        with st.expander("Source details"):
-            _render_source_details(evidence)
+        _render_grounding_details(plan)
 
 
 def _render_official_resources(resources: Sequence[Any], *, emergency: bool) -> None:
@@ -988,19 +983,38 @@ def _render_response(response: RetrievalResponse, intake: RetrievalIntake) -> No
             st.error("The navigator returned an unknown response state.")
             return
 
-        st.markdown("## We found an official place to start")
+        plans = build_response_plans(intake, response)
+        if not plans:
+            st.warning(
+                "A source was retrieved, but it could not be converted into a safely "
+                "grounded action plan. Open the official source for current instructions.",
+                icon="ℹ️",
+            )
+            if response.primary_result.canonical_url:
+                st.link_button(
+                    "Open official source ↗",
+                    response.primary_result.canonical_url,
+                    use_container_width=True,
+                )
+            return
+
+        st.markdown("## Your source-grounded action plan")
         st.markdown(
-            '<p class="mcc-response-lead">Begin with the primary option below. '
-            "A backup option is provided only when another useful official route was found.</p>",
+            '<p class="mcc-response-lead">The response below turns retrieved official '
+            "instructions into a sequence you can follow. Every step remains linked to "
+            "the sentence that supports it.</p>",
             unsafe_allow_html=True,
         )
-        _render_evidence(response.primary_result, intake, primary=True)
+        _render_action_plan(plans[0], primary=True)
 
-        if response.backup_results:
+        if len(plans) > 1:
             st.markdown("### Other official options")
-            st.caption("Use these if the primary option does not fit or is unavailable.")
-            for evidence in response.backup_results:
-                _render_evidence(evidence, intake, primary=False)
+            st.caption(
+                "Use an alternative only if the recommended route does not fit your "
+                "situation or is unavailable."
+            )
+            for plan in plans[1:]:
+                _render_action_plan(plan, primary=False)
 
         st.caption(
             "This response uses processed Silver evidence. It provides navigation information, "
@@ -1071,8 +1085,8 @@ def main() -> None:
             os.environ.setdefault("MCC_EMBEDDING_LOCAL_ONLY", "1")
             response = retrieve_matches_safely(
                 intake,
-                limit=3,
-                retrieval_limit=21,
+                limit=10,
+                retrieval_limit=30,
                 rebuild_if_missing=False,
             )
         st.session_state["navigator_intake"] = intake

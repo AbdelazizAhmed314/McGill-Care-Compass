@@ -427,7 +427,11 @@ Start with this action: [specific source-derived action]. Use the official sourc
 
 ## Handoff
 
-- Issue 4/6 now has a terminal RAG path for structured intake, metadata filters, vector retrieval, deterministic formatting, and optional LLM response writing; the Streamlit intake shell remains a placeholder until the guardrails, retrieval logic, and response layer are finalized for UI wiring.
-- Issue 5 should use the result layout, wording standards, and appendix examples as the explanation-layer contract; the optional LLM layer must preserve source grounding and validated source IDs.
+- Issue 4/6 provides the structured intake, metadata filters, vector retrieval, guarded
+  terminal path, and functional local Streamlit interface.
+- Issue 5 implements the explanation-layer contract as deterministic action plans over
+  coherent retrieved service groups. Each action retains an approved source ID and exact
+  supporting sentence; weak evidence produces an insufficient-evidence response. The
+  optional LLM layer must continue to preserve source grounding and validated source IDs.
 - Issue 7 should harden emergency, high-risk, unsupported, no-match, conflict-disclosure, and system-error behavior into final guardrail checks.
 - Issue 8 should convert the appendix examples into evaluation scenarios with expected category, source-link, evidence-pass, and safety-note checks.

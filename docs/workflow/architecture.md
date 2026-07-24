@@ -19,15 +19,18 @@ and optional LLM response writing over approved evidence.
    jurisdiction, language, urgency, route context, and optional free-text query.
    The Streamlit interface provides the local structured-intake and results experience
    over the same deterministic retrieval and guardrail path as the terminal prototype.
-5. **Retrieval**: after adversarial inspection and emergency precedence, the terminal app
-   filters chunks using questionnaire metadata, retrieves
-   up to 21 vector candidates, then ranks by source authority, semantic relevance, and
-   freshness before capping approved evidence for display or response writing.
-6. **Response layer**: deterministic formatting remains the fallback. The optional
-   Responses API layer groups approved evidence into at most three user-facing options,
-   uses up to five chunks per option, validates cited source IDs, discloses conflicts,
-   validates that every displayed URL belongs to the cited evidence, and deterministically
-   enforces high-risk limitation wording.
+5. **Retrieval**: after adversarial inspection and emergency precedence, the applications
+   filter chunks using questionnaire metadata, retrieve
+   a bounded vector candidate set, then rank by source authority, semantic relevance, and
+   freshness before capping approved evidence for response writing.
+6. **Response layer**: the local web path groups chunks by coherent service route and
+   deterministically extracts actions, prerequisites, and expected outcomes from approved
+   source sentences. Every displayed action retains its source ID and exact supporting
+   sentence, and a grounding validator rejects missing or mismatched evidence. Weak evidence
+   produces an explicit insufficient-evidence explanation instead of generated steps.
+   The optional Responses API writer remains available for the terminal path, validates
+   cited source IDs and URLs, discloses conflicts, and deterministically enforces high-risk
+   limitation wording.
 7. **Operational safety**: the CLI application boundary converts missing/stale Chroma and
    unexpected retrieval exceptions into a source-linked `system_error` response. Structured
    logs contain only bounded operational fields, never query or identifier values.
@@ -51,7 +54,7 @@ official seed URLs
   -> Silver Chroma vector index
   -> filtered retrieval
   -> evidence grouping and source validation
-  -> deterministic or optional LLM-written source-grounded response
+  -> deterministic source-grounded action plan or optional LLM-written response
   -> fixed-scenario evaluation reports
 ```
 

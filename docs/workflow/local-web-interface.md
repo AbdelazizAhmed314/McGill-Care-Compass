@@ -69,14 +69,23 @@ credentials, document contents, detailed health information, or financial detail
 
 A normal result contains:
 
-- one primary official starting point;
-- up to two backup starting points;
-- an explanation of why each source matched;
-- a conservative suggested next step;
-- a short excerpt from the retrieved source;
+- one recommended official route;
+- a plain-language explanation of why the route matched;
+- a numbered action plan derived from retrieved official instructions;
+- source-stated preparation or conditions, clearly separated from actions;
+- a description of what the source says may happen next, without presenting it as
+  a guarantee;
+- up to two distinct, sufficiently relevant backup routes;
+- an expandable evidence view that maps every action to its supporting source sentence;
 - any required topic or Silver-data limitation;
-- a button to open the official source; and
+- a button to open and verify the official source; and
 - expandable publisher, date, authority, review-status, and source-terms details.
+
+The action-plan layer groups related retrieved chunks from the same service so that a
+specific instruction section can support the response even when the highest-ranked chunk
+is an overview or conditions section. It does not use unrestricted advice generation.
+When the approved evidence does not contain a sufficiently specific action, the interface
+says so and provides the official source instead of inventing steps.
 
 Always open the official source before acting. The navigator does not diagnose, provide
 legal or tax advice, interpret immigration status, confirm insurance coverage, or decide
@@ -107,8 +116,10 @@ Use this example for a reproducible local demo:
 - Route: **McGill International Health Insurance**
 - Optional question: `Activate international health insurance IHI coverage`
 
-The result should show source-grounded McGill insurance starting points with official
-links and an insurance limitation.
+The result should show a source-grounded activation plan that starts in Minerva, directs
+the user to the Student tab and International Health Insurance menu, and explains how to
+confirm coverage and print the IHI card. Each step should identify its supporting source
+section. The result should also include the official link and insurance limitation.
 
 ## 7. Developer checks
 
