@@ -265,6 +265,42 @@ def next_step_for_evidence(evidence: RetrievedEvidence) -> str:
     return "Review the official source for the current steps and contact route."
 
 
+def display_title_for_evidence(evidence: RetrievedEvidence) -> str:
+    """Return a short service title instead of a full breadcrumb path."""
+
+    parts = [part.strip() for part in evidence.title.split(">") if part.strip()]
+    return parts[0] if parts else "Official service starting point"
+
+
+def source_section_for_evidence(evidence: RetrievedEvidence) -> str:
+    """Return the detailed breadcrumb as secondary source context."""
+
+    parts = [part.strip() for part in evidence.title.split(">") if part.strip()]
+    return " › ".join(parts[1:])
+
+
+def friendly_match_explanation(intake: RetrievalIntake) -> str:
+    """Explain a match using user-facing labels instead of filter IDs."""
+
+    category = CATEGORY_LABELS.get(intake.category_id, "the selected service area")
+    need = NEED_TYPE_LABELS.get(intake.need_type, "general navigation")
+    explanation = (
+        f"This official source is shown because you selected {category} and asked for "
+        f"{need.lower()}."
+    )
+    context = [
+        STUDENT_TYPE_LABELS.get(intake.student_type, ""),
+        JURISDICTION_LABELS.get(intake.jurisdiction, ""),
+        intake.route_context,
+    ]
+    selected_context = [value for value in context if value]
+    if selected_context:
+        explanation += (
+            f" The additional context ({', '.join(selected_context)}) helped narrow the match."
+        )
+    return explanation
+
+
 def _clear_results() -> None:
     st.session_state.pop("navigator_response", None)
     st.session_state.pop("navigator_intake", None)
@@ -531,6 +567,59 @@ def _page_styles() -> None:
             margin-bottom: 1.3rem;
             text-transform: uppercase;
         }
+        .mcc-response-banner {
+            align-items: center;
+            background: var(--mcgill-red);
+            color: white;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding: 1rem 1.25rem;
+        }
+        .mcc-response-banner strong {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 1.45rem;
+            font-weight: 500;
+        }
+        .mcc-response-status {
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 850;
+            letter-spacing: 0.08em;
+            padding: 0.35rem 0.65rem;
+            text-transform: uppercase;
+        }
+        .mcc-response-lead {
+            color: #333333;
+            font-size: 1.02rem;
+            line-height: 1.55;
+            margin: -0.4rem 0 1.4rem;
+            max-width: 48rem;
+        }
+        .mcc-next-step {
+            background: #fff2f3;
+            border-left: 6px solid var(--mcgill-red);
+            margin: 1.25rem 0;
+            padding: 1.1rem 1.25rem;
+        }
+        .mcc-next-step-label {
+            color: var(--mcgill-red-dark);
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 850;
+            letter-spacing: 0.09em;
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+        }
+        .mcc-next-step p {
+            color: var(--ink);
+            font-size: 1.06rem;
+            font-weight: 650;
+            line-height: 1.5;
+            margin: 0;
+        }
         @media (max-width: 850px) {
             .mcc-topbar {
                 margin-bottom: 1.5rem;
@@ -556,6 +645,10 @@ def _page_styles() -> None:
             }
             .mcc-route-panel {
                 min-height: 330px;
+            }
+            .mcc-response-banner {
+                align-items: flex-start;
+                flex-direction: column;
             }
         }
         @media (max-width: 520px) {
@@ -762,30 +855,34 @@ def _render_source_details(evidence: RetrievedEvidence) -> None:
         st.markdown(f"**{label}:** {value}")
 
 
-def _render_evidence(evidence: RetrievedEvidence, *, primary: bool) -> None:
+def _render_evidence(
+    evidence: RetrievedEvidence,
+    intake: RetrievalIntake,
+    *,
+    primary: bool,
+) -> None:
     label = "Primary starting point" if primary else "Backup starting point"
     with st.container(border=True):
         st.caption(label.upper())
-        st.markdown(f"### {evidence.title}")
+        st.markdown(f"### {display_title_for_evidence(evidence)}")
         if evidence.source_publisher:
             st.caption(evidence.source_publisher)
+        source_section = source_section_for_evidence(evidence)
+        if source_section:
+            st.caption(f"Source section: {source_section}")
 
-        st.markdown("**Why this matched**")
-        st.write(evidence.match_reason)
-        st.markdown("**Suggested next step**")
-        st.write(next_step_for_evidence(evidence))
+        st.markdown("**Why you are seeing this**")
+        st.write(friendly_match_explanation(intake))
 
-        preview = textwrap.shorten(
-            evidence.chunk_text.replace("\n", " "),
-            width=520,
-            placeholder="…",
+        st.markdown(
+            (
+                '<div class="mcc-next-step">'
+                '<span class="mcc-next-step-label">What to do next</span>'
+                f"<p>{next_step_for_evidence(evidence)}</p>"
+                "</div>"
+            ),
+            unsafe_allow_html=True,
         )
-        if preview:
-            st.markdown("**What the official source says**")
-            st.write(preview)
-
-        if evidence.limitation:
-            st.warning(evidence.limitation, icon="⚠️")
 
         if evidence.canonical_url:
             st.link_button(
@@ -793,6 +890,22 @@ def _render_evidence(evidence: RetrievedEvidence, *, primary: bool) -> None:
                 evidence.canonical_url,
                 use_container_width=True,
             )
+
+        if evidence.limitation:
+            st.warning(evidence.limitation, icon="⚠️")
+
+        preview = textwrap.shorten(
+            evidence.chunk_text.replace("\n", " "),
+            width=420,
+            placeholder="…",
+        )
+        if preview:
+            with st.expander("Read the official source excerpt"):
+                st.write(preview)
+                st.caption(
+                    "Official pages can contain dense details. Open the source above to "
+                    "confirm the section in full."
+                )
 
         with st.expander("Source details"):
             _render_source_details(evidence)
@@ -816,62 +929,83 @@ def _render_official_resources(resources: Sequence[Any], *, emergency: bool) -> 
 
 def _render_response(response: RetrievalResponse, intake: RetrievalIntake) -> None:
     st.divider()
-    st.subheader("Your starting points")
-    summary = " · ".join(
-        (
-            CATEGORY_LABELS.get(intake.category_id, "Other need"),
-            URGENCY_LABELS.get(intake.urgency_level, "Unsure"),
-            CAMPUS_LABELS.get(intake.campus_location, "Unsure"),
+    status_labels = {
+        "matched": "Response ready",
+        "emergency": "Urgent guidance",
+        "unsafe_input": "Input blocked",
+        "unsupported": "Outside current scope",
+        "no_match": "No match found",
+        "low_confidence": "More detail needed",
+        "system_error": "Action needed",
+    }
+    with st.container(border=True, key="care_compass_response"):
+        st.markdown(
+            (
+                '<div class="mcc-response-banner">'
+                "<strong>Your Care Compass response</strong>"
+                f'<span class="mcc-response-status">'
+                f"{status_labels.get(response.status, 'Response')}</span>"
+                "</div>"
+            ),
+            unsafe_allow_html=True,
         )
-    )
-    st.caption(f"Based on: {summary}")
-
-    if response.status == "emergency":
-        st.error(response.safety_notice or response.message, icon="🚨")
-        if response.limitation_notice:
-            st.warning(response.limitation_notice, icon="⚠️")
-        _render_official_resources(response.emergency_resources, emergency=True)
-        return
-
-    if response.status == "unsafe_input":
-        st.error(response.message, icon="🛡️")
-        _render_official_resources(response.fallback_resources, emergency=False)
-        return
-
-    if response.status in {"unsupported", "no_match", "low_confidence", "system_error"}:
-        if response.status == "system_error":
-            st.error(response.message, icon="⚠️")
-            st.caption(
-                "For this local prototype, confirm that the runtime was prepared before starting "
-                "the web interface."
+        summary = " · ".join(
+            (
+                CATEGORY_LABELS.get(intake.category_id, "Other need"),
+                URGENCY_LABELS.get(intake.urgency_level, "Unsure"),
+                CAMPUS_LABELS.get(intake.campus_location, "Unsure"),
             )
-        else:
-            st.warning(response.message, icon="ℹ️")
-        if response.limitation_notice:
-            st.info(response.limitation_notice)
-        _render_official_resources(response.fallback_resources, emergency=False)
-        return
+        )
+        st.caption(f"Based on your submitted choices: {summary}")
 
-    if response.status != "matched" or response.primary_result is None:
-        st.error("The navigator returned an unknown response state.")
-        return
+        if response.status == "emergency":
+            st.error(response.safety_notice or response.message, icon="🚨")
+            if response.limitation_notice:
+                st.warning(response.limitation_notice, icon="⚠️")
+            _render_official_resources(response.emergency_resources, emergency=True)
+            return
 
-    st.success(
-        "Source-grounded starting points found. Confirm current details on the official source."
-    )
-    if response.limitation_notice:
-        st.warning(response.limitation_notice, icon="⚠️")
-    _render_evidence(response.primary_result, primary=True)
+        if response.status == "unsafe_input":
+            st.error(response.message, icon="🛡️")
+            _render_official_resources(response.fallback_resources, emergency=False)
+            return
 
-    if response.backup_results:
-        st.markdown("### Backup options")
-        for evidence in response.backup_results:
-            _render_evidence(evidence, primary=False)
+        if response.status in {"unsupported", "no_match", "low_confidence", "system_error"}:
+            if response.status == "system_error":
+                st.error(response.message, icon="⚠️")
+                st.caption(
+                    "For this local prototype, confirm that the runtime was prepared before "
+                    "starting the web interface."
+                )
+            else:
+                st.warning(response.message, icon="ℹ️")
+            if response.limitation_notice:
+                st.info(response.limitation_notice)
+            _render_official_resources(response.fallback_resources, emergency=False)
+            return
 
-    st.caption(
-        "This prototype uses processed Silver evidence. It provides navigation information, "
-        "not a professional or eligibility decision."
-    )
+        if response.status != "matched" or response.primary_result is None:
+            st.error("The navigator returned an unknown response state.")
+            return
+
+        st.markdown("## We found an official place to start")
+        st.markdown(
+            '<p class="mcc-response-lead">Begin with the primary option below. '
+            "A backup option is provided only when another useful official route was found.</p>",
+            unsafe_allow_html=True,
+        )
+        _render_evidence(response.primary_result, intake, primary=True)
+
+        if response.backup_results:
+            st.markdown("### Other official options")
+            st.caption("Use these if the primary option does not fit or is unavailable.")
+            for evidence in response.backup_results:
+                _render_evidence(evidence, intake, primary=False)
+
+        st.caption(
+            "This response uses processed Silver evidence. It provides navigation information, "
+            "not a professional or eligibility decision."
+        )
 
 
 def main() -> None:

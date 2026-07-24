@@ -4,10 +4,13 @@ from mcgill_care_compass.app import (
     UNSUPPORTED_CATEGORY,
     build_retrieval_intake,
     category_options,
+    display_title_for_evidence,
+    friendly_match_explanation,
     intake_summary_items,
     need_choices_for_category,
     next_step_for_evidence,
     route_choices_for_category,
+    source_section_for_evidence,
 )
 from mcgill_care_compass.retrieval import RetrievedEvidence
 
@@ -86,6 +89,49 @@ def test_web_next_step_is_derived_from_governed_evidence_tags() -> None:
     )
 
     assert "booking, application, or access steps" in next_step_for_evidence(evidence)
+
+
+def test_web_response_simplifies_title_and_match_language() -> None:
+    evidence = RetrievedEvidence(
+        chunk_id="chunk-1",
+        vector_id="vector-1",
+        title=(
+            "Primary Care Access Point > Obtain a clinical assessment > "
+            "Call back schedule by region"
+        ),
+        chunk_text="Use the official service page.",
+        canonical_url="https://www.quebec.ca/en/health",
+        source_publisher="Gouvernement du Québec",
+        retrieved_at="2026-07-01",
+        source_updated_at="",
+        review_status="silver_unreviewed",
+        label_confidence="high",
+        distance=0.1,
+        match_reason="Filters used: category_id=health_care.",
+        limitation="Use the official source.",
+        raw_chunk={"info_type_tags": "booking_steps"},
+    )
+    intake = build_retrieval_intake(
+        category_id="health_care",
+        need_type="general_navigation",
+        student_type="newcomer",
+        jurisdiction="canada",
+        urgency_level="routine",
+        language="en",
+        campus_location="",
+        delivery_preference="",
+        route_context="",
+        query="",
+    )
+
+    assert display_title_for_evidence(evidence) == "Primary Care Access Point"
+    assert source_section_for_evidence(evidence) == (
+        "Obtain a clinical assessment › Call back schedule by region"
+    )
+    explanation = friendly_match_explanation(intake)
+    assert "Healthcare access" in explanation
+    assert "general navigation" in explanation
+    assert "category_id" not in explanation
 
 
 def test_streamlit_app_initial_render_has_no_exception() -> None:
