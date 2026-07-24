@@ -17,7 +17,7 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 
 | Path | Purpose |
 | --- | --- |
-| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Guardrails, retrieval/ranking, explanation formatting, optional LLM response writing, and the retained placeholder Streamlit shell. |
+| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Functional Streamlit interface, guardrails, retrieval/ranking, explanation formatting, and optional LLM response writing. |
 | [`tests/`](tests/) | Unit and behavior tests for RAG pipeline helpers, ranking, and safety rules. |
 | [`data/source-inputs/`](data/source-inputs/) | Seed URL and questionnaire metadata configuration shared by the pipeline and UI. |
 | [`data/bronze/`](data/README.md) | Raw unprocessed source captures generated locally and ignored by git. |
@@ -137,12 +137,16 @@ Use timing diagnostics when investigating latency:
 uv run python scripts/demo_issue4_terminal_intake.py --llm --debug-timing
 ```
 
-The Streamlit app is retained only as a placeholder intake shell. The operational
-navigator, maintenance, health, and evaluation interfaces are currently CLI-based:
+Run the functional local Streamlit navigator:
 
 ```powershell
 uv run streamlit run src/mcgill_care_compass/app.py
 ```
+
+The web interface uses the same deterministic RAG retrieval and guardrail path as the
+terminal prototype and does not require an API key. See the
+[local web interface tutorial](docs/workflow/local-web-interface.md) for setup, usage,
+fallback behavior, and a suggested demonstration.
 
 ## Git Workflow
 

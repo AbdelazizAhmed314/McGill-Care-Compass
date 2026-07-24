@@ -17,7 +17,8 @@ and optional LLM response writing over approved evidence.
    vector-store corpus signature.
 4. **Structured intake**: the terminal demo collects category, need type, student context,
    jurisdiction, language, urgency, route context, and optional free-text query.
-   The Streamlit shell is retained as a placeholder and is not the active Issue 6 path.
+   The Streamlit interface provides the local structured-intake and results experience
+   over the same deterministic retrieval and guardrail path as the terminal prototype.
 5. **Retrieval**: after adversarial inspection and emergency precedence, the terminal app
    filters chunks using questionnaire metadata, retrieves
    up to 21 vector candidates, then ranks by source authority, semantic relevance, and
