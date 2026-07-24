@@ -299,7 +299,8 @@ def _page_styles() -> None:
         }
         .block-container {
             max-width: 1240px;
-            padding-top: 1rem;
+            /* Keep the custom masthead below Streamlit's fixed Deploy/menu toolbar. */
+            padding-top: 5.25rem;
             padding-bottom: 5rem;
         }
         header[data-testid="stHeader"] {
