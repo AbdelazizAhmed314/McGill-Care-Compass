@@ -95,6 +95,12 @@ def test_streamlit_app_initial_render_has_no_exception() -> None:
 
     assert not app.exception
     assert app.title == []
+    markdown_values = [element.value for element in app.markdown]
+    assert "#### Main need" in markdown_values
+    assert "#### Your context" in markdown_values
+    assert "#### Urgency and access preferences" in markdown_values
+    assert "#### Route details" in markdown_values
+    assert "#### Optional question" in markdown_values
     assert any(
         button.label == "Find official starting points" for button in app.button
     )

@@ -377,6 +377,8 @@ def _render_intake() -> tuple[RetrievalIntake | None, bool]:
     st.subheader("Tell us what you need")
     st.caption("Use the structured choices below. You can change any answer and search again.")
 
+    st.markdown("#### Main need")
+    st.caption("Choose the service area and the kind of information you want to find.")
     category_id = st.selectbox(
         "What do you need help navigating first?",
         options=category_options(),
@@ -401,6 +403,8 @@ def _render_intake() -> tuple[RetrievalIntake | None, bool]:
             on_change=_clear_results,
         )
 
+    st.markdown("#### Your context")
+    st.caption("These choices help prioritize the most relevant official sources.")
     first_row = st.columns(2)
     with first_row[0]:
         student_type = st.selectbox(
@@ -419,6 +423,8 @@ def _render_intake() -> tuple[RetrievalIntake | None, bool]:
             on_change=_clear_results,
         )
 
+    st.markdown("#### Urgency and access preferences")
+    st.caption("Urgency controls safety routing; the other choices help narrow where to start.")
     second_row = st.columns(2)
     with second_row[0]:
         urgency_level = st.selectbox(
@@ -458,6 +464,8 @@ def _render_intake() -> tuple[RetrievalIntake | None, bool]:
     route_choices = route_choices_for_category(category_id)
     route_context = ""
     if route_choices:
+        st.markdown("#### Route details")
+        st.caption("This optional follow-up narrows the route without deciding eligibility.")
         route_value = st.selectbox(
             "Optional: which starting route fits best?",
             options=[value for value, _ in route_choices],
@@ -467,6 +475,8 @@ def _render_intake() -> tuple[RetrievalIntake | None, bool]:
         )
         route_context = _choice_label(route_choices, route_value)
 
+    st.markdown("#### Optional question")
+    st.caption("Add a short general question only if the structured choices need more context.")
     query = st.text_area(
         "Optional: add a short service-navigation question",
         max_chars=240,
