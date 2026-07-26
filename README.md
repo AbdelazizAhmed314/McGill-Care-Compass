@@ -41,6 +41,96 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 | [`scripts/prepare_runtime.py`](scripts/prepare_runtime.py) | Validate committed data and atomically prepare SQLite and Chroma for deployment. |
 | [`scripts/run_api.py`](scripts/run_api.py) | Start the local FastAPI/Uvicorn application. |
 
+## Quick Start - Docker Walkthrough
+
+### Prerequisites
+
+- Docker Desktop running with Linux containers.
+- An OpenAI API key if you want LLM-written responses.
+
+The app works without an API key, but recommendation wording uses the
+deterministic fallback.
+
+### 1. Configure LLM Mode
+
+In the same PowerShell window that will run Docker:
+
+```powershell
+$env:OPENAI_API_KEY = "your-api-key"
+```
+
+Optionally override the configured model:
+
+```powershell
+$env:MCC_LLM_MODEL = "gpt-5.6-luna"
+```
+
+Never commit an API key, put it in the Docker image, or include it in logs,
+screenshots, issues, or pull requests.
+
+As an alternative, copy the ignored local environment template:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Then set `OPENAI_API_KEY` in `.env`. Docker Compose automatically reads this
+file. Leave `MCC_LLM_MODEL` unchanged unless you deliberately want to test a
+different configured model.
+
+### 2. Build and Start
+
+```powershell
+docker compose up --build -d
+```
+
+The first build can take 15-25 minutes because it installs the CPU embedding
+runtime and builds the signed 4,239-record Chroma index. Follow progress with:
+
+```powershell
+docker compose logs -f care-compass
+```
+
+### 3. Verify Readiness
+
+```powershell
+docker compose ps
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/health/ready
+```
+
+Continue when the container is `healthy` and readiness reports
+`"status": "ok"`.
+
+Confirm that the API key reached the container without displaying it:
+
+```powershell
+docker compose exec care-compass sh -lc 'test -n "$OPENAI_API_KEY" && echo configured || echo missing'
+```
+
+### 4. Walk Through the Application
+
+- Navigator: <http://127.0.0.1:8000/navigator>
+- Status: <http://127.0.0.1:8000/status>
+- API documentation: <http://127.0.0.1:8000/docs>
+
+Submit a routine request and enable **Developer mode**. A successful Responses
+API call shows:
+
+- Generation mode: `llm`
+- Attempts: `1`
+- Fallback reason: none
+- Validation error: none
+
+If the key is absent, connectivity fails, or model output fails grounding
+validation, the application safely uses deterministic fallback.
+
+### 5. Stop the Application
+
+```powershell
+docker compose down
+```
+
 ## Local Setup
 
 Install dependencies with `uv`:
