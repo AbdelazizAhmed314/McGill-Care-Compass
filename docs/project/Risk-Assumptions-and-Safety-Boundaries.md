@@ -30,7 +30,7 @@ When sources conflict or overlap, the product should use this authority order:
 4. Trusted community or settlement organizations for community referrals.
 5. General informational pages only when no more authoritative source exists.
 
-If the conflict cannot be resolved, the tool should show uncertainty and direct the user to the responsible office or service.
+If retrieved sources conflict, the tool should prefer the best-supported route using authority, specificity, intake relevance, recency, and non-duplicative corroboration; it should also disclose what differs and direct the user to the responsible office or service for confirmation.
 
 ## Routing Safety Rules
 
@@ -38,6 +38,7 @@ If the conflict cannot be resolved, the tool should show uncertainty and direct 
 2. If the need falls under a McGill-owned student service, rank the McGill service above external services unless the case requires public healthcare, legal, government, or emergency authority.
 3. If the need requires official government, healthcare, insurance, tax, immigration, or eligibility information, rank official source-backed chunks above general support pages.
 4. If two services match the same need with equal authority, break the tie by specificity to the student's situation, then accessibility/location, then most recently verified source.
+5. If sources materially conflict, disclose the difference, explain why the chosen route was preferred, and provide official contacts or source links the user can use to verify with a human.
 
 ## Tie-Breaking Rules
 

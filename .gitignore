@@ -12,6 +12,8 @@ htmlcov/
 venv/
 .env
 .env.*
+!.env.example
+.streamlit/secrets.toml
 
 # Local notebooks and generated artifacts
 .ipynb_checkpoints/
@@ -40,5 +42,8 @@ data/source-inputs/*
 # OS/editor noise
 .DS_Store
 Thumbs.db
+.obsidian/
 .vscode/
 .idea/
+scripts/github/bootstrap_github.py
+scripts/github/configure_project_fields.py

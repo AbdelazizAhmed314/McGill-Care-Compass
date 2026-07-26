@@ -18,9 +18,9 @@ Reason: the corpus reaches the target scale for the milestone and gives Issues #
 
 Impact: the corpus is queryable Silver data, not reviewed Gold recommendation data.
 
-## 2026-06-24 - Rebuild Chroma from committed `rag_chunks.csv`
+## 2026-06-24 - Rebuild Chroma from committed [`rag_chunks.csv`](../../data/silver/datasets/rag_chunks.csv)
 
-Decision: do not commit `data/silver/vector_store/chroma/`. Rebuild it during deployment/startup from the committed `data/silver/datasets/rag_chunks.csv`.
+Decision: do not commit [`data/silver/vector_store/chroma/`](../../data/README.md). Rebuild it during deployment/startup from the committed [`data/silver/datasets/rag_chunks.csv`](../../data/silver/datasets/rag_chunks.csv).
 
 Reason: Chroma is a generated runtime index and may not be byte-for-byte reproducible. The reviewable source of truth is the committed chunk CSV plus config and manifest.
 
@@ -32,7 +32,7 @@ Decision: do not create a Gold approved retrieval subset in this PR.
 
 Reason: Issue #1 is about building the RAG corpus pipeline. Gold approval is a later review workflow.
 
-Impact: app prototypes may use Silver only with clear wording that Silver chunks are unreviewed and not final recommendation data.
+Impact: future RAG-backed app flows may use Silver only with clear wording that Silver chunks are unreviewed and not final recommendation data.
 
 ## 2026-06-24 - Safety urgent is guardrail-first
 

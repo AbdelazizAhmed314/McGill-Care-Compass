@@ -5,26 +5,11 @@
 This document is the high-level project plan for McGill Care Compass. It summarizes the milestone timeline, GitHub issue structure, team roles, delivery rules, and definition of done without replacing the issue-level task checklists or the teammate workload appendix.
 
 Related documents:
-
-- [GitHub-Issue-Based-Task-Breakdown.md](GitHub-Issue-Based-Task-Breakdown.md)
-- [Team-Roles-and-Individual-Workload-Appendix.md](Team-Roles-and-Individual-Workload-Appendix.md)
+- [Team-Roles-and-Individual-Workload-Appendix.md](../Appendices/Team-Roles-and-Individual-Workload-Appendix.md)
 - [Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
-
-## Fixed Milestones
-
-| Deliverable | Format | Due date | Acceptance criterion |
-| --- | --- | --- | --- |
-| v1 RAG data corpus | Bronze/Silver RAG artifacts with documented schema, report, and manifest | June 21 | At least 500 processed pages, 4,000 chunks, eight locked taxonomy categories, source URLs, source terms, drift hashes, Chroma vectors, and version-governed artifacts. |
-| Intake and recommendation prototype | Working Streamlit or lightweight web-app prototype | July 5 | A user can complete structured intake and receive ranked source-backed recommendations with match reasons, official links, source provenance, and limitation wording. |
-| Recommendation evaluation package | Fixed scenario set, repeatable tests, and evaluation-results report | July 19 | At least 90% of predefined scenarios return a relevant service in the top three results according to a labeled pass/fail rubric. Tests cover empty results, source-link presence, safety messages, and unsupported scenarios. |
-| Usability and community-impact assessment | Anonymized test results and findings report | July 26 | At least five participants complete testing, with proxy users used only if recruitment is insufficient. The assessment records completion time, relevance, explanation clarity, confidence change, and usefulness ratings. |
-| Presentation-ready navigator and maintenance package | Deployed app, source-freshness dashboard, documented repository, and run/update instructions | July 27 | App loads without errors, handles unsupported scenarios gracefully, grounds recommendations in retrieved RAG chunks, displays official links and source dates, and can be run or updated from documentation. |
-| Final QA and rehearsal buffer | QA results, backup demo, and rehearsal materials | July 28-29 | Critical defects resolved, final materials checked, demo rehearsed, and backup demo prepared. |
-| Final submission and live demonstration | Final repository, deliverable URL, presentation materials, and live demo | July 30 | All required materials submitted and verified; live and backup demos are ready. |
-
 ## GitHub Issue And Milestone Gantt Chart
 
-This chart matches the Gantt chart in [GitHub-Issue-Based-Task-Breakdown.md](GitHub-Issue-Based-Task-Breakdown.md) so the finalized documents use one consistent issue-and-milestone timeline.
+This chart matches the GitHub issues' structure so the finalized documents use one consistent issue-and-milestone timeline.
 
 ```mermaid
 gantt
@@ -61,26 +46,6 @@ gantt
     Issue 13 - Final QA, rehearsal, submission, and presentation :crit, i13, 2026-07-27, 2026-07-30
     Final submission and presentation                            :milestone, m6, 2026-07-30, 0d
 ```
-
-## GitHub Issue Structure
-
-The repository should use 13 milestone-based GitHub Issues rather than one issue for every small task. The detailed owner tasks remain traceable inside issue checklists.
-
-| Issue | Milestone | Purpose |
-| --- | --- | --- |
-| Issue 1: Build and validate v1 RAG data corpus | June 21 | RAG corpus, schema, taxonomy, source governance, validation, PR1 evidence. |
-| Issue 2: Define user journey and prototype response format | June 21 | Intake flow, response examples, limitation/source-link format. |
-| Issue 3: Set up repo workflow and PR1 tracking | June 21 | GitHub board, labels, milestones, repo workflow, PR1 tracking. |
-| Issue 4: Build intake and filtered retrieval prototype | July 5 | Intake form, metadata filters, routing precedence, tie-breaking, ranked chunks/results. |
-| Issue 5: Implement grounded recommendation explanations | July 5 | User-facing explanations grounded in retrieved chunks. |
-| Issue 6: Integrate working prototype and prepare PR2 | July 5 | Complete prototype integration and Progress Report 2 evidence. |
-| Issue 7: Add guardrails and maintenance reports | July 19 | High-risk handling, unsupported-case handling, freshness/broken-link reports, internal deployment. |
-| Issue 8: Create and run recommendation evaluation | July 19 | Fixed scenario set, relevance rubric, evaluation results. |
-| Issue 9: Coordinate PR3 and project tracking | July 19 | Board, risks, blockers, decision log, Progress Report 3. |
-| Issue 10: Run usability testing and analyze findings | July 26 | Test script, recruitment, five sessions, findings report. |
-| Issue 11: Fix data, matching, and documentation issues | July 26 | Testing fixes, README, limitations, update procedure, Progress Report 4. |
-| Issue 12: Complete presentation-ready release and freeze | July 27 | Deployment, maintenance outputs, release tag, feature freeze. |
-| Issue 13: Final QA, rehearsal, submission, and presentation | July 30 | QA, backup demo, deck, speaker notes, final upload. |
 
 ## Team Roles And Capacity
 

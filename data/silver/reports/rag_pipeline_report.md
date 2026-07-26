@@ -1,6 +1,6 @@
 # RAG Data Pipeline Report
 
-Generated: `2026-06-24T07:52:50+00:00`
+Generated: `2026-07-01T22:35:43+00:00`
 
 ## Summary
 
@@ -26,20 +26,18 @@ not been manually reviewed as a final Gold recommendation dataset.
 
 ## Architecture
 
-```text
-data/source-inputs/rag_seed_urls.csv
-  -> crawl official pages and approved sublinks
-  -> data/bronze/raw/rag_pages/*.html.gz
-  -> data/silver/processed/rag_pages/*.txt
-  -> data/silver/datasets/rag_pages.csv
-  -> data/silver/datasets/rag_links.csv
-  -> data/silver/datasets/rag_chunks.csv
-  -> data/silver/rag/rag_metadata.sqlite
-  -> data/silver/vector_store/chroma/
-```
+- [`data/source-inputs/rag_seed_urls.csv`](../../source-inputs/rag_seed_urls.csv)
+- crawl official pages and approved sublinks
+- [`data/bronze/raw/rag_pages/*.html.gz`](../../README.md)
+- [`data/silver/processed/rag_pages/*.txt`](../../README.md)
+- [`data/silver/datasets/rag_pages.csv`](../datasets/rag_pages.csv)
+- [`data/silver/datasets/rag_links.csv`](../datasets/rag_links.csv)
+- [`data/silver/datasets/rag_chunks.csv`](../datasets/rag_chunks.csv)
+- [`data/silver/rag/rag_metadata.sqlite`](../../README.md)
+- [`data/silver/vector_store/chroma/`](../../README.md)
 
 The CSV and SQLite files are the durable reproducible data layer. Chroma is a
-local rebuildable index created from `rag_chunks.csv`.
+local rebuildable index created from [`rag_chunks.csv`](../datasets/rag_chunks.csv).
 
 ## Exploration Algorithm
 
@@ -82,7 +80,7 @@ No LLM assigns metadata in v1.
 - PDFs, login-gated pages, JavaScript-only pages, and irrelevant external pages
   are logged but not ingested.
 - `sentence-transformers/all-MiniLM-L6-v2` is the local embedding model.
-- `data/source-inputs/questionnaire_metadata_map.yml` is the shared contract with
+- [`data/source-inputs/questionnaire_metadata_map.yml`](../../source-inputs/questionnaire_metadata_map.yml) is the shared contract with
   Mustafa's questionnaire.
 - Gold remains empty until the team reviews and approves a subset of Silver
   outputs.
@@ -102,15 +100,15 @@ No LLM assigns metadata in v1.
 ## Version Governance
 
 - Pipeline version: `1.0.0`
-- Pipeline run ID: `20260624T074008Z`
+- Pipeline run ID: `20260701T223504Z`
 - Artifact schema version: `2`
 - Questionnaire metadata version: `2`
-- Seed config hash: `fa0d64b45385a55498aba24cfedd2b16579532eaf36da71e0092f1e00d39c693`
-- Questionnaire config hash: `edf7353d73278ef885a30bb447e69e4c7322225769fae824ca4b10a4f9f49345`
-- Crawl config hash: `f2c2545c6d452413f90e3e514f74612ad0502847db9cafc5f9c0154c7279933e`
+- Seed config hash: `a2858cb02a78ac24c244efe1f4b6b9a7cdc7801c914c1381a1917f1fd12ec3b8`
+- Questionnaire config hash: `c7be6a5508632e0cb9c502bc5a3259e35e5678431f51f451004fbbfd008c7258`
+- Crawl config hash: `2c774104781ff52e68c13b6dd36cb1048005621267e6632b8e4a11134b85e9f3`
 - Chunking config version: `1`
 - Link priority config version: `1`
-- Run manifest: `data/silver/reports/rag_run_manifest.json`
+- Run manifest: [`data/silver/reports/rag_run_manifest.json`](rag_run_manifest.json)
 
 ## Drift Status
 
@@ -162,14 +160,14 @@ Freshness is scored from source-modified dates when available, otherwise retriev
 
 ## Persistent Outputs
 
-- Bronze raw HTML: `data/bronze/raw/rag_pages/`
-- Silver clean text: `data/silver/processed/rag_pages/`
-- Silver SQLite metadata: `data/silver/rag/rag_metadata.sqlite`
-- Silver page CSV: `data/silver/datasets/rag_pages.csv`
-- Silver link CSV: `data/silver/datasets/rag_links.csv`
-- Silver chunk CSV: `data/silver/datasets/rag_chunks.csv`
-- Silver Chroma vector DB: `data/silver/vector_store/chroma/`
-- Silver quality report: `data/silver/reports/rag_corpus_quality_report.md`
+- Bronze raw HTML: [`data/bronze/raw/rag_pages/`](../../README.md)
+- Silver clean text: [`data/silver/processed/rag_pages/`](../../README.md)
+- Silver SQLite metadata: [`data/silver/rag/rag_metadata.sqlite`](../../README.md)
+- Silver page CSV: [`data/silver/datasets/rag_pages.csv`](../datasets/rag_pages.csv)
+- Silver link CSV: [`data/silver/datasets/rag_links.csv`](../datasets/rag_links.csv)
+- Silver chunk CSV: [`data/silver/datasets/rag_chunks.csv`](../datasets/rag_chunks.csv)
+- Silver Chroma vector DB: [`data/silver/vector_store/chroma/`](../../README.md)
+- Silver quality report: [`data/silver/reports/rag_corpus_quality_report.md`](rag_corpus_quality_report.md)
 
 ## Rebuild Commands
 
@@ -184,7 +182,7 @@ uv run python scripts/data/query_rag_corpus.py \
 
 ## Notes
 
-- The vector database is rebuildable from `rag_chunks.csv`.
-- Questionnaire wording changes should update `data/source-inputs/questionnaire_metadata_map.yml`
+- The vector database is rebuildable from [`rag_chunks.csv`](../datasets/rag_chunks.csv).
+- Questionnaire wording changes should update [`data/source-inputs/questionnaire_metadata_map.yml`](../../source-inputs/questionnaire_metadata_map.yml)
   and rerun with `--metadata-only`; this refreshes chunk metadata without recrawling pages.
 - Website content changes are detected through clean-text hashes and reflected in `drift_status`.
