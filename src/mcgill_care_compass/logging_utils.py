@@ -5,12 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import sys
+from contextvars import ContextVar, Token
 from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 LOG_DIR = ROOT / "logs"
 LOG_FILE = LOG_DIR / "mcgill_care_compass.log"
+_REQUEST_ID: ContextVar[str] = ContextVar("mcc_request_id", default="")
 
 _ALLOWED_FIELDS = {
     "event",
@@ -33,6 +35,16 @@ _ALLOWED_FIELDS = {
     "corpus_signature",
     "attention_count",
     "severity",
+    "attempt",
+    "model",
+    "generation_mode",
+    "fallback_reason_code",
+    "validation_reason_code",
+    "openai_request_id",
+    "openai_response_id",
+    "option_count",
+    "approved_chunk_count",
+    "llm_attempts",
 }
 
 
@@ -65,9 +77,28 @@ def safe_event_fields(**fields: object) -> dict[str, str]:
     return safe
 
 
+def bind_request_id(request_id: str) -> Token[str]:
+    """Bind a privacy-safe correlation ID to the current request context."""
+
+    return _REQUEST_ID.set(request_id)
+
+
+def reset_request_id(token: Token[str]) -> None:
+    """Restore the previous request correlation context."""
+
+    _REQUEST_ID.reset(token)
+
+
+def current_request_id() -> str:
+    """Return the current correlation ID, if one is bound."""
+
+    return _REQUEST_ID.get()
+
+
 def log_event(event: str, **fields: object) -> None:
     """Write one bounded JSON operational event without user-authored text."""
 
+    fields.setdefault("request_id", current_request_id())
     safe = safe_event_fields(
         event=event,
         timestamp=datetime.now(UTC).isoformat(),

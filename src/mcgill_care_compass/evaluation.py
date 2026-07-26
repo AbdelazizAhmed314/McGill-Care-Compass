@@ -63,7 +63,7 @@ IMPLEMENTATION_PATHS = (
     "scripts/data/build_rag_corpus.py",
     "scripts/data/generate_maintenance_report.py",
     "scripts/data/validate_rag_corpus.py",
-    "scripts/demo_issue4_terminal_intake.py",
+    "scripts/run_terminal_navigator.py",
     "scripts/evaluate_recommendations.py",
     "scripts/health_check.py",
     "scripts/prepare_runtime.py",

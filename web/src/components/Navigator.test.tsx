@@ -45,6 +45,17 @@ const sharedPresentation = {
   },
   official_sources: [] as Array<{ label: string; url: string; source_id: string }>,
   generation_mode: "deterministic" as const,
+  generation_diagnostics: {
+    request_id: "request-test",
+    generation_mode: "deterministic" as const,
+    model: "gpt-test",
+    attempts: 2,
+    fallback_reason_code: "unsupported_source_id",
+    validation_reason_code: "unsupported_source_id",
+    openai_request_id: "req_openai_test",
+    openai_response_id: "resp_test",
+    timings_ms: { openai_call: 123.4 },
+  },
 }
 
 const evidence: Evidence = {
@@ -125,6 +136,9 @@ describe("navigator safety contract", () => {
     render(<RecommendationResults result={response} onStartOver={vi.fn()} />)
 
     expect(screen.getByText("Start with the official housing support route.")).toBeVisible()
+    expect(
+      screen.getByRole("status", { name: "Response generation: Responses API" }),
+    ).toBeVisible()
     expect(screen.getByText("Recommended next step")).toBeVisible()
     expect(
       screen.getAllByText("Confirm current details with the responsible office.").length,
@@ -133,7 +147,33 @@ describe("navigator safety contract", () => {
     await userEvent.click(screen.getByRole("button", { name: "Developer mode: Off" }))
     expect(screen.getAllByText("chunk-1").length).toBeGreaterThan(0)
     expect(screen.getByText("llm")).toBeVisible()
+    expect(screen.getByText("request-test")).toBeVisible()
+    expect(screen.getAllByText("unsupported_source_id").length).toBeGreaterThan(0)
+    expect(screen.getByText("req_openai_test")).toBeVisible()
     expect(screen.getByRole("button", { name: "Developer mode: On" })).toHaveAttribute("aria-pressed", "true")
+  })
+
+  it("labels deterministic fallback responses without requiring developer mode", () => {
+    const response: RecommendationResponse = {
+      ...sharedPresentation,
+      status: "matched",
+      matched_filters: { category_id: "housing" },
+      relaxed_level: 0,
+      primary_result: evidence,
+      backup_results: [],
+      emergency_resources: [],
+      safety_notice: null,
+      limitation_notice: "This is navigation support.",
+      message: "",
+      error_code: "",
+      intake_summary: [],
+    }
+
+    render(<RecommendationResults result={response} onStartOver={vi.fn()} />)
+
+    expect(
+      screen.getByRole("status", { name: "Response generation: Deterministic fallback" }),
+    ).toBeVisible()
   })
 
   it("renders emergency resources before ordinary recommendations", () => {

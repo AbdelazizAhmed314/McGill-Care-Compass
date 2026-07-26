@@ -18,16 +18,28 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 | --- | --- |
 | [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Guardrails, retrieval/ranking, explanation formatting, health/maintenance logic, and the versioned FastAPI application. |
 | [`web/`](web/) | Responsive React/Vite/TypeScript navigator and internal status interface. |
-| [`scripts/prepare_runtime.py`](scripts/prepare_runtime.py) | Validates committed data, generates reports, and atomically prepares local SQLite and Chroma runtime artifacts. |
+| [`scripts/`](scripts/) | Operational CLIs for corpus management, runtime preparation, health, evaluation, API startup, and the terminal navigator. |
 | [`tests/`](tests/) | Unit and behavior tests for RAG pipeline helpers, ranking, and safety rules. |
 | [`data/source-inputs/`](data/source-inputs/) | Seed URL and questionnaire metadata configuration shared by the pipeline and UI. |
 | [`data/bronze/`](data/README.md) | Raw unprocessed source captures generated locally and ignored by git. |
 | [`data/silver/`](data/silver/) | Processed v1 RAG artifacts: reviewable CSVs/reports plus local ignored text, SQLite, and rebuildable Chroma outputs. |
 | [`data/gold/`](data/gold/) | Reserved for reviewed, release-ready data; no Gold dataset exists yet. |
-| [`scripts/data/`](scripts/data/) | RAG corpus build, query, and validation scripts. |
-| [`scripts/demo_issue4_terminal_intake.py`](scripts/demo_issue4_terminal_intake.py) | Terminal intake demo for deterministic RAG retrieval and optional LLM response writing. |
 | [`docs/project/`](docs/project/) | Finalized course/project documents. |
 | [`docs/workflow/`](docs/workflow/) | Collaboration, GitHub, data, and architecture contracts. |
+
+### Operational Scripts
+
+| Script | Purpose |
+| --- | --- |
+| [`scripts/data/build_rag_corpus.py`](scripts/data/build_rag_corpus.py) | Crawl governed sources and generate the complete corpus, reports, metadata, and optional vector index. |
+| [`scripts/data/generate_maintenance_report.py`](scripts/data/generate_maintenance_report.py) | Generate maintenance reports and enforce warning/error exit gates. |
+| [`scripts/data/query_rag_corpus.py`](scripts/data/query_rag_corpus.py) | Inspect raw ranked Chroma chunks for development; it does not run the guarded recommendation pipeline. |
+| [`scripts/data/validate_rag_corpus.py`](scripts/data/validate_rag_corpus.py) | Validate corpus schemas, hashes, counts, metadata, quality, and optional local runtime artifacts. |
+| [`scripts/run_terminal_navigator.py`](scripts/run_terminal_navigator.py) | Run the shared guarded navigator through an interactive terminal client. |
+| [`scripts/evaluate_recommendations.py`](scripts/evaluate_recommendations.py) | Run fixed recommendation and guardrail scenarios and write evaluation evidence. |
+| [`scripts/health_check.py`](scripts/health_check.py) | Run human-readable or JSON runtime health checks. |
+| [`scripts/prepare_runtime.py`](scripts/prepare_runtime.py) | Validate committed data and atomically prepare SQLite and Chroma for deployment. |
+| [`scripts/run_api.py`](scripts/run_api.py) | Start the local FastAPI/Uvicorn application. |
 
 ## Local Setup
 
@@ -49,13 +61,13 @@ uv run python scripts/health_check.py
 Rebuild the ignored local vector store if needed:
 
 ```powershell
-uv run python scripts/demo_issue4_terminal_intake.py --rebuild-vector-store
+uv run python scripts/run_terminal_navigator.py --rebuild-vector-store
 ```
 
 Run the terminal RAG intake demo without the LLM layer:
 
 ```powershell
-uv run python scripts/demo_issue4_terminal_intake.py
+uv run python scripts/run_terminal_navigator.py
 ```
 
 ### Shared LLM/API Mode
@@ -85,7 +97,7 @@ notepad .env
 Run the optional LLM response layer:
 
 ```powershell
-uv run python scripts/demo_issue4_terminal_intake.py --llm
+uv run python scripts/run_terminal_navigator.py --llm
 ```
 
 If no valid key is found, the app falls back to deterministic output and prints:
@@ -97,7 +109,7 @@ LLM fallback: OPENAI_API_KEY is not set.
 Use timing diagnostics when investigating latency:
 
 ```powershell
-uv run python scripts/demo_issue4_terminal_intake.py --llm --debug-timing
+uv run python scripts/run_terminal_navigator.py --llm --debug-timing
 ```
 
 Run a basic app/data health check before internal demos:

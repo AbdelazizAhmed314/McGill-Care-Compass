@@ -2,6 +2,7 @@ import json
 from types import SimpleNamespace
 
 from mcgill_care_compass.llm_response import (
+    LLM_RESPONSE_SCHEMA,
     build_evidence_pack,
     generate_llm_response,
     should_use_approved_chunk,
@@ -310,6 +311,158 @@ def test_fake_client_renders_valid_llm_response() -> None:
     assert fake_responses.kwargs["store"] is False
 
 
+def test_same_page_supporting_chunks_need_one_official_link() -> None:
+    page_url = "https://www.mcgill.ca/health/access"
+    evidence = [
+        make_evidence(
+            "health-1",
+            "Use the official access page to review how to book care.",
+            category_id="health_care",
+            canonical_url=page_url,
+        ),
+        make_evidence(
+            "health-2",
+            "The same official page lists the available access routes.",
+            category_id="health_care",
+            canonical_url=page_url,
+        ),
+    ]
+    output = {
+        "status": "matched",
+        "opening_summary": "Start with the official healthcare access page.",
+        "primary_recommendation": {
+            "title": "Healthcare access",
+            "why_this_matched": "Both supporting chunks describe the same access route.",
+            "recommended_next_step": "Review the official booking routes.",
+            "source_ids_used": ["health-1", "health-2"],
+        },
+        "backup_options": [],
+        "limitations": [],
+        "conflict_disclosure": {
+            "has_conflict": False,
+            "what_differs": "",
+            "why_this_route_was_chosen": "",
+            "how_to_double_check": "",
+            "source_ids_considered": [],
+        },
+        "official_sources": [
+            {"label": "Healthcare access", "url": page_url, "source_id": "health-1"}
+        ],
+    }
+    client = SimpleNamespace(
+        responses=SimpleNamespace(
+            create=lambda **kwargs: SimpleNamespace(output_text=json.dumps(output))
+        )
+    )
+
+    result = generate_llm_response(
+        RetrievalIntake(category_id="health_care", need_type="booking_steps"),
+        make_response(evidence),
+        client=client,
+    )
+
+    assert result.used_llm
+    assert result.raw_output["primary_recommendation"]["source_ids_used"] == [
+        "health-1",
+        "health-2",
+    ]
+    assert len(result.raw_output["official_sources"]) == 1
+
+
+def test_validation_failure_gets_one_corrective_retry(monkeypatch) -> None:
+    evidence = [make_evidence("good", "Call the official insurance office for help.")]
+    events: list[tuple[str, dict[str, object]]] = []
+    monkeypatch.setattr(
+        "mcgill_care_compass.llm_response.log_event",
+        lambda event, **fields: events.append((event, fields)),
+    )
+    bad_output = {
+        "status": "matched",
+        "opening_summary": "Start here.",
+        "primary_recommendation": {
+            "title": "Bad citation",
+            "why_this_matched": "It cites an unavailable source.",
+            "recommended_next_step": "Use the official route.",
+            "source_ids_used": ["missing"],
+        },
+        "backup_options": [],
+        "limitations": [],
+        "conflict_disclosure": {
+            "has_conflict": False,
+            "what_differs": "",
+            "why_this_route_was_chosen": "",
+            "how_to_double_check": "",
+            "source_ids_considered": [],
+        },
+        "official_sources": [],
+    }
+    good_output = {
+        "status": "matched",
+        "opening_summary": "Start with the official insurance route.",
+        "primary_recommendation": {
+            "title": "Insurance contact",
+            "why_this_matched": "It matches the contact request.",
+            "recommended_next_step": "Use the official contact route.",
+            "source_ids_used": ["good"],
+        },
+        "backup_options": [],
+        "limitations": [],
+        "conflict_disclosure": {
+            "has_conflict": False,
+            "what_differs": "",
+            "why_this_route_was_chosen": "",
+            "how_to_double_check": "",
+            "source_ids_considered": [],
+        },
+        "official_sources": [
+            {"label": "Insurance", "url": "https://www.mcgill.ca/good", "source_id": "good"}
+        ],
+    }
+
+    class RetryResponses:
+        def __init__(self) -> None:
+            self.calls: list[dict] = []
+
+        def create(self, **kwargs):  # noqa: ANN003
+            self.calls.append(kwargs)
+            output = bad_output if len(self.calls) == 1 else good_output
+            return SimpleNamespace(
+                output_text=json.dumps(output),
+                _request_id=f"req-{len(self.calls)}",
+                id=f"resp-{len(self.calls)}",
+            )
+
+    responses = RetryResponses()
+    result = generate_llm_response(
+        RetrievalIntake(category_id="insurance", need_type="contact"),
+        make_response(evidence),
+        client=SimpleNamespace(responses=responses),
+        collect_timings=True,
+    )
+
+    assert result.used_llm
+    assert len(responses.calls) == 2
+    assert result.timings["llm_attempts"] == 2.0
+    assert result.attempts == 2
+    assert result.validation_reason_code == "unsupported_source_id"
+    assert result.openai_request_id == "req-2"
+    assert result.openai_response_id == "resp-2"
+    assert [event for event, _fields in events] == [
+        "llm_pipeline_started",
+        "llm_request_started",
+        "llm_response_received",
+        "llm_validation_failed",
+        "llm_response_retry",
+        "llm_request_started",
+        "llm_response_received",
+        "llm_response_succeeded",
+    ]
+    failed_fields = next(fields for event, fields in events if event == "llm_validation_failed")
+    assert failed_fields["validation_reason_code"] == "unsupported_source_id"
+    assert "query" not in failed_fields
+    assert "failed deterministic grounding validation" in responses.calls[1]["input"][-1]["content"]
+
+
 def test_hallucinated_source_ids_are_rejected() -> None:
     evidence = [make_evidence("good", "Call the official insurance office for contact help.")]
     output = {
@@ -338,6 +491,9 @@ def test_hallucinated_source_ids_are_rejected() -> None:
     )
 
     assert not result.used_llm
+    assert result.attempts == 2
+    assert result.fallback_reason_code == "unsupported_source_id"
+    assert result.validation_reason_code == "unsupported_source_id"
     assert result.fallback_reason == (
         "LLM output failed grounding validation; deterministic fallback used."
     )
@@ -409,7 +565,7 @@ def test_placeholder_env_key_is_treated_as_missing(monkeypatch) -> None:
     assert result.fallback_reason == "OPENAI_API_KEY is not set."
 
 
-def test_insufficient_llm_response_caps_deterministic_fallback_options() -> None:
+def test_matched_pack_schema_reserves_insufficient_evidence_for_pre_llm_gate() -> None:
     evidence = [
         make_evidence(
             f"chunk-{index}",
@@ -446,8 +602,13 @@ def test_insufficient_llm_response_caps_deterministic_fallback_options() -> None
         max_options=3,
     )
 
+    status_schema = LLM_RESPONSE_SCHEMA["schema"]["properties"]["status"]
+    assert status_schema["enum"] == ["matched"]
+
     assert not result.used_llm
-    assert result.fallback_reason == "LLM returned insufficient_evidence."
+    assert result.fallback_reason == (
+        "LLM output failed grounding validation; deterministic fallback used."
+    )
     assert result.markdown.count("Primary starting point") == 1
     assert result.markdown.count("Backup option") == 2
     assert "Backup option 3" not in result.markdown

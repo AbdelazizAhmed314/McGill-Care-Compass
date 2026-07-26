@@ -126,7 +126,7 @@ The scenario source is committed under `evaluation/`. Evaluation evidence is tie
 implementation signatures; it supports the Issue 8 quality package but does not replace participant
 usability testing.
 
-Run a local retrieval smoke query:
+Run a raw local retrieval diagnostic:
 
 ```bash
 uv run python scripts/data/query_rag_corpus.py \
@@ -134,6 +134,10 @@ uv run python scripts/data/query_rag_corpus.py \
   --category-id insurance \
   --need-type costs_coverage
 ```
+
+This command inspects ranked Chroma chunks directly. It bypasses the navigator's
+guardrails, evidence-pack filtering, grouping, and response presentation, so its
+output must not be treated as a student-facing recommendation.
 
 ## Policy
 

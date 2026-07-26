@@ -1,6 +1,8 @@
 .git
 .github
 .venv
+.venv-host-test
+.uv-cache
 .pytest_cache
 .ruff_cache
 .tmp
@@ -9,5 +11,6 @@ web/node_modules
 web/dist
 data/bronze/raw
 data/silver/processed
+data/silver/maintenance
 data/silver/rag
 data/silver/vector_store

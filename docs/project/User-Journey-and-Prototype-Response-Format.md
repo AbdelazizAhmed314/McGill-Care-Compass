@@ -368,7 +368,7 @@ Start with this action: [specific source-derived action]. Use the official sourc
 
 **Why this matched:** You asked how to start using McGill International Health Insurance, and the retrieved source route explains the Minerva activation process.
 
-**Recommended next step:** Log in to Minerva with your student ID, open the Student tab, choose the International Health Insurance Menu, select Confirm IHI Coverage, and then print your IHI card. Have your McGill student ID ready. This should take about 10 minutes. For more information, visit the official page or call 555-0101.
+**Recommended next step:** Open the official Activate IHI Coverage page and follow its current Minerva activation instructions. If the activation route does not work, use the official International Student Services contact information linked from that source.
 
 **Important limit:** This does not decide whether every health expense is covered. Confirm coverage details with the official source or insurer.
 
@@ -392,31 +392,6 @@ Start with this action: [specific source-derived action]. Use the official sourc
 - Applicability/profile fit narrows evidence; it does not decide official outcomes.
 - The MVP permits only an optional, short, non-persistent retrieval question and rejects common private-identifier patterns; it does not permit sensitive narratives.
 - The corpus is Silver and `silver_unreviewed`; prototype answers must display limits and source grounding.
-
-**Expected category:** `insurance`
-
-**Primary starting point:** McGill International Student Services - Activate IHI Coverage.
-
-**Backup option:** Contact the International Student Services health insurance team or Medavie Blue Cross if Minerva confirmation does not work.
-
-**Why this matched:** You asked how to start using McGill International Health Insurance, and the retrieved source route explains the Minerva activation process.
-
-**Recommended next step:** Log in to Minerva with your student ID, open the Student tab, choose the International Health Insurance Menu, select Confirm IHI Coverage, and then print your IHI card. Have your McGill student ID ready. This should take about 10 minutes. For more information, visit the official page or call 555-0101.
-
-**Important limit:** This does not decide whether every health expense is covered. Confirm coverage details with the official source or insurer.
-
-**Official sources:**
-
-- [https://www.mcgill.ca/internationalstudents/health/activate-ihi-coverage](https://www.mcgill.ca/internationalstudents/health/activate-ihi-coverage)
-
-**Last verified:** 2026-06-24
-
-**Source details:**
-
-|Source|Publisher|Terms|Last retrieved|
-|---|---|---|---|
-|Activate IHI Coverage|McGill University|[https://www.mcgill.ca/copyright/](https://www.mcgill.ca/copyright/)|2026-06-24T07:40:10+00:00|
-
 
 ## Review Checklist
 

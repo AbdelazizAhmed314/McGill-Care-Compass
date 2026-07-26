@@ -86,6 +86,27 @@ Required verification after deployment:
 5. Confirm `/api/v1/maintenance/report` returns the generated report.
 6. Confirm an official source link opens in a new tab.
 
+## Privacy-Safe LLM Diagnostics
+
+Every API request receives an `X-Request-ID`. Recommendation responses repeat that value under `generation_diagnostics.request_id`, allowing the browser result to be correlated with JSON log events.
+
+Docker persists the ignored operational log to `logs/mcgill_care_compass.log`. Inspect it with either command:
+
+```powershell
+docker compose logs --tail 200 care-compass
+Get-Content .\logs\mcgill_care_compass.log -Tail 200
+```
+
+Developer mode shows the generation mode, model, attempt count, application request ID, OpenAI request and response IDs, validation or fallback reason code, and stage timings. Expected LLM events are:
+
+1. `llm_pipeline_started`
+2. `llm_request_started`
+3. `llm_response_received`
+4. `llm_validation_failed` and `llm_response_retry`, when correction is needed
+5. `llm_response_succeeded` or `llm_response_error`
+6. `api_request`
+
+The logger uses an explicit allowlist. It must never record optional-question text, raw intake, retrieved passages, prompts, model output, identifiers, or API keys.
 ## Update Procedure
 
 1. Merge reviewed code and data changes.

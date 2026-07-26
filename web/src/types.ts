@@ -111,6 +111,17 @@ export type RecommendationResponse = {
   }
   official_sources: Array<{ label: string; url: string; source_id: string }>
   generation_mode: "llm" | "deterministic"
+  generation_diagnostics: {
+    request_id: string
+    generation_mode: "llm" | "deterministic"
+    model: string
+    attempts: number
+    fallback_reason_code: string
+    validation_reason_code: string
+    openai_request_id: string
+    openai_response_id: string
+    timings_ms: Record<string, number>
+  }
 }
 
 export type HealthResponse = {
@@ -119,22 +130,31 @@ export type HealthResponse = {
 }
 
 export type MaintenanceReport = {
-  generated_at: string
+  generated_at?: string
+  as_of?: string
   counts: { pages: number; links: number; chunks: number }
   source_freshness: {
-    pages_missing_source_updated_at: number
-    chunks_missing_source_updated_at: number
-    chunks_low_freshness_score: number
+    pages_missing_source_updated_at?: number
+    chunks_missing_source_updated_at?: number
+    chunks_low_freshness_score?: number
+    source_updated_at_missing_count?: number
+    fetch_failed_count?: number
   }
-  broken_links: {
+  broken_links?: {
     non_200_pages: number
     fetch_failed_pages: number
     not_crawled_links: number
   }
+  failed_sources?: {
+    count: number
+  }
   category_coverage: {
-    observed_categories: string[]
-    missing_categories: string[]
-    low_chunk_coverage_categories: string[]
-    chunk_counts_by_category: Record<string, number>
+    observed_categories?: string[]
+    missing_categories?: string[]
+    low_chunk_coverage_categories?: string[]
+    chunk_counts_by_category?: Record<string, number>
+    by_category?: Record<string, unknown>
+    categories_without_pages?: string[]
+    categories_without_chunks?: string[]
   }
 }

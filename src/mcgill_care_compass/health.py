@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 from mcgill_care_compass.corpus_signature import CorpusSignature, corpus_signature
 from mcgill_care_compass.logging_utils import log_event
@@ -39,7 +41,11 @@ class HealthReport:
         return {"status": self.status, "checks": [asdict(check) for check in self.checks]}
 
 
-def run_health_checks(*, require_vector_store: bool = True) -> HealthReport:
+def run_health_checks(
+    *,
+    require_vector_store: bool = True,
+    vector_collection_loader: Callable[[], Any] | None = None,
+) -> HealthReport:
     checks = [
         _check_file("pages_csv", PAGES_CSV),
         _check_file("links_csv", LINKS_CSV),
@@ -47,7 +53,10 @@ def run_health_checks(*, require_vector_store: bool = True) -> HealthReport:
         _check_manifest(),
         _check_chunk_signature(),
         _check_sqlite(require_runtime=require_vector_store),
-        _check_vector_store(require_vector_store=require_vector_store),
+        _check_vector_store(
+            require_vector_store=require_vector_store,
+            collection_loader=vector_collection_loader,
+        ),
     ]
     status = (
         "fail"
@@ -132,7 +141,11 @@ def _check_sqlite(*, require_runtime: bool) -> HealthCheckResult:
     return HealthCheckResult("sqlite", "ok", "SQLite signature matches governed chunks")
 
 
-def _check_vector_store(*, require_vector_store: bool) -> HealthCheckResult:
+def _check_vector_store(
+    *,
+    require_vector_store: bool,
+    collection_loader: Callable[[], Any] | None = None,
+) -> HealthCheckResult:
     if not VECTOR_DIR.exists():
         return HealthCheckResult(
             "vector_store",
@@ -147,7 +160,11 @@ def _check_vector_store(*, require_vector_store: bool) -> HealthCheckResult:
     try:
         import chromadb
 
-        collection = chromadb.PersistentClient(path=str(VECTOR_DIR)).get_collection(COLLECTION_NAME)
+        collection = (
+            collection_loader()
+            if collection_loader is not None
+            else chromadb.PersistentClient(path=str(VECTOR_DIR)).get_collection(COLLECTION_NAME)
+        )
         actual = CorpusSignature.from_collection_metadata(collection.metadata)
         count = int(collection.count())
     except Exception as exc:

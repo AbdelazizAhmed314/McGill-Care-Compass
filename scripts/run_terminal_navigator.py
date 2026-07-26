@@ -1,4 +1,4 @@
-"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
+"""Terminal navigator for shared guarded RAG retrieval."""
 
 from __future__ import annotations
 
@@ -173,7 +173,7 @@ def route_context_choice(category_id: str) -> Choice:
 def build_intake_from_terminal() -> RetrievalIntake:
     """Collect structured terminal answers and return a retrieval intake."""
 
-    print("McGill Care Compass - Issue 4 terminal retrieval demo")
+    print("McGill Care Compass - terminal navigator")
     print("Use numbered choices. Type q to quit.\n")
 
     category = prompt_choice("1. What do you need help with?", category_choices())
@@ -322,7 +322,7 @@ def run_demo(args: argparse.Namespace) -> None:
 def parse_args() -> argparse.Namespace:
     """Parse terminal demo arguments."""
 
-    parser = argparse.ArgumentParser(description="Run the Issue 4 terminal retrieval demo.")
+    parser = argparse.ArgumentParser(description="Run the McGill Care Compass terminal navigator.")
     parser.add_argument(
         "--limit",
         type=int,

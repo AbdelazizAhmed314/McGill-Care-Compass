@@ -69,6 +69,21 @@ export function RecommendationResults({ result, onStartOver }: Props) {
         <div>
           <span className="eyebrow">Source-grounded response</span>
           <h1>Your recommended starting points</h1>
+          <div
+            className={`generation-badge ${result.generation_mode}`}
+            role="status"
+            aria-label={`Response generation: ${
+              result.generation_mode === "llm" ? "Responses API" : "Deterministic fallback"
+            }`}
+          >
+            <span aria-hidden="true" />
+            Response generation:{" "}
+            <strong>
+              {result.generation_mode === "llm"
+                ? "Responses API"
+                : "Deterministic fallback"}
+            </strong>
+          </div>
         </div>
         <div className="result-controls">
           <button
@@ -174,6 +189,29 @@ export function RecommendationResults({ result, onStartOver }: Props) {
           <h2>Retrieval diagnostics</h2>
           <dl>
             <Meta label="Generation mode" value={result.generation_mode} />
+            <Meta label="Application request ID" value={result.generation_diagnostics.request_id || "n/a"} />
+            <Meta label="Model" value={result.generation_diagnostics.model || "n/a"} />
+            <Meta label="LLM attempts" value={String(result.generation_diagnostics.attempts)} />
+            <Meta
+              label="Fallback reason code"
+              value={result.generation_diagnostics.fallback_reason_code || "none"}
+            />
+            <Meta
+              label="Validation reason code"
+              value={result.generation_diagnostics.validation_reason_code || "none"}
+            />
+            <Meta
+              label="OpenAI request ID"
+              value={result.generation_diagnostics.openai_request_id || "n/a"}
+            />
+            <Meta
+              label="OpenAI response ID"
+              value={result.generation_diagnostics.openai_response_id || "n/a"}
+            />
+            <Meta
+              label="Stage timings (ms)"
+              value={JSON.stringify(result.generation_diagnostics.timings_ms)}
+            />
             <Meta label="Relaxation level" value={String(result.relaxed_level)} />
             <Meta
               label="Matched filters"

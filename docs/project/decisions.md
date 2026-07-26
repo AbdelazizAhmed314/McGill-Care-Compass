@@ -120,7 +120,7 @@ Impact: readiness verifies counts and signatures. Runtime preparation never rest
 
 Decision: emit JSON Lines using a strict field allowlist and exclude intake text, source bodies, prompts, responses, and identifiers.
 
-Reason: operational diagnosis needs correlation, status, timing, stage, and exception class?not student-authored or retrieved content.
+Reason: operational diagnosis needs correlation, status, timing, stage, and exception class—not student-authored or retrieved content.
 
 Impact: API responses receive request IDs, failures remain diagnosable, and logs stay within the product privacy boundary.
 

@@ -41,7 +41,7 @@ npm run dev
 Open `http://127.0.0.1:5173`. For the compiled single-origin or container workflow, use [deployment.md](deployment.md). The CLI remains available with:
 
 ```powershell
-uv run python scripts/demo_issue4_terminal_intake.py
+uv run python scripts/run_terminal_navigator.py
 ```
 
 Set `PRELOAD_RETRIEVAL=1` in a production process to load and validate the embedding model and vector collection before readiness succeeds. Set `OPENAI_API_KEY` only when validated LLM-written responses are required; deterministic grouped recommendations remain available without it.

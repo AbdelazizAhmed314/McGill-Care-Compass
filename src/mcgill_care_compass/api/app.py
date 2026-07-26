@@ -20,7 +20,11 @@ from mcgill_care_compass.api.routes_intake import router as intake_router
 from mcgill_care_compass.api.routes_maintenance import router as maintenance_router
 from mcgill_care_compass.api.routes_recommendations import router as recommendations_router
 from mcgill_care_compass.api.runtime import get_retrieval_runtime
-from mcgill_care_compass.logging_utils import log_event
+from mcgill_care_compass.logging_utils import (
+    bind_request_id,
+    log_event,
+    reset_request_id,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB_DIST = ROOT / "web" / "dist"
@@ -62,22 +66,27 @@ def create_app() -> FastAPI:
     async def security_headers(request: Request, call_next):
         request_id = uuid4().hex
         started = time.perf_counter()
-        response = await call_next(request)
-        log_event(
-            "api_request",
-            request_id=request_id,
-            route=request.url.path,
-            status=response.status_code,
-            duration_ms=round((time.perf_counter() - started) * 1000, 2),
-            client_type="web_or_api",
-        )
-        response.headers["X-Request-ID"] = request_id
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        if request.url.path.startswith(API_PREFIX):
-            response.headers["Cache-Control"] = "no-store"
-        return response
+        token = bind_request_id(request_id)
+        try:
+            response = await call_next(request)
+            log_event(
+                "api_request",
+                route=request.url.path,
+                status=response.status_code,
+                duration_ms=round((time.perf_counter() - started) * 1000, 2),
+                client_type="web_or_api",
+            )
+            response.headers["X-Request-ID"] = request_id
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            if request.url.path.startswith("/api/"):
+                response.headers["Cache-Control"] = "no-store"
+            elif response.headers.get("content-type", "").startswith("text/html"):
+                response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            return response
+        finally:
+            reset_request_id(token)
 
     @application.exception_handler(RequestValidationError)
     async def safe_validation_handler(

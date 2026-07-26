@@ -8,6 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from mcgill_care_compass.llm_response import EvidenceOption, LlmResponseResult
+from mcgill_care_compass.logging_utils import current_request_id
 from mcgill_care_compass.presentation import (
     developer_evidence,
     recommended_next_step,
@@ -242,6 +243,18 @@ class EmergencyResourceResponse(StrictModel):
     source_url: str
 
 
+class GenerationDiagnosticsResponse(StrictModel):
+    request_id: str
+    generation_mode: Literal["llm", "deterministic"]
+    model: str
+    attempts: int
+    fallback_reason_code: str
+    validation_reason_code: str
+    openai_request_id: str
+    openai_response_id: str
+    timings_ms: dict[str, float]
+
+
 class RecommendationResponseModel(StrictModel):
     status: RecommendationStatus
     intake_summary: list[IntakeSummaryItem]
@@ -259,6 +272,7 @@ class RecommendationResponseModel(StrictModel):
     conflict_disclosure: ConflictDisclosureResponse
     official_sources: list[OfficialSourceResponse]
     generation_mode: Literal["llm", "deterministic"]
+    generation_diagnostics: GenerationDiagnosticsResponse
 
     @classmethod
     def from_domain(
@@ -388,6 +402,35 @@ class RecommendationResponseModel(StrictModel):
             official_sources=official_sources,
             generation_mode=(
                 "llm" if presentation is not None and presentation.used_llm else "deterministic"
+            ),
+            generation_diagnostics=GenerationDiagnosticsResponse(
+                request_id=current_request_id(),
+                generation_mode=(
+                    "llm" if presentation is not None and presentation.used_llm else "deterministic"
+                ),
+                model=presentation.model if presentation is not None else "",
+                attempts=presentation.attempts if presentation is not None else 0,
+                fallback_reason_code=(
+                    presentation.fallback_reason_code
+                    if presentation is not None
+                    else response.error_code
+                ),
+                validation_reason_code=(
+                    presentation.validation_reason_code if presentation is not None else ""
+                ),
+                openai_request_id=(
+                    presentation.openai_request_id if presentation is not None else ""
+                ),
+                openai_response_id=(
+                    presentation.openai_response_id if presentation is not None else ""
+                ),
+                timings_ms={
+                    key: round(value * 1000, 2)
+                    for key, value in (
+                        presentation.timings.items() if presentation is not None else ()
+                    )
+                    if key != "llm_attempts"
+                },
             ),
         )
 

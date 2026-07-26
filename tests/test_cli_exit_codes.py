@@ -18,7 +18,7 @@ maintenance_cli = load_script(
 )
 evaluation_cli = load_script("evaluation_cli", ROOT / "scripts" / "evaluate_recommendations.py")
 terminal_cli = load_script(
-    "terminal_cli", ROOT / "scripts" / "demo_issue4_terminal_intake.py"
+    "terminal_cli", ROOT / "scripts" / "run_terminal_navigator.py"
 )
 
 

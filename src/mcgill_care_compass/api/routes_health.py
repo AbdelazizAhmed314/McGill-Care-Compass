@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Response, status
 
+from mcgill_care_compass.api.runtime import get_vector_collection
 from mcgill_care_compass.api.schemas import HealthCheckResponse, HealthResponse
 from mcgill_care_compass.health import run_health_checks
 
@@ -15,7 +16,10 @@ def liveness() -> HealthResponse:
 
 @router.get("/ready", response_model=HealthResponse)
 def readiness(response: Response) -> HealthResponse:
-    report = run_health_checks(require_vector_store=True)
+    report = run_health_checks(
+        require_vector_store=True,
+        vector_collection_loader=get_vector_collection,
+    )
     if report.status == "fail":
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return HealthResponse(

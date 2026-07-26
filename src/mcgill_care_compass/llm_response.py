@@ -17,7 +17,7 @@ from mcgill_care_compass.guardrails import (
     adversarial_input_reasons,
     limitation_notice_for_category,
 )
-from mcgill_care_compass.logging_utils import log_exception
+from mcgill_care_compass.logging_utils import log_event
 from mcgill_care_compass.rag_ranking import source_priority_rank
 from mcgill_care_compass.retrieval import (
     RetrievalIntake,
@@ -138,7 +138,12 @@ class LlmResponseResult:
     markdown: str
     used_llm: bool
     fallback_reason: str = ""
+    fallback_reason_code: str = ""
+    validation_reason_code: str = ""
     model: str = DEFAULT_LLM_MODEL
+    openai_request_id: str = ""
+    openai_response_id: str = ""
+    attempts: int = 0
     raw_output: Mapping[str, Any] = field(default_factory=dict)
     timings: Mapping[str, float] = field(default_factory=dict)
     evidence_pack: EvidencePack | None = None
@@ -163,7 +168,7 @@ LLM_RESPONSE_SCHEMA: dict[str, Any] = {
         "properties": {
             "status": {
                 "type": "string",
-                "enum": ["matched", "insufficient_evidence", "conflicting_evidence"],
+                "enum": ["matched"],
             },
             "opening_summary": {"type": "string"},
             "primary_recommendation": {"$ref": "#/$defs/recommendation"},
@@ -352,6 +357,50 @@ def detect_material_conflicts(chunks: Sequence[RetrievedEvidence]) -> tuple[str,
     return tuple(dict.fromkeys(reasons))
 
 
+def _validation_reason_code(error: ValueError) -> str:
+    """Return a stable, privacy-safe code for a grounding validation failure."""
+
+    message = str(error)
+    prefixes = (
+        ("Could not parse Responses API output", "response_parse_error"),
+        ("LLM cited unavailable source IDs", "unsupported_source_id"),
+        ("Each recommendation must cite evidence", "mixed_or_missing_option_citations"),
+        ("LLM returned duplicate recommendation options", "duplicate_recommendation_option"),
+        ("LLM cited an unavailable URL", "official_source_url_mismatch"),
+        ("LLM returned duplicate official source pages", "duplicate_official_source_page"),
+        ("LLM returned a non-matched status", "non_matched_status"),
+        ("LLM matched response did not cite", "missing_recommendation_citations"),
+        ("LLM omitted official links", "missing_official_source_link"),
+        ("LLM introduced unsupported URLs", "unsupported_url"),
+        ("LLM omitted the required category limitation", "missing_required_limitation"),
+    )
+    return next(
+        (code for prefix, code in prefixes if message.startswith(prefix)), "validation_error"
+    )
+
+
+def _response_request_id(response: Any) -> str:
+    """Return the documented SDK request ID without depending on private internals."""
+
+    return str(getattr(response, "_request_id", "") or "")
+
+
+def _response_id(response: Any) -> str:
+    """Return the Responses API response identifier when available."""
+
+    return str(getattr(response, "id", "") or "")
+
+
+def _api_failure_reason_code(error: Exception) -> str:
+    """Return a stable code for SDK/network failures without logging exception text."""
+
+    if isinstance(error, ValueError):
+        return _validation_reason_code(error)
+    class_name = type(error).__name__
+    snake_name = re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).lower()
+    return f"responses_api_{snake_name}"
+
+
 def generate_llm_response(
     intake: RetrievalIntake,
     response: RetrievalResponse,
@@ -365,14 +414,24 @@ def generate_llm_response(
 ) -> LlmResponseResult:
     """Generate a structured LLM answer or return deterministic fallback Markdown."""
 
+    pipeline_start = time.perf_counter()
     timings: dict[str, float] = {}
     if is_emergency_intake(intake) or adversarial_input_reasons(intake.query):
         governed_response = retrieve_matches(intake)
         _, configured_model = _llm_env_config()
+        reason_code = f"governed_{governed_response.status}"
+        log_event(
+            "llm_response_skipped",
+            status=governed_response.status,
+            category_id=intake.category_id,
+            fallback_reason_code=reason_code,
+            generation_mode="deterministic",
+        )
         return LlmResponseResult(
             markdown=format_retrieval_response(governed_response, intake=intake),
             used_llm=False,
             fallback_reason=f"LLM skipped for {governed_response.status}",
+            fallback_reason_code=reason_code,
             model=model or configured_model or DEFAULT_LLM_MODEL,
             timings=timings if collect_timings else {},
         )
@@ -385,6 +444,8 @@ def generate_llm_response(
         max_chunks_per_option=max_chunks_per_option,
     )
     timings["evidence_pack"] = time.perf_counter() - pack_start
+    option_count = len(pack.options)
+    approved_chunk_count = sum(len(option.chunks) for option in pack.options)
     fallback_response = _limited_retrieval_response(
         response,
         pack=pack,
@@ -396,64 +457,178 @@ def generate_llm_response(
     api_key, configured_model = _llm_env_config()
     selected_model = model or configured_model or DEFAULT_LLM_MODEL
     if pack.status != "matched":
+        reason_code = f"evidence_pack_{pack.status}"
+        log_event(
+            "llm_response_skipped",
+            status=pack.status,
+            category_id=intake.category_id,
+            fallback_reason_code=reason_code,
+            generation_mode="deterministic",
+            model=selected_model,
+            option_count=option_count,
+            approved_chunk_count=approved_chunk_count,
+        )
         return LlmResponseResult(
             markdown=fallback,
             used_llm=False,
             fallback_reason=pack.fallback_reason or f"Evidence pack status: {pack.status}",
+            fallback_reason_code=reason_code,
             model=selected_model,
             timings=timings if collect_timings else {},
             evidence_pack=pack,
         )
 
     if client is None and not api_key:
+        reason_code = "openai_api_key_missing"
+        log_event(
+            "llm_response_skipped",
+            status="fallback",
+            category_id=intake.category_id,
+            fallback_reason_code=reason_code,
+            generation_mode="deterministic",
+            model=selected_model,
+            option_count=option_count,
+            approved_chunk_count=approved_chunk_count,
+        )
         return LlmResponseResult(
             markdown=fallback,
             used_llm=False,
             fallback_reason="OPENAI_API_KEY is not set.",
+            fallback_reason_code=reason_code,
             model=selected_model,
             timings=timings if collect_timings else {},
             evidence_pack=pack,
         )
 
+    openai_request_id = ""
+    openai_response_id = ""
+    attempts = 0
+    last_validation_reason_code = ""
     try:
         if client is None:
             from openai import OpenAI
 
             client = OpenAI(api_key=api_key)
-        openai_start = time.perf_counter()
-        raw = client.responses.create(
+        messages = _build_messages(intake, pack)
+        openai_duration = 0.0
+        log_event(
+            "llm_pipeline_started",
+            status="matched",
+            category_id=intake.category_id,
             model=selected_model,
-            input=_build_messages(intake, pack),
-            text={"format": LLM_RESPONSE_SCHEMA},
-            store=False,
+            option_count=option_count,
+            approved_chunk_count=approved_chunk_count,
         )
-        timings["openai_call"] = time.perf_counter() - openai_start
-        output = _parse_response_output(raw)
-        _enforce_required_limitation(output, intake)
-        validate_llm_output(output, pack, intake)
-        if output.get("status") != "matched":
-            return LlmResponseResult(
-                markdown=fallback,
-                used_llm=False,
-                fallback_reason=f"LLM returned {output.get('status', 'unknown')}.",
-                model=selected_model,
-                raw_output=output,
-                timings=timings if collect_timings else {},
-                evidence_pack=pack,
-            )
-        response_format_start = time.perf_counter()
-        markdown = format_llm_response(output)
-        timings["llm_response_format"] = time.perf_counter() - response_format_start
-        return LlmResponseResult(
-            markdown=markdown,
-            used_llm=True,
-            model=selected_model,
-            raw_output=output,
-            timings=timings if collect_timings else {},
-            evidence_pack=pack,
-        )
+        for attempt in range(2):
+            attempts = attempt + 1
+            try:
+                log_event(
+                    "llm_request_started",
+                    status="requesting",
+                    category_id=intake.category_id,
+                    model=selected_model,
+                    attempt=attempts,
+                    option_count=option_count,
+                    approved_chunk_count=approved_chunk_count,
+                )
+                openai_start = time.perf_counter()
+                raw = client.responses.create(
+                    model=selected_model,
+                    input=messages,
+                    text={"format": LLM_RESPONSE_SCHEMA},
+                    store=False,
+                )
+                attempt_duration = time.perf_counter() - openai_start
+                openai_duration += attempt_duration
+                openai_request_id = _response_request_id(raw)
+                openai_response_id = _response_id(raw)
+                log_event(
+                    "llm_response_received",
+                    status="validating",
+                    category_id=intake.category_id,
+                    model=selected_model,
+                    attempt=attempts,
+                    duration_ms=round(attempt_duration * 1000, 2),
+                    openai_request_id=openai_request_id,
+                    openai_response_id=openai_response_id,
+                )
+                output = _parse_response_output(raw)
+                _enforce_required_limitation(output, intake)
+                validate_llm_output(output, pack, intake)
+                timings["openai_call"] = openai_duration
+                timings["llm_attempts"] = float(attempts)
+                response_format_start = time.perf_counter()
+                markdown = format_llm_response(output)
+                timings["llm_response_format"] = time.perf_counter() - response_format_start
+                log_event(
+                    "llm_response_succeeded",
+                    status="matched",
+                    category_id=intake.category_id,
+                    model=selected_model,
+                    generation_mode="llm",
+                    llm_attempts=attempts,
+                    recommendation_count=1 + len(output.get("backup_options", []) or []),
+                    duration_ms=round((time.perf_counter() - pipeline_start) * 1000, 2),
+                    openai_request_id=openai_request_id,
+                    openai_response_id=openai_response_id,
+                )
+                return LlmResponseResult(
+                    markdown=markdown,
+                    used_llm=True,
+                    model=selected_model,
+                    validation_reason_code=last_validation_reason_code,
+                    openai_request_id=openai_request_id,
+                    openai_response_id=openai_response_id,
+                    attempts=attempts,
+                    raw_output=output,
+                    timings=timings if collect_timings else {},
+                    evidence_pack=pack,
+                )
+            except ValueError as exc:
+                last_validation_reason_code = _validation_reason_code(exc)
+                log_event(
+                    "llm_validation_failed",
+                    status="retrying" if not attempt else "fallback",
+                    category_id=intake.category_id,
+                    error_type=type(exc).__name__,
+                    stage="grounding_validation",
+                    validation_reason_code=last_validation_reason_code,
+                    attempt=attempts,
+                    model=selected_model,
+                    openai_request_id=openai_request_id,
+                    openai_response_id=openai_response_id,
+                )
+                if attempt:
+                    raise
+                log_event(
+                    "llm_response_retry",
+                    status="retrying",
+                    category_id=intake.category_id,
+                    validation_reason_code=last_validation_reason_code,
+                    attempt=attempts,
+                    model=selected_model,
+                )
+                messages = _build_retry_messages(intake, pack, exc)
     except Exception as exc:  # pragma: no cover - exact SDK exceptions vary.
-        log_exception("llm_response_error", exc, status="fallback", category_id=intake.category_id)
+        fallback_reason_code = _api_failure_reason_code(exc)
+        request_id_from_error = str(getattr(exc, "request_id", "") or "")
+        if request_id_from_error:
+            openai_request_id = request_id_from_error
+        log_event(
+            "llm_response_error",
+            status="fallback",
+            category_id=intake.category_id,
+            error_type=type(exc).__name__,
+            stage=("grounding_validation" if isinstance(exc, ValueError) else "responses_api"),
+            fallback_reason_code=fallback_reason_code,
+            validation_reason_code=last_validation_reason_code,
+            generation_mode="deterministic",
+            model=selected_model,
+            llm_attempts=attempts,
+            duration_ms=round((time.perf_counter() - pipeline_start) * 1000, 2),
+            openai_request_id=openai_request_id,
+            openai_response_id=openai_response_id,
+        )
         fallback_reason = (
             "LLM output failed grounding validation; deterministic fallback used."
             if isinstance(exc, ValueError)
@@ -463,7 +638,12 @@ def generate_llm_response(
             markdown=fallback,
             used_llm=False,
             fallback_reason=fallback_reason,
+            fallback_reason_code=fallback_reason_code,
+            validation_reason_code=last_validation_reason_code,
             model=selected_model,
+            openai_request_id=openai_request_id,
+            openai_response_id=openai_response_id,
+            attempts=attempts,
             timings=timings if collect_timings else {},
             evidence_pack=pack,
         )
@@ -623,7 +803,7 @@ def validate_llm_output(
         allowed_option_ids=pack.chunk_option_ids,
     )
     if output.get("status") != "matched":
-        return
+        raise ValueError("LLM returned a non-matched status for an approved evidence pack.")
     recommendation_ids: set[str] = set()
     recommendations = [
         output.get("primary_recommendation", {}),
@@ -641,10 +821,21 @@ def validate_llm_output(
         for source in output.get("official_sources", []) or []
         if source.get("source_id")
     }
-    missing_links = recommendation_ids - official_source_ids
-    if missing_links:
+    official_source_option_ids = {
+        pack.chunk_option_ids[source_id]
+        for source_id in official_source_ids
+        if source_id in pack.chunk_option_ids
+    }
+    recommendation_option_ids = {
+        pack.chunk_option_ids[source_id]
+        for source_id in recommendation_ids
+        if source_id in pack.chunk_option_ids
+    }
+    missing_link_options = recommendation_option_ids - official_source_option_ids
+    if missing_link_options:
         raise ValueError(
-            "LLM omitted official links for cited source IDs: " + ", ".join(sorted(missing_links))
+            "LLM omitted official links for recommendation options: "
+            + ", ".join(sorted(missing_link_options))
         )
 
     allowed_urls = set(pack.source_urls.values())
@@ -847,9 +1038,10 @@ def _build_messages(intake: RetrievalIntake, pack: EvidencePack) -> list[dict[st
             "non-duplicative corroboration. Return at most one recommendation and one "
             "official source per provided option; never present chunks from the same "
             "option as separate backups. Disclose what differs and give a human "
-            "verification step from the provided evidence. Return conflicting_evidence "
-            "only if no route can be presented without inventing facts. Include this exact "
-            "required limitation when non-empty: "
+            "verification step from the provided evidence. The approved evidence pack "
+            "has already passed the navigator's sufficiency checks, so return status "
+            "matched. If a detail is not supported, omit that detail instead of changing "
+            "the response status. Include this exact required limitation when non-empty: "
             f"{limitation_notice_for_category(intake.category_id)!r}."
         ),
         "options": [
@@ -869,6 +1061,33 @@ def _build_messages(intake: RetrievalIntake, pack: EvidencePack) -> list[dict[st
         },
         {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
     ]
+
+
+def _build_retry_messages(
+    intake: RetrievalIntake,
+    pack: EvidencePack,
+    error: ValueError,
+) -> list[dict[str, str]]:
+    """Repeat the approved request with a narrow grounding correction."""
+
+    messages = _build_messages(intake, pack)
+    messages.append(
+        {
+            "role": "user",
+            "content": (
+                "Your previous structured response failed deterministic grounding validation. "
+                f"Validator message: {error}. Correct the response without changing the "
+                "approved evidence. Return status matched. Each recommendation must cite one "
+                "or more chunk source_ids from exactly one provided option, and each "
+                "recommendation must use a distinct option. In official_sources, include one "
+                "representative cited source_id and its exact canonical_url for each "
+                "recommendation page; do not duplicate the same page for every supporting "
+                "chunk. Include no URLs outside the approved chunks and retain the exact "
+                "required limitation."
+            ),
+        }
+    )
+    return messages
 
 
 def _chunk_payload(evidence: RetrievedEvidence) -> dict[str, Any]:

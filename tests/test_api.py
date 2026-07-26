@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
+from threading import Barrier
+from time import sleep
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
@@ -222,6 +225,9 @@ def test_matched_result_uses_public_evidence_shape(monkeypatch) -> None:
     )
     assert payload["primary_result"]["source_ids_used"] == ["chunk-1"]
     assert payload["generation_mode"] == "llm"
+    assert payload["generation_diagnostics"]["generation_mode"] == "llm"
+    assert payload["generation_diagnostics"]["request_id"] == response.headers["X-Request-ID"]
+    assert payload["generation_diagnostics"]["model"]
     assert payload["primary_result"]["developer_details"]["chunk_id"] == "chunk-1"
     assert payload["intake_summary"][0] == {
         "label": "Main need",
@@ -324,6 +330,31 @@ def test_web_runtime_reuses_shared_local_embedding_loader(monkeypatch) -> None:
     runtime_module.clear_retrieval_runtime()
 
 
+def test_web_runtime_serializes_concurrent_chroma_initialization(monkeypatch) -> None:
+    collection = object()
+    calls: list[str] = []
+    start = Barrier(5)
+    runtime_module.clear_retrieval_runtime()
+
+    def load_collection():
+        calls.append("loaded")
+        sleep(0.02)
+        return collection
+
+    monkeypatch.setattr(runtime_module, "get_chroma_collection", load_collection)
+
+    def request_collection():
+        start.wait()
+        return runtime_module.get_vector_collection()
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        results = list(pool.map(lambda _index: request_collection(), range(5)))
+
+    assert results == [collection] * 5
+    assert calls == ["loaded"]
+    runtime_module.clear_retrieval_runtime()
+
+
 def test_production_lifespan_preloads_retrieval_runtime(monkeypatch) -> None:
     calls: list[str] = []
     monkeypatch.setenv("PRELOAD_RETRIEVAL", "1")
@@ -337,3 +368,16 @@ def test_production_lifespan_preloads_retrieval_runtime(monkeypatch) -> None:
         assert production_client.get("/api/v1/health/live").status_code == 200
 
     assert calls == ["loaded"]
+
+
+def test_frontend_html_disables_browser_caching(monkeypatch, tmp_path) -> None:
+    web_dist = tmp_path / "dist"
+    web_dist.mkdir()
+    (web_dist / "index.html").write_text("<html>current build</html>", encoding="utf-8")
+    monkeypatch.setattr(app_module, "WEB_DIST", web_dist)
+
+    response = TestClient(create_app()).get("/status")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-cache, no-store, must-revalidate"
+    assert "current build" in response.text

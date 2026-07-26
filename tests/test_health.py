@@ -25,12 +25,18 @@ def test_safe_event_fields_drops_sensitive_values() -> None:
         query="How do I submit a claim?",
         student_id="260000000",
         error_code="vector_store_unavailable",
+        validation_reason_code="unsupported_source_id",
+        openai_request_id="req_safe_test",
+        prompt="never log this",
+        model_output="never log this either",
     )
 
     assert fields == {
         "status": "system_error",
         "category_id": "insurance",
         "error_code": "vector_store_unavailable",
+        "validation_reason_code": "unsupported_source_id",
+        "openai_request_id": "req_safe_test",
     }
 
 

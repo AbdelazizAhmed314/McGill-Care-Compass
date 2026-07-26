@@ -9,6 +9,8 @@ htmlcov/
 
 # Environments
 .venv/
+.venv-*/
+.uv-cache/
 venv/
 .env
 .env.*
