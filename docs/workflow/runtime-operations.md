@@ -61,11 +61,12 @@ uv run python scripts/data/generate_maintenance_report.py
 uv run python scripts/data/generate_maintenance_report.py --fail-on-error
 uv run python scripts/data/generate_maintenance_report.py --fail-on-attention
 uv run python scripts/evaluate_recommendations.py
+uv run python scripts/evaluate_recommendations.py --check
 ```
 
 Maintenance output is operational and ignored under `data/silver/maintenance/`. Errors cover failed fetches, required-field gaps, and missing category page/chunk coverage. Warnings cover changed, new, or stale sources and chunk-quality findings. Intentional crawl skips are informational. `--fail-on-error` is the deployment gate; `--fail-on-attention` is the stricter reviewer gate.
 
-The fixed evaluation scenario source is version controlled under `data/evaluation/`. Its report records scenario, corpus, manifest, implementation, and Git signatures; relevance scenarios define expected category, acceptable service types, and a predeclared top-three pass rule. Safety gates separately test escalation/redaction, adversarial blocking, fallback handling, governed limitations, official links, and citation grounding. These automated checks support Issue 8 but do not replace the documented five-participant usability study.
+The fixed evaluation scenario source is version controlled under `data/evaluation/`. The command rebuilds a missing or signature-invalid ignored vector store from committed chunks. Its report records scenario, corpus, manifest, implementation, and Git signatures; relevance scenarios run through the shared pipeline and serialized API response contract with live LLM generation disabled. `--check` reruns the gate without rewriting evidence and rejects report drift. Safety gates separately test escalation/redaction, adversarial blocking, fallback handling, governed limitations, governed official links, and citation grounding. These automated checks support Issue 8 but do not replace the documented five-participant usability study.
 
 ## Update procedure
 

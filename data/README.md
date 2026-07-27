@@ -120,9 +120,13 @@ Run the fixed, version-controlled recommendation and safety evaluation:
 
 ```bash
 uv run python scripts/evaluate_recommendations.py
+uv run python scripts/evaluate_recommendations.py --check
 ```
 
-The scenario source is committed under `evaluation/`. Evaluation evidence is tied to corpus and
+The command rebuilds a missing or signature-invalid ignored vector store from
+the committed chunks. `--check` reruns the scenarios without rewriting evidence
+and fails when committed reports have drifted. The scenario source is committed
+under `evaluation/`. Evaluation evidence is tied to corpus and
 implementation signatures; it supports the Issue 8 quality package but does not replace participant
 usability testing.
 
