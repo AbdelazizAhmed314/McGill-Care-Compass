@@ -1,44 +1,65 @@
-# Issue 10 Usability Records
+# Issue 10 Usability Evidence
 
-`session_records.csv` is intentionally header-only until real sessions are
-conducted. Do not fabricate participant rows to make the acceptance gate pass.
-After the sessions, keep the schema-validated anonymous rows in this file so
-reviewers can verify that five completed records exist. Keep recruitment,
-scheduling, consent logistics, and any mapping between people and study-local
-codes outside the repository.
+`session_records.csv` and `findings.csv` are intentionally header-only until
+real sessions are conducted. Do not fabricate rows to make the acceptance gate
+pass. Keep recruitment lists, scheduling and consent logistics, recordings,
+verbatim notes, and mappings between people and study-local codes outside the
+repository.
 
-Use one anonymous row for each participant's primary task. `session_id` must be
-a study-local value from `U01` through `U999`, and `scenario_id` must be one of
-the five predefined task identifiers. Never enter a name, email, student ID,
-passport number, SIN, medical record number, detailed health description, or
-immigration identifier.
+## Anonymous session outcomes
 
-The scenario contract requires a limitation observation for `UT01_INSURANCE`,
-`UT02_HEALTHCARE`, `UT03_HOUSING`, and `UT05_TAX`; use
-`limitation_required=false` and `limitation_visible=false` for
-`UT04_DOCUMENTS`.
+Use one row in `session_records.csv` for each participant's primary task.
+`session_id` must be a study-local value from `U01` through `U999`, and
+`scenario_id` must be one of the five predefined task identifiers. Rotate the
+five scenarios so every scenario has at least one completed observation.
 
-`issue_tags` accepts only these controlled, non-identifying categories:
-`accessibility`, `error-recovery`, `form-flow`, `limitation-visibility`,
-`mobile-layout`, `navigation`, `performance`, `privacy`, `ranking`, `safety`,
-`source-visibility`, and `wording`. Separate multiple values with `|`.
+Never enter a name, email, student ID, passport number, SIN, medical record
+number, detailed health description, immigration identifier, or participant
+quotation. The analyzer derives whether a limitation is required from the
+fixed scenario ID. Record only whether the participant saw it; do not duplicate
+the policy in the CSV.
 
-For an observed issue, record its highest `issue_severity` (`low`, `medium`,
-`high`, or `critical`), whether it blocked the task, and an `issue_status` of
-`open`, `documented`, or `resolved`. Use `none` for both severity and status
-when no issue tag is present. Documented and resolved issues require a
-non-identifying `issue_reference`; critical issues always require one. Allowed
-forms are `issue:#123`, `pr:#123`, `commit:abcdef0`, or
-`docs:path/to/file.md`.
+## Controlled findings
 
-Generate aggregate findings with:
+Use one row in `findings.csv` for each distinct observed issue. A finding has
+one controlled tag, its own severity and disposition, and one or more affected
+study-local session IDs. This prevents one session's severity or status from
+being incorrectly applied to every issue it revealed.
+
+Allowed tags are `accessibility`, `error-recovery`, `form-flow`,
+`limitation-visibility`, `mobile-layout`, `navigation`, `performance`,
+`privacy`, `ranking`, `safety`, `source-visibility`, and `wording`.
+
+An `open` finding may reference `issue:#123` or `pr:#123`. A `documented`
+finding must reference an existing repository file as
+`docs:path/to/file.md`. A `resolved` finding must reference a commit that
+exists in the checked-out repository as `commit:abcdef0`. The analyzer verifies
+document and commit targets; a syntactically plausible but nonexistent
+reference cannot satisfy the evidence gate. Critical findings always require a
+reference and cannot remain open.
+
+## Proxy-only recruitment
+
+Target participants are preferred. If the final sample contains only proxies,
+create `proxy_recruitment_justification.md` with a non-identifying explanation
+of the target-recruitment attempt and why the approved proxy fallback was
+needed. Do not put names, contact details, schedules, or consent records in that
+file. Its content hash, not its text, appears in the aggregate report.
+
+## Generate and verify
 
 ```powershell
 uv run python scripts/analyze_usability.py
+uv run python scripts/analyze_usability.py --check
 ```
 
-The command returns `0` only after all documented Issue 10 targets pass,
-including five completed sessions, task completion, source and required
-limitation visibility, and no open critical issue. The generated report
-contains aggregate metrics and prioritized issue summaries, not participant
-rows.
+The first command writes aggregate JSON and Markdown findings. The `--check`
+form reruns the analysis without rewriting evidence and rejects missing or
+stale reports. CI accepts the valid header-only preparation state; once any
+session or finding rows are committed, it requires current reports and every
+Issue 10 target to pass.
+
+Readiness requires at least five completed sessions, coverage of all five
+scenarios, target participation or a justified proxy-only fallback, the
+documented performance and visibility thresholds, and no open critical
+finding. Aggregate reports never include participant-level rows.

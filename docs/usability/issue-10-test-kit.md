@@ -42,9 +42,9 @@ separate approved consent process exists.
 5. Start timing when the participant begins using the form.
 6. Stop timing when they identify a next step or say they cannot continue.
 7. Ask the feedback questions below.
-8. Record boolean results, ratings, and short controlled issue tags only.
-   Mark whether the assigned scenario requires a governed limitation and
-   whether the participant noticed it.
+8. Record anonymous boolean results and ratings in `session_records.csv`.
+   Record distinct controlled issues in `findings.csv`, using only study-local
+   affected-session IDs.
 9. Thank the participant and remind them that the prototype is not professional advice.
 
 ## Fictional Tasks
@@ -65,9 +65,9 @@ Rotate tasks across participants:
 Use the emergency scenario only as an additional safety observation, not as a
 replacement for a routine navigation task.
 
-Set `limitation_required` to `true` for `UT01`, `UT02`, `UT03`, and `UT05`.
-Set it to `false` for `UT04`; the analyzer rejects values that do not match
-this fixed scenario contract.
+The analyzer derives limitation requirements from this fixed task contract:
+`UT01`, `UT02`, `UT03`, and `UT05` require a limitation observation; `UT04`
+does not. Observers record only whether the required limitation was visible.
 
 ## Observer Rubric
 
@@ -79,7 +79,6 @@ Record `true` or `false` for:
 - Participant understood why it was recommended
 - Participant located the official source link
 - Participant noticed the limitation when one was required
-- A critical issue occurred
 
 A critical issue is one that could direct a user toward unsafe, fabricated, or
 materially misleading guidance, expose sensitive information, or prevent task
@@ -96,16 +95,13 @@ Ask:
 5. How useful was the navigator? (1–5)
 6. Was anything confusing or difficult to find?
 
-Convert the final answer into non-identifying tags such as `wording`,
-`form-flow`, `source-visibility`, `limitation-visibility`, `ranking`, or
-`mobile-layout`. Do not store verbatim participant quotations in the CSV.
-Only use the controlled tags documented in `data/usability/README.md`.
-
-For each observed issue, record its highest severity and whether it blocked the
-task. Use `open`, `documented`, or `resolved` for `issue_status`. A documented
-or resolved issue requires a constrained reference such as `issue:#123`,
-`pr:#123`, `commit:abcdef0`, or `docs:path/to/file.md`. Critical issues always
-require a reference and must not remain `open` for the aggregate gate to pass.
+Convert the final answer into distinct, non-identifying findings such as
+`wording`, `form-flow`, `source-visibility`, `limitation-visibility`,
+`ranking`, or `mobile-layout`. Do not store verbatim participant quotations.
+For each finding, record exactly one controlled tag, its severity, whether it
+blocked the task, its affected study-local session IDs, and its own status and
+reference. Follow the reference rules in `data/usability/README.md`; the
+analyzer verifies documented files and resolved commits.
 
 ## Analysis and Acceptance
 
@@ -113,11 +109,14 @@ After at least five sessions:
 
 ```powershell
 uv run python scripts/analyze_usability.py
+uv run python scripts/analyze_usability.py --check
 ```
 
 The aggregate gate checks:
 
 - At least five completed anonymous records
+- At least one observation for every predefined scenario
+- At least one target participant, or a privacy-safe proxy-only recruitment justification
 - At least 80% task completion
 - At least 80% identify an appropriate next step
 - At least 80% find a relevant service in the top three
@@ -134,7 +133,7 @@ task blocking, and number of affected sessions. Review that ranking, implement
 or document the highest-priority fixes, link the resulting issue/PR/commit, and
 rerun affected tasks after critical fixes.
 
-For Issue 10 review, commit the schema-validated anonymous session rows and the
-generated aggregate findings. Do not commit recruitment lists, schedules,
-contact information, consent logistics, participant-code mappings, recordings,
-or verbatim notes.
+For Issue 10 review, commit the schema-validated anonymous session and finding
+rows plus the generated aggregate reports. CI rejects report drift once rows
+exist. Do not commit recruitment lists, schedules, contact information,
+consent logistics, participant-code mappings, recordings, or verbatim notes.

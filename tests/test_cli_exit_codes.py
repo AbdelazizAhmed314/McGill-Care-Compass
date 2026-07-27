@@ -138,8 +138,12 @@ def test_usability_cli_returns_two_for_invalid_private_records(
         "parse_args",
         lambda: Namespace(
             records=tmp_path / "records.csv",
+            findings=tmp_path / "findings.csv",
+            proxy_justification=tmp_path / "proxy.md",
             json_output=tmp_path / "report.json",
             markdown_output=tmp_path / "report.md",
+            check=False,
+            ci=False,
         ),
     )
     monkeypatch.setattr(
@@ -149,3 +153,32 @@ def test_usability_cli_returns_two_for_invalid_private_records(
     )
 
     assert usability_cli.main() == 2
+
+
+def test_usability_ci_allows_valid_header_only_preparation(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(
+        usability_cli,
+        "parse_args",
+        lambda: Namespace(
+            records=tmp_path / "records.csv",
+            findings=tmp_path / "findings.csv",
+            proxy_justification=tmp_path / "proxy.md",
+            json_output=tmp_path / "report.json",
+            markdown_output=tmp_path / "report.md",
+            check=False,
+            ci=True,
+        ),
+    )
+    monkeypatch.setattr(usability_cli, "load_usability_records", lambda _path: [])
+    monkeypatch.setattr(
+        usability_cli,
+        "load_usability_findings",
+        lambda _path, _records: [],
+    )
+    monkeypatch.setattr(
+        usability_cli, "load_proxy_justification", lambda _path: None
+    )
+
+    assert usability_cli.main() == 0

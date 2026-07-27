@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import re
+import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean, median
 from typing import Any
 
+ROOT = Path(__file__).resolve().parents[2]
 REQUIRED_FIELDS = (
     "session_id",
     "participant_type",
@@ -21,27 +24,23 @@ REQUIRED_FIELDS = (
     "relevant_service_top_three",
     "explanation_understood",
     "source_link_visible",
-    "limitation_required",
     "limitation_visible",
     "confidence_before",
     "confidence_after",
     "usefulness_rating",
-    "critical_issue",
-    "issue_severity",
+)
+FINDING_FIELDS = (
+    "finding_id",
+    "issue_tag",
+    "severity",
     "task_blocked",
-    "issue_status",
-    "issue_reference",
-    "issue_tags",
+    "critical",
+    "status",
+    "reference",
+    "affected_session_ids",
 )
 PARTICIPANT_TYPES = {"target", "proxy"}
 BOOLEAN_VALUES = {"true": True, "false": False}
-SCENARIO_IDS = {
-    "UT01_INSURANCE",
-    "UT02_HEALTHCARE",
-    "UT03_HOUSING",
-    "UT04_DOCUMENTS",
-    "UT05_TAX",
-}
 SCENARIO_LIMITATION_REQUIREMENTS = {
     "UT01_INSURANCE": True,
     "UT02_HEALTHCARE": True,
@@ -49,6 +48,7 @@ SCENARIO_LIMITATION_REQUIREMENTS = {
     "UT04_DOCUMENTS": False,
     "UT05_TAX": True,
 }
+SCENARIO_IDS = frozenset(SCENARIO_LIMITATION_REQUIREMENTS)
 ISSUE_TAGS = {
     "accessibility",
     "error-recovery",
@@ -63,12 +63,18 @@ ISSUE_TAGS = {
     "source-visibility",
     "wording",
 }
-ISSUE_SEVERITIES = {"none", "low", "medium", "high", "critical"}
-ISSUE_STATUSES = {"none", "open", "documented", "resolved"}
-SEVERITY_WEIGHTS = {"none": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
+ISSUE_SEVERITIES = {"low", "medium", "high", "critical"}
+ISSUE_STATUSES = {"open", "documented", "resolved"}
+SEVERITY_WEIGHTS = {"low": 1, "medium": 2, "high": 3, "critical": 4}
 SESSION_ID_PATTERN = re.compile(r"U\d{2,3}")
-ISSUE_REFERENCE_PATTERN = re.compile(
-    r"(?:issue:#\d+|pr:#\d+|commit:[0-9a-f]{7,40}|docs:[a-z0-9][a-z0-9._/-]{0,100})"
+FINDING_ID_PATTERN = re.compile(r"F\d{2,3}")
+OPEN_REFERENCE_PATTERN = re.compile(r"(?:issue|pr):#\d+")
+DOCUMENT_REFERENCE_PATTERN = re.compile(r"docs:[a-z0-9][a-z0-9._/-]{0,100}")
+COMMIT_REFERENCE_PATTERN = re.compile(r"commit:[0-9a-f]{7,40}")
+DIRECT_IDENTIFIER_PATTERNS = (
+    re.compile(r"\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b", re.IGNORECASE),
+    re.compile(r"\b(?:student|passport|medical record|sin)\s*(?:id|number|#)", re.IGNORECASE),
+    re.compile(r"\b\d{8,}\b"),
 )
 
 
@@ -85,61 +91,110 @@ class UsabilityRecord:
     relevant_service_top_three: bool
     explanation_understood: bool
     source_link_visible: bool
-    limitation_required: bool
     limitation_visible: bool
     confidence_before: int
     confidence_after: int
     usefulness_rating: int
-    critical_issue: bool
-    issue_severity: str
+
+
+@dataclass(frozen=True)
+class UsabilityFinding:
+    """One controlled issue with finding-level severity and disposition."""
+
+    finding_id: str
+    issue_tag: str
+    severity: str
     task_blocked: bool
-    issue_status: str
-    issue_reference: str
-    issue_tags: tuple[str, ...]
+    critical: bool
+    status: str
+    reference: str
+    affected_session_ids: tuple[str, ...]
 
 
 def load_usability_records(path: Path) -> list[UsabilityRecord]:
-    """Load a CSV that contains only the approved anonymous fields."""
+    """Load a CSV that contains only the approved anonymous session fields."""
 
     with path.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
-        headers = tuple(reader.fieldnames or ())
-        missing = set(REQUIRED_FIELDS) - set(headers)
-        unexpected = set(headers) - set(REQUIRED_FIELDS)
-        if missing or unexpected:
-            details = []
-            if missing:
-                details.append("missing: " + ", ".join(sorted(missing)))
-            if unexpected:
-                details.append("unexpected: " + ", ".join(sorted(unexpected)))
-            raise ValueError("Invalid usability CSV fields (" + "; ".join(details) + ").")
+        _validate_headers(tuple(reader.fieldnames or ()), REQUIRED_FIELDS, "session")
         records = [_parse_record(row, row_number=index) for index, row in enumerate(reader, 2)]
     _validate_record_set(records)
     return records
 
 
-def analyze_usability(records: Sequence[UsabilityRecord]) -> dict[str, Any]:
+def load_usability_findings(
+    path: Path,
+    records: Sequence[UsabilityRecord],
+    *,
+    repository_root: Path = ROOT,
+) -> list[UsabilityFinding]:
+    """Load controlled finding rows and verify their local evidence references."""
+
+    with path.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        _validate_headers(tuple(reader.fieldnames or ()), FINDING_FIELDS, "finding")
+        findings = [
+            _parse_finding(row, row_number=index) for index, row in enumerate(reader, 2)
+        ]
+    _validate_finding_set(findings, records, repository_root=repository_root)
+    return findings
+
+
+def load_proxy_justification(path: Path) -> str | None:
+    """Return a content hash for a privacy-safe proxy-only recruitment rationale."""
+
+    if not path.exists():
+        return None
+    content = path.read_text(encoding="utf-8").strip()
+    if len(content) < 40:
+        raise ValueError("Proxy recruitment justification must contain a substantive rationale.")
+    if any(pattern.search(content) for pattern in DIRECT_IDENTIFIER_PATTERNS):
+        raise ValueError("Proxy recruitment justification contains a direct identifier pattern.")
+    return hashlib.sha256(content.encode()).hexdigest()
+
+
+def analyze_usability(
+    records: Sequence[UsabilityRecord],
+    findings: Sequence[UsabilityFinding] = (),
+    *,
+    proxy_justification_sha256: str | None = None,
+) -> dict[str, Any]:
     """Calculate the Issue 10 measures without exposing participant-level data."""
 
     records = tuple(records)
+    findings = tuple(findings)
     _validate_record_set(records)
+    _validate_finding_set(findings, records, repository_root=ROOT, verify_references=False)
     count = len(records)
     completed_records = [record for record in records if record.completed]
-    limitation_records = [record for record in records if record.limitation_required]
+    limitation_records = [
+        record
+        for record in records
+        if SCENARIO_LIMITATION_REQUIREMENTS[record.scenario_id]
+    ]
     confidence_changes = [
         record.confidence_after - record.confidence_before for record in records
     ]
     completion_times = [record.completion_seconds for record in completed_records]
-    critical_records = [record for record in records if record.critical_issue]
-    unresolved_critical_records = [
-        record for record in critical_records if record.issue_status == "open"
+    critical_findings = [finding for finding in findings if finding.critical]
+    unresolved_critical_findings = [
+        finding for finding in critical_findings if finding.status == "open"
     ]
+    scenario_counts = {
+        scenario_id: sum(
+            record.scenario_id == scenario_id for record in completed_records
+        )
+        for scenario_id in sorted(SCENARIO_IDS)
+    }
+    target_participants = sum(record.participant_type == "target" for record in records)
+    proxy_participants = sum(record.participant_type == "proxy" for record in records)
+    all_proxy_sample = count > 0 and target_participants == 0
     metrics = {
         "record_count": count,
         "completed_records": len(completed_records),
         "incomplete_records": count - len(completed_records),
-        "target_participants": sum(record.participant_type == "target" for record in records),
-        "proxy_participants": sum(record.participant_type == "proxy" for record in records),
+        "target_participants": target_participants,
+        "proxy_participants": proxy_participants,
         "task_completion_rate": _rate(records, "completed"),
         "identified_next_step_rate": _rate(records, "identified_next_step"),
         "relevant_service_top_three_rate": _rate(records, "relevant_service_top_three"),
@@ -163,14 +218,23 @@ def analyze_usability(records: Sequence[UsabilityRecord]) -> dict[str, Any]:
             if records
             else 0.0
         ),
-        "critical_issue_count": len(critical_records),
+        "finding_count": len(findings),
+        "critical_issue_count": len(critical_findings),
         "resolved_or_documented_critical_issue_count": (
-            len(critical_records) - len(unresolved_critical_records)
+            len(critical_findings) - len(unresolved_critical_findings)
         ),
-        "unresolved_critical_issue_count": len(unresolved_critical_records),
+        "unresolved_critical_issue_count": len(unresolved_critical_findings),
     }
     targets = {
         "minimum_completed_records": metrics["completed_records"] >= 5,
+        "scenario_coverage": all(scenario_counts.values()),
+        "target_or_justified_proxy_sample": (
+            count > 0
+            and (
+                target_participants > 0
+                or (all_proxy_sample and proxy_justification_sha256 is not None)
+            )
+        ),
         "task_completion": metrics["task_completion_rate"] >= 0.8,
         "identified_next_step": metrics["identified_next_step_rate"] >= 0.8,
         "relevant_service_top_three": metrics["relevant_service_top_three_rate"] >= 0.8,
@@ -189,19 +253,21 @@ def analyze_usability(records: Sequence[UsabilityRecord]) -> dict[str, Any]:
         "no_unresolved_critical_issues": metrics["unresolved_critical_issue_count"] == 0,
     }
     return {
-        "report_schema_version": "2",
+        "report_schema_version": "3",
         "status": "ready" if all(targets.values()) else "needs_attention",
         "metrics": metrics,
         "targets": targets,
-        "issue_tag_counts": _issue_tag_counts(records),
-        "prioritized_issues": _prioritized_issues(records),
+        "scenario_counts": scenario_counts,
+        "issue_tag_counts": _issue_tag_counts(findings),
+        "prioritized_issues": _prioritized_issues(findings),
         "recruitment": {
-            "target_participant_preferred": metrics["target_participants"] > 0,
-            "all_proxy_sample": count > 0 and metrics["target_participants"] == 0,
+            "target_participant_preferred": target_participants > 0,
+            "all_proxy_sample": all_proxy_sample,
+            "proxy_justification_sha256": proxy_justification_sha256,
         },
         "privacy": {
             "validated_record_contract": True,
-            "contains_participant_identifiers": False,
+            "direct_identifiers_rejected": True,
             "participant_level_rows_in_report": False,
         },
     }
@@ -214,8 +280,23 @@ def write_usability_reports(
 
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    json_path.write_text(_json_report(report), encoding="utf-8")
     markdown_path.write_text(format_usability_markdown(report), encoding="utf-8")
+
+
+def verify_usability_reports(
+    report: Mapping[str, Any], *, json_path: Path, markdown_path: Path
+) -> None:
+    """Reject missing or stale aggregate evidence without rewriting it."""
+
+    if not json_path.exists() or json_path.read_text(encoding="utf-8") != _json_report(report):
+        raise ValueError("Committed usability JSON is missing or stale.")
+    expected_markdown = format_usability_markdown(report)
+    if (
+        not markdown_path.exists()
+        or markdown_path.read_text(encoding="utf-8") != expected_markdown
+    ):
+        raise ValueError("Committed usability Markdown is missing or stale.")
 
 
 def format_usability_markdown(report: Mapping[str, Any]) -> str:
@@ -240,12 +321,18 @@ def format_usability_markdown(report: Mapping[str, Any]) -> str:
         f"- Median completion time: {metrics['median_completion_seconds']}",
         f"- Average confidence change: {metrics['average_confidence_change']}",
         f"- Average usefulness: {metrics['average_usefulness_rating']}/5",
+        f"- Controlled findings: {metrics['finding_count']}",
         f"- Critical issues: {metrics['critical_issue_count']}",
         f"- Unresolved critical issues: {metrics['unresolved_critical_issue_count']}",
         "",
-        "## Acceptance targets",
+        "## Scenario coverage",
         "",
     ]
+    lines.extend(
+        f"- `{scenario_id}`: {count}"
+        for scenario_id, count in report["scenario_counts"].items()
+    )
+    lines.extend(["", "## Acceptance targets", ""])
     lines.extend(
         f"- {'PASS' if passed else 'PENDING/FAIL'}: `{name}`"
         for name, passed in targets.items()
@@ -257,74 +344,96 @@ def format_usability_markdown(report: Mapping[str, Any]) -> str:
             (
                 f"- `{issue['tag']}`: severity `{issue['highest_severity']}`, "
                 f"{issue['affected_sessions']} affected, "
-                f"{issue['blocked_sessions']} blocked, "
-                f"{issue['unresolved_critical_sessions']} unresolved critical, "
+                f"{issue['blocked_findings']} blocked findings, "
+                f"{issue['unresolved_critical_findings']} unresolved critical findings, "
                 f"priority score {issue['priority_score']}"
             )
             for issue in prioritized_issues
         )
     else:
-        lines.append("- No issue tags recorded.")
+        lines.append("- No issue findings recorded.")
     lines.extend(
         [
             "",
             "## Privacy note",
             "",
-            "This report contains aggregate measures only. The source CSV must not contain "
-            "names, emails, student IDs, detailed health information, immigration identifiers, "
-            "or verbatim participant quotations.",
+            "This report contains aggregate measures only. The source CSVs reject "
+            "unapproved fields and direct-identifier patterns; they must not contain "
+            "names, emails, student IDs, detailed health information, immigration "
+            "identifiers, or verbatim participant quotations.",
             "",
         ]
     )
     return "\n".join(lines)
 
 
+def _json_report(report: Mapping[str, Any]) -> str:
+    return json.dumps(report, indent=2, sort_keys=True) + "\n"
+
+
+def _validate_headers(
+    headers: tuple[str, ...], expected: tuple[str, ...], record_type: str
+) -> None:
+    missing = set(expected) - set(headers)
+    unexpected = set(headers) - set(expected)
+    if missing or unexpected:
+        details = []
+        if missing:
+            details.append("missing: " + ", ".join(sorted(missing)))
+        if unexpected:
+            details.append("unexpected: " + ", ".join(sorted(unexpected)))
+        raise ValueError(
+            f"Invalid usability {record_type} CSV fields (" + "; ".join(details) + ")."
+        )
+
+
 def _parse_record(row: Mapping[str, str], *, row_number: int) -> UsabilityRecord:
-    session_id = str(row["session_id"]).strip()
-    scenario_id = str(row["scenario_id"]).strip().upper()
-    participant_type = str(row["participant_type"]).strip().lower()
-    completion_seconds = _float_value(row, "completion_seconds", row_number)
-    ratings = {
-        field: _rating_value(row, field, row_number)
-        for field in ("confidence_before", "confidence_after", "usefulness_rating")
-    }
-    boolean_fields = {
-        field: _boolean_value(row, field, row_number)
-        for field in (
-            "completed",
-            "identified_next_step",
-            "relevant_service_top_three",
-            "explanation_understood",
-            "source_link_visible",
-            "limitation_required",
-            "limitation_visible",
-            "critical_issue",
-            "task_blocked",
-        )
-    }
-    tags = tuple(
-        sorted(
-            {
-                tag.strip().lower()
-                for tag in str(row["issue_tags"]).split("|")
-                if tag.strip()
-            }
-        )
-    )
     record = UsabilityRecord(
-        session_id=session_id,
-        participant_type=participant_type,
-        scenario_id=scenario_id,
-        completion_seconds=completion_seconds,
-        issue_severity=str(row["issue_severity"]).strip().lower(),
-        issue_status=str(row["issue_status"]).strip().lower(),
-        issue_reference=str(row["issue_reference"]).strip().lower(),
-        issue_tags=tags,
-        **boolean_fields,
-        **ratings,
+        session_id=str(row["session_id"]).strip(),
+        participant_type=str(row["participant_type"]).strip().lower(),
+        scenario_id=str(row["scenario_id"]).strip().upper(),
+        completion_seconds=_float_value(row, "completion_seconds", row_number),
+        **{
+            field: _boolean_value(row, field, row_number)
+            for field in (
+                "completed",
+                "identified_next_step",
+                "relevant_service_top_three",
+                "explanation_understood",
+                "source_link_visible",
+                "limitation_visible",
+            )
+        },
+        **{
+            field: _rating_value(row, field, row_number)
+            for field in ("confidence_before", "confidence_after", "usefulness_rating")
+        },
     )
     _validate_record(record, row_number=row_number)
     return record
+
+
+def _parse_finding(row: Mapping[str, str], *, row_number: int) -> UsabilityFinding:
+    finding = UsabilityFinding(
+        finding_id=str(row["finding_id"]).strip().upper(),
+        issue_tag=str(row["issue_tag"]).strip().lower(),
+        severity=str(row["severity"]).strip().lower(),
+        task_blocked=_boolean_value(row, "task_blocked", row_number),
+        critical=_boolean_value(row, "critical", row_number),
+        status=str(row["status"]).strip().lower(),
+        reference=str(row["reference"]).strip().lower(),
+        affected_session_ids=tuple(
+            sorted(
+                {
+                    value.strip().upper()
+                    for value in str(row["affected_session_ids"]).split("|")
+                    if value.strip()
+                }
+            )
+        ),
+    )
+    _validate_finding(finding, row_number=row_number)
+    return finding
 
 
 def _validate_record_set(records: Sequence[UsabilityRecord]) -> None:
@@ -333,6 +442,31 @@ def _validate_record_set(records: Sequence[UsabilityRecord]) -> None:
     identifiers = [record.session_id for record in records]
     if len(identifiers) != len(set(identifiers)):
         raise ValueError("Usability session_id values must be unique.")
+
+
+def _validate_finding_set(
+    findings: Sequence[UsabilityFinding],
+    records: Sequence[UsabilityRecord],
+    *,
+    repository_root: Path,
+    verify_references: bool = True,
+) -> None:
+    session_ids = {record.session_id for record in records}
+    finding_ids = [finding.finding_id for finding in findings]
+    if len(finding_ids) != len(set(finding_ids)):
+        raise ValueError("Usability finding_id values must be unique.")
+    for index, finding in enumerate(findings, 2):
+        _validate_finding(finding, row_number=index)
+        unknown_sessions = set(finding.affected_session_ids) - session_ids
+        if unknown_sessions:
+            raise ValueError(
+                f"Finding row {index} references unknown session IDs: "
+                + ", ".join(sorted(unknown_sessions))
+            )
+        if verify_references:
+            _verify_finding_reference(
+                finding, row_number=index, repository_root=repository_root
+            )
 
 
 def _validate_record(record: UsabilityRecord, *, row_number: int) -> None:
@@ -344,59 +478,80 @@ def _validate_record(record: UsabilityRecord, *, row_number: int) -> None:
         raise ValueError(f"Row {row_number} has an unsupported participant_type.")
     if not 0 <= record.completion_seconds <= 3600:
         raise ValueError(f"Row {row_number} completion_seconds must be between 0 and 3600.")
-    for field in ("confidence_before", "confidence_after", "usefulness_rating"):
-        if not 1 <= getattr(record, field) <= 5:
-            raise ValueError(f"Row {row_number} field {field} must be between 1 and 5.")
-    unknown_tags = set(record.issue_tags) - ISSUE_TAGS
-    if unknown_tags:
+    if (
+        not SCENARIO_LIMITATION_REQUIREMENTS[record.scenario_id]
+        and record.limitation_visible
+    ):
         raise ValueError(
-            f"Row {row_number} has unsupported issue_tags: "
-            + ", ".join(sorted(unknown_tags))
+            f"Row {row_number} limitation_visible cannot be true for this scenario."
         )
-    if record.issue_severity not in ISSUE_SEVERITIES:
-        raise ValueError(f"Row {row_number} has an unsupported issue_severity.")
-    if record.issue_status not in ISSUE_STATUSES:
-        raise ValueError(f"Row {row_number} has an unsupported issue_status.")
-    if not record.issue_tags:
-        if (
-            record.issue_severity != "none"
-            or record.task_blocked
-            or record.critical_issue
-            or record.issue_status != "none"
-            or record.issue_reference
-        ):
+
+
+def _validate_finding(finding: UsabilityFinding, *, row_number: int) -> None:
+    if FINDING_ID_PATTERN.fullmatch(finding.finding_id) is None:
+        raise ValueError(f"Finding row {row_number} finding_id must use form F01-F999.")
+    if finding.issue_tag not in ISSUE_TAGS:
+        raise ValueError(f"Finding row {row_number} has an unsupported issue_tag.")
+    if finding.severity not in ISSUE_SEVERITIES:
+        raise ValueError(f"Finding row {row_number} has an unsupported severity.")
+    if finding.status not in ISSUE_STATUSES:
+        raise ValueError(f"Finding row {row_number} has an unsupported status.")
+    if not finding.affected_session_ids:
+        raise ValueError(f"Finding row {row_number} needs affected_session_ids.")
+    if any(
+        SESSION_ID_PATTERN.fullmatch(session_id) is None
+        for session_id in finding.affected_session_ids
+    ):
+        raise ValueError(f"Finding row {row_number} has an invalid affected session ID.")
+    if (finding.severity == "critical") != finding.critical:
+        raise ValueError(
+            f"Finding row {row_number} critical and severity must agree."
+        )
+    if finding.critical and not finding.reference:
+        raise ValueError(f"Finding row {row_number} critical issue needs a reference.")
+    expected_pattern = {
+        "open": OPEN_REFERENCE_PATTERN,
+        "documented": DOCUMENT_REFERENCE_PATTERN,
+        "resolved": COMMIT_REFERENCE_PATTERN,
+    }[finding.status]
+    if finding.reference and expected_pattern.fullmatch(finding.reference) is None:
+        raise ValueError(
+            f"Finding row {row_number} reference does not prove its {finding.status} status."
+        )
+    if finding.status != "open" and not finding.reference:
+        raise ValueError(
+            f"Finding row {row_number} needs a reference for {finding.status} status."
+        )
+
+
+def _verify_finding_reference(
+    finding: UsabilityFinding, *, row_number: int, repository_root: Path
+) -> None:
+    if finding.status == "documented":
+        relative_path = finding.reference.removeprefix("docs:")
+        reference_path = (repository_root / relative_path).resolve()
+        try:
+            reference_path.relative_to(repository_root.resolve())
+        except ValueError as error:
             raise ValueError(
-                f"Row {row_number} without issue_tags must use the no-issue values."
-            )
-    else:
-        if record.issue_severity == "none" or record.issue_status == "none":
+                f"Finding row {row_number} documentation reference escapes the repository."
+            ) from error
+        if not reference_path.is_file():
             raise ValueError(
-                f"Row {row_number} with issue_tags needs issue_severity and issue_status."
+                f"Finding row {row_number} documentation reference does not exist."
             )
-    if (record.issue_severity == "critical") != record.critical_issue:
-        raise ValueError(
-            f"Row {row_number} critical_issue and issue_severity must agree."
+    elif finding.status == "resolved":
+        revision = finding.reference.removeprefix("commit:")
+        result = subprocess.run(
+            ["git", "cat-file", "-e", f"{revision}^{{commit}}"],
+            cwd=repository_root,
+            capture_output=True,
+            check=False,
         )
-    expected_limitation = SCENARIO_LIMITATION_REQUIREMENTS[record.scenario_id]
-    if record.limitation_required != expected_limitation:
-        raise ValueError(
-            f"Row {row_number} limitation_required does not match the scenario contract."
-        )
-    if not expected_limitation and record.limitation_visible:
-        raise ValueError(
-            f"Row {row_number} limitation_visible cannot be true when not required."
-        )
-    reference_required = (
-        record.issue_status in {"documented", "resolved"} or record.critical_issue
-    )
-    if reference_required and not record.issue_reference:
-        raise ValueError(
-            f"Row {row_number} needs an issue_reference for this issue status."
-        )
-    if record.issue_reference and ISSUE_REFERENCE_PATTERN.fullmatch(
-        record.issue_reference
-    ) is None:
-        raise ValueError(f"Row {row_number} has an unsupported issue_reference.")
+        if result.returncode != 0:
+            raise ValueError(
+                f"Finding row {row_number} resolved commit does not exist."
+            )
 
 
 def _boolean_value(row: Mapping[str, str], field: str, row_number: int) -> bool:
@@ -430,50 +585,50 @@ def _rate(records: Sequence[UsabilityRecord], field: str) -> float:
     return round(passed / len(records), 4)
 
 
-def _issue_tag_counts(records: Sequence[UsabilityRecord]) -> dict[str, int]:
+def _issue_tag_counts(findings: Sequence[UsabilityFinding]) -> dict[str, int]:
     counts: dict[str, int] = {}
-    for record in records:
-        for tag in record.issue_tags:
-            counts[tag] = counts.get(tag, 0) + 1
+    for finding in findings:
+        counts[finding.issue_tag] = (
+            counts.get(finding.issue_tag, 0) + len(finding.affected_session_ids)
+        )
     return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
 
 
-def _prioritized_issues(records: Sequence[UsabilityRecord]) -> list[dict[str, Any]]:
+def _prioritized_issues(
+    findings: Sequence[UsabilityFinding],
+) -> list[dict[str, Any]]:
     aggregates: dict[str, dict[str, Any]] = {}
-    for record in records:
-        for tag in record.issue_tags:
-            issue = aggregates.setdefault(
-                tag,
-                {
-                    "tag": tag,
-                    "affected_sessions": 0,
-                    "blocked_sessions": 0,
-                    "critical_sessions": 0,
-                    "unresolved_critical_sessions": 0,
-                    "highest_severity": "none",
-                    "open_sessions": 0,
-                    "documented_sessions": 0,
-                    "resolved_sessions": 0,
-                },
-            )
-            issue["affected_sessions"] += 1
-            issue["blocked_sessions"] += int(record.task_blocked)
-            issue["critical_sessions"] += int(record.critical_issue)
-            issue["unresolved_critical_sessions"] += int(
-                record.critical_issue and record.issue_status == "open"
-            )
-            issue[f"{record.issue_status}_sessions"] += 1
-            if (
-                SEVERITY_WEIGHTS[record.issue_severity]
-                > SEVERITY_WEIGHTS[issue["highest_severity"]]
-            ):
-                issue["highest_severity"] = record.issue_severity
+    for finding in findings:
+        issue = aggregates.setdefault(
+            finding.issue_tag,
+            {
+                "tag": finding.issue_tag,
+                "affected_session_ids": set(),
+                "blocked_findings": 0,
+                "critical_findings": 0,
+                "unresolved_critical_findings": 0,
+                "highest_severity": "low",
+                "open_findings": 0,
+                "documented_findings": 0,
+                "resolved_findings": 0,
+            },
+        )
+        issue["affected_session_ids"].update(finding.affected_session_ids)
+        issue["blocked_findings"] += int(finding.task_blocked)
+        issue["critical_findings"] += int(finding.critical)
+        issue["unresolved_critical_findings"] += int(
+            finding.critical and finding.status == "open"
+        )
+        issue[f"{finding.status}_findings"] += 1
+        if SEVERITY_WEIGHTS[finding.severity] > SEVERITY_WEIGHTS[issue["highest_severity"]]:
+            issue["highest_severity"] = finding.severity
     prioritized = []
     for issue in aggregates.values():
+        issue["affected_sessions"] = len(issue.pop("affected_session_ids"))
         issue["priority_score"] = (
             SEVERITY_WEIGHTS[issue["highest_severity"]] * 100
-            + issue["unresolved_critical_sessions"] * 50
-            + issue["blocked_sessions"] * 20
+            + issue["unresolved_critical_findings"] * 50
+            + issue["blocked_findings"] * 20
             + issue["affected_sessions"]
         )
         prioritized.append(issue)
