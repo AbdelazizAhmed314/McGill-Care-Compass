@@ -406,4 +406,4 @@ Start with this action: [specific source-derived action]. Use the official sourc
 - Issues 4/6 provide the shared structured-intake, vector-retrieval, ranking, grouping, deterministic formatting, and optional validated LLM pipeline.
 - Issue 7 wires that pipeline to the FastAPI/React web app while retaining the CLI renderer; the web includes the optional privacy-guarded short question, the governed response sections, and a user-controlled developer-details toggle.
 - Issue 7 also owns emergency, high-risk, adversarial-input, unsupported, no-match, conflict-disclosure, system-error, maintenance, health, logging, and internal runtime behavior.
-- Issue 8 owns the fixed recommendation evaluation and participant usability evidence; the included scenario package is a reproducible baseline, not a substitute for the required usability sessions.
+- Issue 8 owns the fixed automated recommendation evaluation. Issue 10 owns participant usability evidence; the included scenario package is a reproducible system-test baseline, not a substitute for the required usability sessions.

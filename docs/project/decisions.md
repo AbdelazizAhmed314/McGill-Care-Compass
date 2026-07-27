@@ -126,8 +126,8 @@ Impact: API responses receive request IDs, failures remain diagnosable, and logs
 
 ## 2026-07-21 - Adopt the fixed evaluation package as an Issue 8 baseline
 
-Decision: version the labeled scenario set and deterministic evaluator now, while keeping the participant usability study in Issue 8.
+Decision: version the labeled scenario set and deterministic evaluator in Issue 8, while keeping the participant usability study as separate Issue 10 work.
 
 Reason: fixed expected categories, service types, pass rules, safety outcomes, and artifact signatures make regressions reproducible without claiming that automated checks prove usability.
 
-Impact: Issue 7 can verify integration safety and relevance consistently; Issue 8 remains responsible for final scenario results, remediation, and at least five participant sessions.
+Impact: Issue 7 can verify integration safety and relevance consistently; Issue 8 owns the final automated scenario results and remediation record, while Issue 10 owns at least five participant sessions and their findings.
