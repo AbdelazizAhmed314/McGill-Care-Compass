@@ -2,6 +2,10 @@
 
 `session_records.csv` is intentionally header-only until real sessions are
 conducted. Do not fabricate participant rows to make the acceptance gate pass.
+After the sessions, keep the schema-validated anonymous rows in this file so
+reviewers can verify that five completed records exist. Keep recruitment,
+scheduling, consent logistics, and any mapping between people and study-local
+codes outside the repository.
 
 Use one anonymous row for each participant's primary task. `session_id` must be
 a study-local value from `U01` through `U999`, and `scenario_id` must be one of

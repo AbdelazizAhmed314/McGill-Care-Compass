@@ -133,3 +133,8 @@ The report prioritizes controlled tags by severity, unresolved safety impact,
 task blocking, and number of affected sessions. Review that ranking, implement
 or document the highest-priority fixes, link the resulting issue/PR/commit, and
 rerun affected tasks after critical fixes.
+
+For Issue 10 review, commit the schema-validated anonymous session rows and the
+generated aggregate findings. Do not commit recruitment lists, schedules,
+contact information, consent logistics, participant-code mappings, recordings,
+or verbatim notes.
