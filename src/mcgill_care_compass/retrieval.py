@@ -15,6 +15,10 @@ from uuid import uuid4
 import pandas as pd
 
 from mcgill_care_compass.corpus_signature import CorpusSignature, corpus_signature
+from mcgill_care_compass.embedding_config import (
+    EMBEDDING_MODEL,
+    EMBEDDING_MODEL_REVISION,
+)
 from mcgill_care_compass.guardrails import (
     EmergencyResource,
     OfficialFallbackResource,
@@ -34,7 +38,6 @@ ROOT = Path(__file__).resolve().parents[2]
 CHUNKS_CSV = ROOT / "data" / "silver" / "datasets" / "rag_chunks.csv"
 VECTOR_DIR = ROOT / "data" / "silver" / "vector_store" / "chroma"
 COLLECTION_NAME = "mcgill_care_compass_rag"
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 NEED_TYPE_TO_BOOL = {
     "eligibility": "has_eligibility",
@@ -357,6 +360,8 @@ def load_embedding_model(embedding_model: str, local_only: bool):
     from sentence_transformers import SentenceTransformer
 
     options = {"local_files_only": True} if local_only else {}
+    if embedding_model == EMBEDDING_MODEL:
+        options["revision"] = EMBEDDING_MODEL_REVISION
     return SentenceTransformer(embedding_model, **options)
 
 

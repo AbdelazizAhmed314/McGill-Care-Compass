@@ -16,11 +16,14 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from mcgill_care_compass.embedding_config import (  # noqa: E402
+    EMBEDDING_MODEL,
+    EMBEDDING_MODEL_REVISION,
+)
 from mcgill_care_compass.rag_ranking import rank_retrieved_chunks  # noqa: E402
 
 VECTOR_DIR = ROOT / "data" / "silver" / "vector_store" / "chroma"
 COLLECTION_NAME = "mcgill_care_compass_rag"
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 NEED_TYPE_TO_BOOL = {
     "eligibility": "has_eligibility",
     "required_docs": "has_required_docs",
@@ -78,7 +81,12 @@ def main() -> None:
 
     client = chromadb.PersistentClient(path=str(VECTOR_DIR))
     collection = client.get_collection(COLLECTION_NAME)
-    model = SentenceTransformer(args.embedding_model)
+    model_options = (
+        {"revision": EMBEDDING_MODEL_REVISION}
+        if args.embedding_model == EMBEDDING_MODEL
+        else {}
+    )
+    model = SentenceTransformer(args.embedding_model, **model_options)
     query_embedding = model.encode([args.query], normalize_embeddings=True)[0].tolist()
     total_chunks = collection.count()
     if total_chunks == 0:
