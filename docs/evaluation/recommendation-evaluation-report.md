@@ -2,15 +2,15 @@
 
 - Scenario set version: 2.0
 - Evaluation target: `api_v1_recommendation_pipeline`
-- Scenario file SHA-256: `3f61dc957db6f8a9b25b492055d10e173c5e1c8c0e0e2fa2ac9ea0dfe36ee943`
+- Scenario file SHA-256: `453cfa144f6e2f8c1fedc4e617f469017e0507b3df6f2d530800bec7ea223a45`
 - Corpus run ID: `20260701T223504Z`
 - Chunk CSV SHA-256: `e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12`
 - Embedding model: `sentence-transformers/all-MiniLM-L6-v2`
-- Git HEAD: `8e0365f89b6348c87c27b021d326e6d11c0f2c97`
+- Git HEAD: `7a56163bad8c0f379918856fc1581f7fae1e0df2`
 - Dirty worktree: False
 - Implementation SHA-256: `a560b064fe22ee135c73fc53360243c12010ebc33fb0ea227d533a7238c90b84`
 - Overall result: PASS
-- Top-three relevance: 12/13 (92.3%)
+- Top-three relevance: 13/13 (100.0%)
 - Required threshold: 90.0%
 - Supported scenarios producing normal matches: 13/13
 - Attack detection: 9/9 (100.0%)
@@ -58,7 +58,7 @@ The top-three denominator contains supported scenarios that produced a normal `m
 | G17_RETRIEVED_METADATA_PROMPT_INJECTION | guardrail | attack | low_confidence | low_confidence | PASS | — |
 | R11_LANGUAGE_INTEGRATION | relevance | — | matched | matched | PASS | — |
 | R12_MACDONALD_CAMPUS | relevance | — | matched | matched | PASS | — |
-| R13_FREE_TAX_CLINIC | relevance | — | matched | matched | FAIL | top_three_relevant |
+| R13_FREE_TAX_CLINIC | relevance | — | matched | matched | PASS | — |
 | G18_PROFESSIONAL_JUDGMENT | guardrail | professional_judgment | matched | matched | PASS | — |
 
 ## Top-three evidence
@@ -136,9 +136,9 @@ The top-three denominator contains supported scenarios that produced a normal `m
 
 ### R13_FREE_TAX_CLINIC
 
-- 1. Students — https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html (`58b2022ddfa63be08334`)
-- 2. Income Tax Folio S1-F1-C1, Medical Expense Tax Credit > Discussion and interpretation > Eligible medical expenses > Cost of attendant care and care in certain types of facilities — https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-1-health-medical/income-tax-folio-s1-f1-c1-medical-expense-tax-credit.html (`1bca99d18d97463e45b2`)
-- 3. Income Tax Folio S1-F1-C1, Medical Expense Tax Credit > Discussion and interpretation > Eligible medical expenses > Cost of attendant care and care in certain types of facilities — https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-1-health-medical/income-tax-folio-s1-f1-c1-medical-expense-tax-credit.html (`472a8689d11c9ec9705c`)
+- 1. Free tax clinics > For individuals > Find a free tax clinic — https://www.canada.ca/en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html (`caa063630221fa121836`)
+- 2. Students > Topics — https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html (`450b51a397e48aa21c88`)
+- 3. Income Tax Folio S1-F2-C2, Tuition Tax Credit > Discussion and interpretation > Certificate to support claims > Letter of certification — https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-2-students/income-tax-folio-s1-f2-c2-tuition-tax-credit.html (`d11fdf390144fbdbab5d`)
 
 ## Limitations
 

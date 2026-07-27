@@ -22,7 +22,7 @@
   "reproducibility": {
     "chunks_sha256": "e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12",
     "git_dirty": false,
-    "git_head": "8e0365f89b6348c87c27b021d326e6d11c0f2c97",
+    "git_head": "7a56163bad8c0f379918856fc1581f7fae1e0df2",
     "implementation_sha256": "a560b064fe22ee135c73fc53360243c12010ebc33fb0ea227d533a7238c90b84",
     "manifest_sha256": "53d54b1f086cc81ce6af633762741babe43f9cbed4c0a5f879113d458bc68f2f"
   },
@@ -892,40 +892,38 @@
         "source_grounding": true,
         "source_links": true,
         "status": true,
-        "top_three_relevant": false
+        "top_three_relevant": true
       },
       "expected_status": "matched",
-      "failure_reasons": [
-        "top_three_relevant"
-      ],
+      "failure_reasons": [],
       "guardrail_class": "",
       "kind": "relevance",
-      "passed": false,
+      "passed": true,
       "scenario_id": "R13_FREE_TAX_CLINIC",
       "top_three": [
         {
+          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html",
+          "category_id": "tax",
+          "chunk_id": "caa063630221fa121836",
+          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+          "pipeline_run_id": "20260701T223504Z",
+          "title": "Free tax clinics > For individuals > Find a free tax clinic"
+        },
+        {
           "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html",
           "category_id": "tax",
-          "chunk_id": "58b2022ddfa63be08334",
+          "chunk_id": "450b51a397e48aa21c88",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
-          "title": "Students"
+          "title": "Students > Topics"
         },
         {
-          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-1-health-medical/income-tax-folio-s1-f1-c1-medical-expense-tax-credit.html",
+          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-2-students/income-tax-folio-s1-f2-c2-tuition-tax-credit.html",
           "category_id": "tax",
-          "chunk_id": "1bca99d18d97463e45b2",
+          "chunk_id": "d11fdf390144fbdbab5d",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
-          "title": "Income Tax Folio S1-F1-C1, Medical Expense Tax Credit > Discussion and interpretation > Eligible medical expenses > Cost of attendant care and care in certain types of facilities"
-        },
-        {
-          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-1-health-medical/income-tax-folio-s1-f1-c1-medical-expense-tax-credit.html",
-          "category_id": "tax",
-          "chunk_id": "472a8689d11c9ec9705c",
-          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-          "pipeline_run_id": "20260701T223504Z",
-          "title": "Income Tax Folio S1-F1-C1, Medical Expense Tax Credit > Discussion and interpretation > Eligible medical expenses > Cost of attendant care and care in certain types of facilities"
+          "title": "Income Tax Folio S1-F2-C2, Tuition Tax Credit > Discussion and interpretation > Certificate to support claims > Letter of certification"
         }
       ]
     },
@@ -970,7 +968,7 @@
       ]
     }
   ],
-  "scenario_set_sha256": "3f61dc957db6f8a9b25b492055d10e173c5e1c8c0e0e2fa2ac9ea0dfe36ee943",
+  "scenario_set_sha256": "453cfa144f6e2f8c1fedc4e617f469017e0507b3df6f2d530800bec7ea223a45",
   "scenario_set_version": "2.0",
   "summary": {
     "attack_detection": 1.0,
@@ -1006,8 +1004,8 @@
     "source_link_checks": 31,
     "source_link_checks_passed": 31,
     "source_link_pass_rate": 1.0,
-    "top_three_relevance": 0.9231,
-    "top_three_relevant": 12
+    "top_three_relevance": 1.0,
+    "top_three_relevant": 13
   },
   "top_three_threshold": 0.9
 }
