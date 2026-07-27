@@ -150,6 +150,7 @@ def test_version_controlled_scenario_set_satisfies_complete_contract() -> None:
 def test_evaluation_signature_covers_runtime_frontend_and_dependency_contracts() -> None:
     assert {
         "src/mcgill_care_compass/api/runtime.py",
+        "src/mcgill_care_compass/embedding_config.py",
         "web/src/api.ts",
         "pyproject.toml",
         "uv.lock",
@@ -157,6 +158,27 @@ def test_evaluation_signature_covers_runtime_frontend_and_dependency_contracts()
     }.issubset(evaluation_module.IMPLEMENTATION_PATHS)
     assert "scripts/analyze_usability.py" not in evaluation_module.IMPLEMENTATION_PATHS
     assert "src/mcgill_care_compass/usability.py" not in evaluation_module.IMPLEMENTATION_PATHS
+
+
+def test_every_runtime_source_path_is_explicitly_classified_for_signature() -> None:
+    discovered = {
+        path.relative_to(evaluation_module.ROOT).as_posix()
+        for source_root, patterns in (
+            (evaluation_module.ROOT / "scripts", ("*.py",)),
+            (
+                evaluation_module.ROOT / "src" / "mcgill_care_compass",
+                ("*.py",),
+            ),
+            (evaluation_module.ROOT / "web" / "src", ("*.ts", "*.tsx")),
+        )
+        for pattern in patterns
+        for path in source_root.rglob(pattern)
+    }
+    relevant = set(evaluation_module.IMPLEMENTATION_PATHS)
+    excluded = set(evaluation_module.IMPLEMENTATION_EXCLUDED_PATHS)
+
+    assert relevant.isdisjoint(excluded)
+    assert not discovered - relevant - excluded
 
 
 def test_official_source_check_uses_governed_source_catalog() -> None:
@@ -487,10 +509,9 @@ def test_report_verification_detects_result_drift(tmp_path) -> None:
             "pipeline_run_id": "run",
             "chunks_sha256": "chunks",
             "embedding_model": "model",
+            "embedding_model_revision": "revision",
         },
         "reproducibility": {
-            "git_head": "one",
-            "git_dirty": False,
             "implementation_sha256": "implementation",
             "manifest_sha256": "manifest",
         },

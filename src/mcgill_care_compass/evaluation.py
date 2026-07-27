@@ -6,7 +6,6 @@ import csv
 import hashlib
 import json
 import re
-import subprocess
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from functools import lru_cache
@@ -81,6 +80,7 @@ IMPLEMENTATION_PATHS = tuple(
             "src/mcgill_care_compass/api/runtime.py",
             "src/mcgill_care_compass/api/schemas.py",
             "src/mcgill_care_compass/corpus_signature.py",
+            "src/mcgill_care_compass/embedding_config.py",
             "src/mcgill_care_compass/evaluation.py",
             "src/mcgill_care_compass/explanations.py",
             "src/mcgill_care_compass/guardrails.py",
@@ -98,6 +98,36 @@ IMPLEMENTATION_PATHS = tuple(
             "web/src/types.ts",
         }
     )
+)
+IMPLEMENTATION_EXCLUDED_PATHS = frozenset(
+    {
+        "scripts/analyze_usability.py",
+        "scripts/data/build_rag_corpus.py",
+        "scripts/data/generate_maintenance_report.py",
+        "scripts/data/query_rag_corpus.py",
+        "scripts/data/validate_rag_corpus.py",
+        "scripts/health_check.py",
+        "scripts/prepare_runtime.py",
+        "scripts/run_api.py",
+        "scripts/run_terminal_navigator.py",
+        "src/mcgill_care_compass/__init__.py",
+        "src/mcgill_care_compass/api/__init__.py",
+        "src/mcgill_care_compass/api/app.py",
+        "src/mcgill_care_compass/api/routes_health.py",
+        "src/mcgill_care_compass/api/routes_intake.py",
+        "src/mcgill_care_compass/api/routes_maintenance.py",
+        "src/mcgill_care_compass/health.py",
+        "src/mcgill_care_compass/logging_utils.py",
+        "src/mcgill_care_compass/maintenance.py",
+        "src/mcgill_care_compass/runtime.py",
+        "src/mcgill_care_compass/usability.py",
+        "web/src/components/Navigator.test.tsx",
+        "web/src/components/StatusPage.test.tsx",
+        "web/src/components/StatusPage.tsx",
+        "web/src/main.tsx",
+        "web/src/test/setup.ts",
+        "web/src/vite-env.d.ts",
+    }
 )
 EVALUATION_LIMITATIONS = (
     "Results apply only to the fixed, versioned scenario set and do not cover every "
@@ -356,7 +386,6 @@ def run_evaluation(
             "chunks_sha256": signature.chunks_sha256,
             "manifest_sha256": _file_sha256(manifest_path),
             "implementation_sha256": _implementation_sha256(),
-            **_git_state(),
         },
         "limitations": list(EVALUATION_LIMITATIONS),
         "summary": {
@@ -533,11 +562,7 @@ def _report_with_scenario_signature(
 
 
 def _stable_report(report: Mapping[str, Any]) -> dict[str, Any]:
-    stable = json.loads(json.dumps(report))
-    reproducibility = stable.get("reproducibility", {})
-    reproducibility.pop("git_head", None)
-    reproducibility.pop("git_dirty", None)
-    return stable
+    return json.loads(json.dumps(report))
 
 
 def format_evaluation_markdown(report: Mapping[str, Any]) -> str:
@@ -555,8 +580,7 @@ def format_evaluation_markdown(report: Mapping[str, Any]) -> str:
         f"- Corpus run ID: `{corpus['pipeline_run_id']}`",
         f"- Chunk CSV SHA-256: `{corpus['chunks_sha256']}`",
         f"- Embedding model: `{corpus['embedding_model']}`",
-        f"- Git HEAD: `{reproducibility['git_head']}`",
-        f"- Dirty worktree: {reproducibility['git_dirty']}",
+        f"- Embedding model revision: `{corpus['embedding_model_revision']}`",
         f"- Implementation SHA-256: `{reproducibility['implementation_sha256']}`",
         f"- Overall result: {'PASS' if report['overall_pass'] else 'FAIL'}",
         f"- Top-three relevance: {summary['top_three_relevant']}/"
@@ -930,26 +954,3 @@ def _implementation_sha256() -> str:
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
-
-
-def _git_state() -> dict[str, Any]:
-    try:
-        head = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        dirty = bool(
-            subprocess.run(
-                ["git", "status", "--porcelain"],
-                cwd=ROOT,
-                check=True,
-                capture_output=True,
-                text=True,
-            ).stdout.strip()
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return {"git_head": "unavailable", "git_dirty": True}
-    return {"git_head": head, "git_dirty": dirty}

@@ -18,8 +18,9 @@ The implementation signature covers the Python modules and scripts that
 participate in recommendation generation, the React intake and recommendation
 display contract, governed source configuration, and locked Python and
 JavaScript dependencies. Operational or study-only modules are intentionally
-excluded so unrelated additions do not invalidate the recommendation evidence.
-CI reruns the evaluation and rejects committed report drift.
+excluded through an explicit, tested classification so new source files cannot
+silently escape review. CI runs for stacked pull requests, reruns the evaluation,
+and rejects committed report drift.
 
 ## Acceptance Mapping
 
@@ -33,7 +34,7 @@ CI reruns the evaluation and rejects committed report drift.
 | Expected categories and acceptable services | `expected_categories` and exact `acceptable_targets` in the scenario contract |
 | Top-three relevance rubric | Exact HTTPS host/path and service-title matching with a 90% required threshold |
 | Safety messages and official-source checks | Mandatory guardrail, limitation, source-link, and citation-grounding checks |
-| Repeatable execution | `uv run python scripts/evaluate_recommendations.py`; the command rebuilds a missing or signature-invalid vector store from tracked chunks |
+| Repeatable execution | `uv run python scripts/evaluate_recommendations.py`; the command rebuilds a missing or signature-invalid vector store from tracked chunks using the pinned embedding-model revision |
 | Machine-readable results | `data/evaluation/recommendation_evaluation_report.json` |
 | Reviewable results | `docs/evaluation/recommendation-evaluation-report.md` |
 | Automated regression coverage | `tests/test_evaluation.py` and `tests/test_cli_exit_codes.py` |
@@ -57,7 +58,9 @@ chunk corpus when necessary and must return exit code `0`. The generated report
 must identify `api_v1_recommendation_pipeline`, meet or exceed 90% top-three
 relevance, and pass every required guardrail, source-link, limitation, and
 grounding check. The `--check` form does not rewrite evidence; it rejects stale
-JSON or Markdown reports.
+JSON or Markdown reports. Reproducibility is based on governed content hashes
+and the pinned Hugging Face model revision, not on a volatile local Git dirty
+flag.
 
 ## Recorded Finding
 

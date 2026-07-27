@@ -9,7 +9,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-SIGNATURE_SCHEMA_VERSION = "1"
+from mcgill_care_compass.embedding_config import (
+    EMBEDDING_MODEL,
+    EMBEDDING_MODEL_REVISION,
+)
+
+SIGNATURE_SCHEMA_VERSION = "2"
 METADATA_PREFIX = "mcc_"
 
 
@@ -22,7 +27,7 @@ class CorpusSignature:
     pipeline_run_id: str
     embedding_model: str
     artifact_schema_version: str
-    embedding_model_revision: str = "unresolved"
+    embedding_model_revision: str = EMBEDDING_MODEL_REVISION
     signature_schema_version: str = SIGNATURE_SCHEMA_VERSION
 
     def to_dict(self) -> dict[str, str | int]:
@@ -91,17 +96,31 @@ def corpus_signature(path: Path) -> CorpusSignature:
             _add_value(embedding_models, row.get("embedding_model"))
             _add_value(artifact_versions, row.get("artifact_schema_version"))
             _add_value(embedding_revisions, row.get("embedding_model_revision"))
+    embedding_model = _single_required(embedding_models, "embedding_model")
+    if embedding_revisions:
+        embedding_model_revision = _single_required(
+            embedding_revisions, "embedding_model_revision"
+        )
+    elif embedding_model == EMBEDDING_MODEL:
+        embedding_model_revision = EMBEDDING_MODEL_REVISION
+    else:
+        raise ValueError(
+            "Chunk CSV must declare embedding_model_revision for non-default models."
+        )
+    if (
+        embedding_model == EMBEDDING_MODEL
+        and embedding_model_revision != EMBEDDING_MODEL_REVISION
+    ):
+        raise ValueError(
+            "Chunk CSV embedding_model_revision does not match the pinned runtime revision."
+        )
     return CorpusSignature(
         chunks_sha256=digest,
         chunk_count=count,
         pipeline_run_id=_single_required(run_ids, "pipeline_run_id"),
-        embedding_model=_single_required(embedding_models, "embedding_model"),
+        embedding_model=embedding_model,
         artifact_schema_version=_single_required(artifact_versions, "artifact_schema_version"),
-        embedding_model_revision=(
-            _single_required(embedding_revisions, "embedding_model_revision")
-            if embedding_revisions
-            else "unresolved"
-        ),
+        embedding_model_revision=embedding_model_revision,
     )
 
 
