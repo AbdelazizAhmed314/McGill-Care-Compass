@@ -49,6 +49,15 @@ identify `api_v1_recommendation_pipeline`, record a clean Git worktree, and
 meet or exceed 90% top-three relevance while passing every required guardrail,
 source-link, limitation, and grounding check.
 
+## Recorded Finding
+
+The final-runtime run returns 12 relevant top-three results across 13 supported
+journeys (92.3%), above the required 90% threshold. `R13_FREE_TAX_CLINIC`
+returns a normal, source-grounded match but does not place its exact acceptable
+target in the top three. This remains a documented ranking improvement rather
+than being hidden by weakening the scenario rubric. All 18 guardrail scenarios
+and every required source-link, limitation, and grounding check pass.
+
 ## Limitations
 
 This evaluation is a fixed, reproducible system test. It is not participant
