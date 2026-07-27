@@ -2,26 +2,32 @@
 
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
+import re
 import subprocess
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
 import yaml
 
+from mcgill_care_compass.api.schemas import RecommendationResponseModel
 from mcgill_care_compass.corpus_signature import corpus_signature
-from mcgill_care_compass.explanations import format_retrieval_response
 from mcgill_care_compass.guardrails import limitation_notice
+from mcgill_care_compass.recommendation_pipeline import (
+    RecommendationPipelineResult,
+    run_recommendation_pipeline,
+)
 from mcgill_care_compass.retrieval import (
     CHUNKS_CSV,
     RetrievalIntake,
     RetrievalResponse,
     retrieve_matches,
-    retrieve_matches_safely,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +35,7 @@ DEFAULT_SCENARIOS = ROOT / "data" / "evaluation" / "recommendation_scenarios.yml
 DEFAULT_JSON_REPORT = ROOT / "data" / "evaluation" / "recommendation_evaluation_report.json"
 DEFAULT_MARKDOWN_REPORT = ROOT / "docs" / "evaluation" / "recommendation-evaluation-report.md"
 MANIFEST_PATH = ROOT / "data" / "silver" / "reports" / "rag_run_manifest.json"
+SOURCE_CATALOG_PATH = ROOT / "data" / "source-inputs" / "rag_seed_urls.csv"
 CONTROLLED_MODES = {
     "",
     "empty_collection",
@@ -59,34 +66,46 @@ REQUIRED_ATTACK_REASONS = {
     "sensitive_identifier",
     "retrieved_prompt_injection",
 }
-IMPLEMENTATION_PATHS = (
-    "scripts/data/build_rag_corpus.py",
-    "scripts/data/generate_maintenance_report.py",
-    "scripts/data/validate_rag_corpus.py",
-    "scripts/run_terminal_navigator.py",
-    "scripts/evaluate_recommendations.py",
-    "scripts/health_check.py",
-    "scripts/prepare_runtime.py",
-    "src/mcgill_care_compass/corpus_signature.py",
-    "src/mcgill_care_compass/evaluation.py",
-    "src/mcgill_care_compass/explanations.py",
-    "src/mcgill_care_compass/guardrails.py",
-    "src/mcgill_care_compass/llm_response.py",
-    "src/mcgill_care_compass/maintenance.py",
-    "src/mcgill_care_compass/logging_utils.py",
-    "src/mcgill_care_compass/rag_ranking.py",
-    "src/mcgill_care_compass/retrieval.py",
-    "src/mcgill_care_compass/runtime.py",
-    "src/mcgill_care_compass/health.py",
-    "src/mcgill_care_compass/recommendation_pipeline.py",
+EVALUATION_TARGET = "api_v1_recommendation_pipeline"
+IMPLEMENTATION_PATHS = tuple(
+    sorted(
+        {
+            "pyproject.toml",
+            "uv.lock",
+            "web/package.json",
+            "web/package-lock.json",
+            "data/source-inputs/questionnaire_metadata_map.yml",
+            "data/source-inputs/rag_seed_urls.csv",
+            "scripts/evaluate_recommendations.py",
+            "src/mcgill_care_compass/api/routes_recommendations.py",
+            "src/mcgill_care_compass/api/runtime.py",
+            "src/mcgill_care_compass/api/schemas.py",
+            "src/mcgill_care_compass/corpus_signature.py",
+            "src/mcgill_care_compass/evaluation.py",
+            "src/mcgill_care_compass/explanations.py",
+            "src/mcgill_care_compass/guardrails.py",
+            "src/mcgill_care_compass/intake_contract.py",
+            "src/mcgill_care_compass/llm_response.py",
+            "src/mcgill_care_compass/presentation.py",
+            "src/mcgill_care_compass/rag_ranking.py",
+            "src/mcgill_care_compass/recommendation_pipeline.py",
+            "src/mcgill_care_compass/retrieval.py",
+            "web/src/App.tsx",
+            "web/src/api.ts",
+            "web/src/components/NavigatorForm.tsx",
+            "web/src/components/RecommendationResults.tsx",
+            "web/src/styles.css",
+            "web/src/types.ts",
+        }
+    )
 )
 EVALUATION_LIMITATIONS = (
     "Results apply only to the fixed, versioned scenario set and do not cover every "
     "possible real-world input.",
     "Empty, low-confidence, retrieved-injection, and system-error outcomes use controlled "
     "dependencies while traversing the production retrieval and safety logic.",
-    "The optional LLM layer is covered with controlled test responses, not a live API "
-    "evaluation, so provider variability and live-model behavior are not measured here.",
+    "The shared pipeline is evaluated with live LLM generation disabled, so provider "
+    "variability and live-model behavior are not measured here.",
     "Adversarial checks cover defined English-language patterns and bounded normalization; "
     "they are not exhaustive against multilingual, semantic, adaptive, or future attacks.",
     "The suite does not include adaptive human red-team testing, load or latency benchmarks, "
@@ -147,11 +166,15 @@ def load_scenario_set(path: Path = DEFAULT_SCENARIOS) -> dict[str, Any]:
     payload = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or not isinstance(payload.get("scenarios"), list):
         raise ValueError("Scenario file must contain a scenarios list.")
-    if str(payload.get("scenario_set_version", "")) != "2.0":
-        raise ValueError("Scenario file must use scenario_set_version 2.0.")
+    if str(payload.get("scenario_set_version", "")) != "2.1":
+        raise ValueError("Scenario file must use scenario_set_version 2.1.")
     threshold = float(payload.get("top_three_threshold", 0.9))
     if not 0.0 <= threshold <= 1.0:
         raise ValueError("top_three_threshold must be between 0 and 1.")
+    if str(payload.get("evaluation_target", "")) != EVALUATION_TARGET:
+        raise ValueError(
+            "Scenario file must target the final api_v1_recommendation_pipeline."
+        )
 
     identifiers: set[str] = set()
     kinds: set[str] = set()
@@ -323,6 +346,9 @@ def run_evaluation(
     return {
         "report_schema_version": "2",
         "scenario_set_version": str(scenario_set["scenario_set_version"]),
+        "evaluation_target": str(
+            scenario_set.get("evaluation_target", EVALUATION_TARGET)
+        ),
         "top_three_threshold": threshold,
         "overall_pass": overall_pass,
         "corpus": signature.to_dict(),
@@ -382,46 +408,64 @@ def evaluate_scenario(
     scenario: Mapping[str, Any],
     *,
     retriever: Callable[..., RetrievalResponse] = retrieve_matches,
+    pipeline_runner: Callable[..., RecommendationPipelineResult] = run_recommendation_pipeline,
 ) -> ScenarioResult:
-    """Evaluate one scenario with explicit relevance and safety assertions."""
+    """Evaluate one scenario through the shared pipeline and API response contract."""
 
     intake = RetrievalIntake(**dict(scenario["intake"]))
-    response, controlled = _scenario_response(scenario, intake, retriever)
-    rendered = format_retrieval_response(response, intake=intake)
-    evidence = tuple(
-        item for item in (response.primary_result, *response.backup_results) if item is not None
-    )[:3]
-    top_three = tuple(
-        {
-            "chunk_id": item.chunk_id,
-            "title": item.title,
-            "category_id": str(item.raw_chunk.get("category_id", "")),
-            "canonical_url": item.canonical_url,
-            "pipeline_run_id": str(item.raw_chunk.get("pipeline_run_id", "")),
-            "embedding_model": str(item.raw_chunk.get("embedding_model", "")),
-        }
-        for item in evidence
+    pipeline, controlled = _scenario_pipeline(scenario, intake, retriever, pipeline_runner)
+    response = pipeline.retrieval
+    api_response = RecommendationResponseModel.from_domain(
+        response,
+        intake=intake,
+        presentation=pipeline.presentation,
     )
-    checks: dict[str, bool] = {"status": response.status == scenario["expected_status"]}
+    rendered = json.dumps(api_response.model_dump(mode="json"), sort_keys=True)
+    evidence = tuple(
+        item
+        for item in (api_response.primary_result, *api_response.backup_results)
+        if item is not None
+    )[:3]
+    retrieved_evidence = tuple(
+        item for item in (response.primary_result, *response.backup_results) if item is not None
+    )
+    top_three = tuple(_presented_evidence_record(item, retrieved_evidence) for item in evidence)
+    checks: dict[str, bool] = {
+        "status": api_response.status == scenario["expected_status"],
+        "api_contract": api_response.status == response.status,
+    }
     if scenario["kind"] == "relevance":
         expected_categories = set(map(str, scenario.get("expected_categories", [])))
         checks["top_three_relevant"] = any(
-            (not expected_categories or item.raw_chunk.get("category_id") in expected_categories)
+            (not expected_categories or item.category_id in expected_categories)
             and any(_matches_target(item, target) for target in scenario["acceptable_targets"])
             for item in evidence
         )
         if scenario.get("must_include_source_link", True):
-            checks["source_links"] = bool(evidence) and all(
-                _valid_source_url(item.canonical_url) for item in evidence
+            official_urls = {item.url for item in api_response.official_sources}
+            checks["source_links"] = (
+                bool(evidence)
+                and bool(official_urls)
+                and all(_valid_source_url(url) for url in official_urls)
+                and all(
+                    _valid_source_url(item.canonical_url)
+                    and item.canonical_url in official_urls
+                    for item in evidence
+                )
             )
             checks["source_grounding"] = bool(evidence) and all(
-                item.canonical_url == str(item.raw_chunk.get("canonical_url", ""))
-                and item.chunk_id == str(item.raw_chunk.get("chunk_id", ""))
-                for item in evidence
+                _presented_evidence_is_grounded(item, retrieved_evidence) for item in evidence
             )
         if scenario.get("must_include_limitation", False):
             required = limitation_notice(intake.category_id)
-            checks["limitation"] = bool(required and required in rendered)
+            presented_limitations = [
+                api_response.limitation_notice or "",
+                *api_response.limitations,
+                *(item.limitation for item in evidence),
+            ]
+            checks["limitation"] = bool(
+                required and any(required in item for item in presented_limitations)
+            )
     else:
         checks.update(_guardrail_checks(scenario, intake, response, rendered, controlled))
     failures = tuple(name for name, passed in checks.items() if not passed)
@@ -447,12 +491,53 @@ def write_evaluation_reports(
 ) -> None:
     """Write stable JSON and Markdown reports tied to the fixed scenario file."""
 
-    output = dict(report)
-    output["scenario_set_sha256"] = _file_sha256(scenario_path)
+    output = _report_with_scenario_signature(report, scenario_path)
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     markdown_path.write_text(format_evaluation_markdown(output), encoding="utf-8")
+
+
+def verify_evaluation_reports(
+    report: Mapping[str, Any],
+    *,
+    scenario_path: Path = DEFAULT_SCENARIOS,
+    json_path: Path = DEFAULT_JSON_REPORT,
+    markdown_path: Path = DEFAULT_MARKDOWN_REPORT,
+) -> None:
+    """Reject committed reports that have drifted from a current evaluation run."""
+
+    if not json_path.is_file() or not markdown_path.is_file():
+        raise ValueError("Committed evaluation reports are missing.")
+    current = _report_with_scenario_signature(report, scenario_path)
+    committed = json.loads(json_path.read_text(encoding="utf-8"))
+    if _stable_report(current) != _stable_report(committed):
+        raise ValueError(
+            "Committed evaluation JSON is stale. Regenerate it with "
+            "scripts/evaluate_recommendations.py."
+        )
+    expected_markdown = format_evaluation_markdown(committed)
+    if markdown_path.read_text(encoding="utf-8") != expected_markdown:
+        raise ValueError(
+            "Committed evaluation Markdown does not match the JSON report. Regenerate it "
+            "with scripts/evaluate_recommendations.py."
+        )
+
+
+def _report_with_scenario_signature(
+    report: Mapping[str, Any], scenario_path: Path
+) -> dict[str, Any]:
+    output = dict(report)
+    output["scenario_set_sha256"] = _file_sha256(scenario_path)
+    return output
+
+
+def _stable_report(report: Mapping[str, Any]) -> dict[str, Any]:
+    stable = json.loads(json.dumps(report))
+    reproducibility = stable.get("reproducibility", {})
+    reproducibility.pop("git_head", None)
+    reproducibility.pop("git_dirty", None)
+    return stable
 
 
 def format_evaluation_markdown(report: Mapping[str, Any]) -> str:
@@ -465,6 +550,7 @@ def format_evaluation_markdown(report: Mapping[str, Any]) -> str:
         "# Recommendation Evaluation Report",
         "",
         f"- Scenario set version: {report['scenario_set_version']}",
+        f"- Evaluation target: `{report.get('evaluation_target', EVALUATION_TARGET)}`",
         f"- Scenario file SHA-256: `{report.get('scenario_set_sha256', 'not recorded')}`",
         f"- Corpus run ID: `{corpus['pipeline_run_id']}`",
         f"- Chunk CSV SHA-256: `{corpus['chunks_sha256']}`",
@@ -539,44 +625,46 @@ def evaluation_exit_code(report: Mapping[str, Any]) -> int:
     return 0 if report.get("overall_pass") is True else 1
 
 
-def _scenario_response(
+def _scenario_pipeline(
     scenario: Mapping[str, Any],
     intake: RetrievalIntake,
     retriever: Callable[..., RetrievalResponse],
-) -> tuple[RetrievalResponse, dict[str, bool]]:
+    pipeline_runner: Callable[..., RecommendationPipelineResult],
+) -> tuple[RecommendationPipelineResult, dict[str, bool]]:
     controlled_mode = str(scenario.get("controlled_mode", ""))
     controlled: dict[str, bool] = {}
-    kwargs: dict[str, Any] = {"limit": 3}
+    kwargs: dict[str, Any] = {
+        "evidence_limit": 3,
+        "max_options": 3,
+        "enable_llm": False,
+        "retriever": retriever,
+    }
     if controlled_mode == "empty_collection":
-        kwargs["collection_loader"] = lambda **unused: _ControlledCollection()
+        kwargs["collection"] = _ControlledCollection()
     elif controlled_mode in {
         "low_quality_evidence",
         "retrieved_prompt_injection",
         "retrieved_metadata_prompt_injection",
     }:
-        kwargs["collection_loader"] = lambda **unused: _ControlledCollection(
+        kwargs["collection"] = _ControlledCollection(
             [_controlled_candidate(intake, controlled_mode)]
         )
-        kwargs["embedding_loader"] = lambda *unused: _ControlledEmbeddingModel()
+        kwargs["embedding_encoder"] = _ControlledEmbeddingModel()
     elif controlled_mode == "system_error":
         events: list[str] = []
 
-        def failing_loader(**unused: Any) -> Any:
+        def failing_retriever(*unused_args: Any, **unused_kwargs: Any) -> RetrievalResponse:
             raise RuntimeError("Injected evaluation failure")
 
         def record_error(error: Exception, **unused: Any) -> None:
             events.append(type(error).__name__)
 
-        kwargs["collection_loader"] = failing_loader
-        response = retrieve_matches_safely(
-            intake,
-            retriever=retriever,
-            error_handler=record_error,
-            **kwargs,
-        )
+        kwargs["retriever"] = failing_retriever
+        kwargs["retrieval_error_handler"] = record_error
+        pipeline = pipeline_runner(intake, **kwargs)
         controlled["error_handler_called"] = events == ["RuntimeError"]
-        return response, controlled
-    return retrieve_matches_safely(intake, retriever=retriever, **kwargs), controlled
+        return pipeline, controlled
+    return pipeline_runner(intake, **kwargs), controlled
 
 
 def _controlled_candidate(intake: RetrievalIntake, controlled_mode: str) -> dict[str, Any]:
@@ -678,6 +766,37 @@ def _guardrail_checks(
     return checks
 
 
+def _presented_evidence_record(
+    evidence: Any, retrieved_evidence: tuple[Any, ...]
+) -> dict[str, str]:
+    source_ids = tuple(map(str, evidence.source_ids_used))
+    source = next(
+        (item for item in retrieved_evidence if item.chunk_id in source_ids),
+        None,
+    )
+    raw_chunk = source.raw_chunk if source is not None else {}
+    return {
+        "chunk_id": (
+            source.chunk_id if source is not None else (source_ids[0] if source_ids else "")
+        ),
+        "title": evidence.title,
+        "category_id": evidence.category_id,
+        "canonical_url": evidence.canonical_url,
+        "pipeline_run_id": str(raw_chunk.get("pipeline_run_id", "")),
+        "embedding_model": str(raw_chunk.get("embedding_model", "")),
+    }
+
+
+def _presented_evidence_is_grounded(
+    evidence: Any, retrieved_evidence: tuple[Any, ...]
+) -> bool:
+    source_ids = set(map(str, evidence.source_ids_used))
+    return bool(source_ids) and any(
+        item.chunk_id in source_ids and item.canonical_url == evidence.canonical_url
+        for item in retrieved_evidence
+    )
+
+
 def _matches_target(evidence: Any, target: Mapping[str, Any]) -> bool:
     parsed = urlparse(evidence.canonical_url)
     expected_host = str(target["host"]).casefold().rstrip(".")
@@ -694,7 +813,29 @@ def _matches_target(evidence: Any, target: Mapping[str, Any]) -> bool:
 
 def _valid_source_url(url: str) -> bool:
     parsed = urlparse(url)
-    return parsed.scheme == "https" and bool(parsed.netloc)
+    host = (parsed.hostname or "").casefold().rstrip(".")
+    return parsed.scheme == "https" and host in _approved_source_hosts()
+
+
+@lru_cache(maxsize=1)
+def _approved_source_hosts() -> frozenset[str]:
+    hosts: set[str] = set()
+    with SOURCE_CATALOG_PATH.open(encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            values = (
+                str(row.get("domain", "")),
+                str(row.get("allowed_domains", "")),
+                urlparse(str(row.get("url", ""))).hostname or "",
+            )
+            for value in values:
+                hosts.update(
+                    host.casefold().rstrip(".")
+                    for host in re.split(r"[|,;\s]+", value)
+                    if host.strip()
+                )
+    if not hosts:
+        raise ValueError("Approved source catalog does not define any official hosts.")
+    return frozenset(hosts)
 
 
 def _validate_targets(scenario_id: str, targets: Any) -> None:

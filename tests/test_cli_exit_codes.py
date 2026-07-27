@@ -65,8 +65,11 @@ def test_evaluation_cli_returns_one_for_failed_gate(monkeypatch, tmp_path) -> No
             scenarios=Path("scenarios.yml"),
             json_output=tmp_path / "report.json",
             markdown_output=tmp_path / "report.md",
+            check=False,
+            skip_runtime_preparation=False,
         ),
     )
+    monkeypatch.setattr(evaluation_cli, "get_chroma_collection", lambda **_kwargs: object())
     monkeypatch.setattr(evaluation_cli, "load_scenario_set", lambda path: {})
     monkeypatch.setattr(
         evaluation_cli,
@@ -99,8 +102,11 @@ def test_evaluation_cli_returns_zero_for_passed_gate(monkeypatch, tmp_path) -> N
             scenarios=Path("scenarios.yml"),
             json_output=tmp_path / "report.json",
             markdown_output=tmp_path / "report.md",
+            check=False,
+            skip_runtime_preparation=False,
         ),
     )
+    monkeypatch.setattr(evaluation_cli, "get_chroma_collection", lambda **_kwargs: object())
     monkeypatch.setattr(evaluation_cli, "load_scenario_set", lambda path: {})
     summary = {
         "top_three_relevant": 1,

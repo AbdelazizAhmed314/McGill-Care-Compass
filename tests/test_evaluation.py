@@ -9,6 +9,8 @@ from mcgill_care_compass.evaluation import (
     evaluation_exit_code,
     load_scenario_set,
     run_evaluation,
+    verify_evaluation_reports,
+    write_evaluation_reports,
 )
 from mcgill_care_compass.retrieval import RetrievalResponse, RetrievedEvidence
 
@@ -129,7 +131,7 @@ def test_target_matching_rejects_substring_path_false_positive() -> None:
 def test_load_scenario_set_rejects_invalid_threshold(tmp_path) -> None:
     path = tmp_path / "scenarios.yml"
     path.write_text(
-        "scenario_set_version: '2.0'\ntop_three_threshold: 1.2\nscenarios: []\n",
+        "scenario_set_version: '2.1'\ntop_three_threshold: 1.2\nscenarios: []\n",
         encoding="utf-8",
     )
 
@@ -140,8 +142,37 @@ def test_load_scenario_set_rejects_invalid_threshold(tmp_path) -> None:
 def test_version_controlled_scenario_set_satisfies_complete_contract() -> None:
     scenario_set = load_scenario_set(DEFAULT_SCENARIOS)
 
-    assert scenario_set["scenario_set_version"] == "2.0"
-    assert len(scenario_set["scenarios"]) == 31
+    assert scenario_set["scenario_set_version"] == "2.1"
+    assert scenario_set["evaluation_target"] == "api_v1_recommendation_pipeline"
+    assert len(scenario_set["scenarios"]) == 32
+
+
+def test_evaluation_signature_covers_runtime_frontend_and_dependency_contracts() -> None:
+    assert {
+        "src/mcgill_care_compass/api/runtime.py",
+        "web/src/api.ts",
+        "pyproject.toml",
+        "uv.lock",
+        "web/package-lock.json",
+    }.issubset(evaluation_module.IMPLEMENTATION_PATHS)
+    assert "scripts/analyze_usability.py" not in evaluation_module.IMPLEMENTATION_PATHS
+    assert "src/mcgill_care_compass/usability.py" not in evaluation_module.IMPLEMENTATION_PATHS
+
+
+def test_official_source_check_uses_governed_source_catalog() -> None:
+    assert evaluation_module._valid_source_url("https://www.mcgill.ca/studentservices")
+    assert evaluation_module._valid_source_url("https://www.canada.ca/en/services/taxes.html")
+    assert not evaluation_module._valid_source_url("https://example.com/official-looking")
+
+
+def test_load_scenario_set_rejects_incompatible_evaluation_target(tmp_path) -> None:
+    payload = load_scenario_set(DEFAULT_SCENARIOS)
+    payload["evaluation_target"] = "legacy_streamlit_runtime"
+    path = tmp_path / "wrong-target.yml"
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="final api_v1_recommendation_pipeline"):
+        load_scenario_set(path)
 
 
 def test_report_exposes_separate_mandatory_safety_metrics(monkeypatch) -> None:
@@ -376,5 +407,141 @@ def test_fixed_scenarios_cover_remaining_documented_journeys() -> None:
         "R11_LANGUAGE_INTEGRATION",
         "R12_MACDONALD_CAMPUS",
         "R13_FREE_TAX_CLINIC",
+        "R14_FREE_TAX_CLINIC_LOCATION",
         "G18_PROFESSIONAL_JUDGMENT",
     }.issubset(ids)
+
+
+def test_free_tax_clinic_scenarios_preserve_contact_and_location_journeys() -> None:
+    payload = load_scenario_set(DEFAULT_SCENARIOS)
+    contact = next(
+        item for item in payload["scenarios"] if item["scenario_id"] == "R13_FREE_TAX_CLINIC"
+    )
+    location = next(
+        item
+        for item in payload["scenarios"]
+        if item["scenario_id"] == "R14_FREE_TAX_CLINIC_LOCATION"
+    )
+
+    assert contact["intake"]["need_type"] == "contact"
+    assert location["intake"]["need_type"] == "location"
+    assert contact["acceptable_targets"] == location["acceptable_targets"] == [
+        {
+            "host": "www.canada.ca",
+            "path_prefix": (
+                "/en/revenue-agency/services/tax/individuals/"
+                "community-volunteer-income-tax-program.html"
+            ),
+            "title_contains_any": ["tax clinic", "taxes done", "free"],
+        }
+    ]
+
+
+def test_evaluate_scenario_runs_shared_pipeline_and_api_contract() -> None:
+    calls = []
+
+    def recording_pipeline(intake, **kwargs):  # noqa: ANN001, ANN003
+        calls.append(kwargs)
+        return evaluation_module.run_recommendation_pipeline(intake, **kwargs)
+
+    scenario = {
+        "scenario_id": "R1",
+        "kind": "relevance",
+        "student_need": "Official service",
+        "intake": {"category_id": "housing"},
+        "expected_status": "matched",
+        "expected_categories": ["housing"],
+        "acceptable_targets": [
+            {
+                "host": "www.mcgill.ca",
+                "path_prefix": "/official-service",
+                "title_contains_any": ["official"],
+            }
+        ],
+        "must_include_source_link": True,
+    }
+
+    result = evaluate_scenario(
+        scenario,
+        retriever=matched_retriever,
+        pipeline_runner=recording_pipeline,
+    )
+
+    assert result.passed
+    assert result.checks["api_contract"]
+    assert result.checks["source_grounding"]
+    assert calls and calls[0]["enable_llm"] is False
+
+
+def test_report_verification_detects_result_drift(tmp_path) -> None:
+    scenario_path = tmp_path / "scenarios.yml"
+    scenario_path.write_text("scenario: fixed\n", encoding="utf-8")
+    json_path = tmp_path / "report.json"
+    markdown_path = tmp_path / "report.md"
+    report = {
+        "scenario_set_version": "test",
+        "evaluation_target": "test",
+        "top_three_threshold": 0.9,
+        "overall_pass": True,
+        "corpus": {
+            "pipeline_run_id": "run",
+            "chunks_sha256": "chunks",
+            "embedding_model": "model",
+        },
+        "reproducibility": {
+            "git_head": "one",
+            "git_dirty": False,
+            "implementation_sha256": "implementation",
+            "manifest_sha256": "manifest",
+        },
+        "summary": {
+            "top_three_relevant": 1,
+            "normal_match_scenarios": 1,
+            "top_three_relevance": 1.0,
+            "relevance_scenarios": 1,
+            "attacks_blocked": 1,
+            "attack_scenarios": 1,
+            "attack_detection": 1.0,
+            "benign_scenarios_passed": 1,
+            "benign_scenarios": 1,
+            "benign_pass_through": 1.0,
+            "guardrail_scenarios_passed": 1,
+            "guardrail_scenarios": 1,
+            "emergency_escalations_passed": 1,
+            "emergency_scenarios": 1,
+            "emergency_redactions_passed": 1,
+            "emergency_redaction_scenarios": 1,
+            "fallback_scenarios_passed": 1,
+            "fallback_scenarios": 1,
+            "limitation_checks_passed": 1,
+            "limitation_checks": 1,
+            "source_link_checks_passed": 1,
+            "source_link_checks": 1,
+            "grounding_checks_passed": 1,
+            "grounding_checks": 1,
+        },
+        "results": [],
+        "limitations": [],
+    }
+    write_evaluation_reports(
+        report,
+        scenario_path=scenario_path,
+        json_path=json_path,
+        markdown_path=markdown_path,
+    )
+    verify_evaluation_reports(
+        report,
+        scenario_path=scenario_path,
+        json_path=json_path,
+        markdown_path=markdown_path,
+    )
+
+    changed = dict(report)
+    changed["overall_pass"] = False
+    with pytest.raises(ValueError, match="stale"):
+        verify_evaluation_reports(
+            changed,
+            scenario_path=scenario_path,
+            json_path=json_path,
+            markdown_path=markdown_path,
+        )

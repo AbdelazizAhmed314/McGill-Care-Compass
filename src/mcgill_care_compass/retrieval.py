@@ -377,7 +377,16 @@ def get_chroma_collection(
         if not rebuild_if_missing:
             raise
     rebuild_vector_store_from_chunks(chunks_csv=chunks_csv, vector_dir=vector_dir)
+    _clear_chroma_system_cache()
     return _open_valid_collection(chunks_csv=chunks_csv, vector_dir=vector_dir)
+
+
+def _clear_chroma_system_cache() -> None:
+    """Forget clients opened against a vector path before its atomic rebuild."""
+
+    from chromadb.api.client import SharedSystemClient
+
+    SharedSystemClient.clear_system_cache()
 
 
 def _open_valid_collection(*, chunks_csv: Path, vector_dir: Path):
