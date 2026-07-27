@@ -167,6 +167,7 @@ def test_rebuild_if_missing_does_not_rebuild_a_valid_store(monkeypatch, tmp_path
 def test_rebuild_if_missing_replaces_an_invalid_store(monkeypatch, tmp_path) -> None:
     sentinel = object()
     attempts = []
+    cache_clears = []
 
     def open_collection(**kwargs):  # noqa: ANN003
         attempts.append("open")
@@ -181,6 +182,11 @@ def test_rebuild_if_missing_replaces_an_invalid_store(monkeypatch, tmp_path) -> 
         "rebuild_vector_store_from_chunks",
         lambda **kwargs: rebuilt.append(True),
     )
+    monkeypatch.setattr(
+        retrieval_module,
+        "_clear_chroma_system_cache",
+        lambda: cache_clears.append(True),
+    )
 
     result = retrieval_module.get_chroma_collection(
         rebuild_if_missing=True,
@@ -190,6 +196,7 @@ def test_rebuild_if_missing_replaces_an_invalid_store(monkeypatch, tmp_path) -> 
 
     assert result is sentinel
     assert rebuilt == [True]
+    assert cache_clears == [True]
     assert attempts == ["open", "open"]
 
 
