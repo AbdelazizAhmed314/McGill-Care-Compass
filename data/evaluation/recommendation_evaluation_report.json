@@ -21,9 +21,9 @@
   "report_schema_version": "2",
   "reproducibility": {
     "chunks_sha256": "e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12",
-    "git_dirty": false,
-    "git_head": "831109e2d5ae96dca46dc987927f6839eb226620",
-    "implementation_sha256": "b65c9d0bd512b2e019a054fd7502234eb9eb847aae10eb2460dd0e5886dedf6b",
+    "git_dirty": true,
+    "git_head": "87763e238fdabf197dc7af83d920eaf1602a91b7",
+    "implementation_sha256": "1015b18a7c4763b6d766ee5260d69c26cdee23dbb054842dab0644f386d6c78e",
     "manifest_sha256": "53d54b1f086cc81ce6af633762741babe43f9cbed4c0a5f879113d458bc68f2f"
   },
   "results": [
@@ -185,17 +185,17 @@
       "scenario_id": "R05_FINANCIAL_HARDSHIP",
       "top_three": [
         {
-          "canonical_url": "https://www.mcgill.ca/studentaid/other-funding/emergency-loans",
+          "canonical_url": "https://www.mcgill.ca/studentaid/special-funding/emergency-loans",
           "category_id": "finances",
-          "chunk_id": "46d99bd3d78e722afc11",
+          "chunk_id": "947dfeb5590981715f37",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
           "title": "Emergency loans"
         },
         {
-          "canonical_url": "https://www.mcgill.ca/studentaid/special-funding/emergency-loans",
+          "canonical_url": "https://www.mcgill.ca/studentaid/other-funding/emergency-loans",
           "category_id": "finances",
-          "chunk_id": "947dfeb5590981715f37",
+          "chunk_id": "46d99bd3d78e722afc11",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
           "title": "Emergency loans"

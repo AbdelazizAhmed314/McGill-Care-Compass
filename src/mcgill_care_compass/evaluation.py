@@ -76,16 +76,26 @@ IMPLEMENTATION_PATHS = tuple(
             "web/package-lock.json",
             "data/source-inputs/questionnaire_metadata_map.yml",
             "data/source-inputs/rag_seed_urls.csv",
-            *(
-                path.relative_to(ROOT).as_posix()
-                for source_root, patterns in (
-                    (ROOT / "scripts", ("*.py",)),
-                    (ROOT / "src" / "mcgill_care_compass", ("*.py",)),
-                    (ROOT / "web" / "src", ("*.ts", "*.tsx")),
-                )
-                for pattern in patterns
-                for path in source_root.rglob(pattern)
-            ),
+            "scripts/evaluate_recommendations.py",
+            "src/mcgill_care_compass/api/routes_recommendations.py",
+            "src/mcgill_care_compass/api/runtime.py",
+            "src/mcgill_care_compass/api/schemas.py",
+            "src/mcgill_care_compass/corpus_signature.py",
+            "src/mcgill_care_compass/evaluation.py",
+            "src/mcgill_care_compass/explanations.py",
+            "src/mcgill_care_compass/guardrails.py",
+            "src/mcgill_care_compass/intake_contract.py",
+            "src/mcgill_care_compass/llm_response.py",
+            "src/mcgill_care_compass/presentation.py",
+            "src/mcgill_care_compass/rag_ranking.py",
+            "src/mcgill_care_compass/recommendation_pipeline.py",
+            "src/mcgill_care_compass/retrieval.py",
+            "web/src/App.tsx",
+            "web/src/api.ts",
+            "web/src/components/NavigatorForm.tsx",
+            "web/src/components/RecommendationResults.tsx",
+            "web/src/styles.css",
+            "web/src/types.ts",
         }
     )
 )

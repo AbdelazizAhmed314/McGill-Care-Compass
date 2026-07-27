@@ -14,10 +14,12 @@ LLM generation disabled, then through the FastAPI response model. Relevance,
 source, limitation, and grounding checks are applied to the serialized API
 contract rather than only to raw retrieval objects.
 
-The implementation signature covers all Python source and scripts, the React
-TypeScript source, governed source configuration, and locked Python and
-JavaScript dependencies. CI reruns the evaluation and rejects committed report
-drift.
+The implementation signature covers the Python modules and scripts that
+participate in recommendation generation, the React intake and recommendation
+display contract, governed source configuration, and locked Python and
+JavaScript dependencies. Operational or study-only modules are intentionally
+excluded so unrelated additions do not invalidate the recommendation evidence.
+CI reruns the evaluation and rejects committed report drift.
 
 ## Acceptance Mapping
 

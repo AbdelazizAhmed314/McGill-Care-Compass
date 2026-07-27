@@ -6,9 +6,9 @@
 - Corpus run ID: `20260701T223504Z`
 - Chunk CSV SHA-256: `e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12`
 - Embedding model: `sentence-transformers/all-MiniLM-L6-v2`
-- Git HEAD: `831109e2d5ae96dca46dc987927f6839eb226620`
-- Dirty worktree: False
-- Implementation SHA-256: `b65c9d0bd512b2e019a054fd7502234eb9eb847aae10eb2460dd0e5886dedf6b`
+- Git HEAD: `87763e238fdabf197dc7af83d920eaf1602a91b7`
+- Dirty worktree: True
+- Implementation SHA-256: `1015b18a7c4763b6d766ee5260d69c26cdee23dbb054842dab0644f386d6c78e`
 - Overall result: PASS
 - Top-three relevance: 13/14 (92.9%)
 - Required threshold: 90.0%
@@ -86,8 +86,8 @@ The top-three denominator contains supported scenarios that produced a normal `m
 
 ### R05_FINANCIAL_HARDSHIP
 
-- 1. Emergency loans — https://www.mcgill.ca/studentaid/other-funding/emergency-loans (`46d99bd3d78e722afc11`)
-- 2. Emergency loans — https://www.mcgill.ca/studentaid/special-funding/emergency-loans (`947dfeb5590981715f37`)
+- 1. Emergency loans — https://www.mcgill.ca/studentaid/special-funding/emergency-loans (`947dfeb5590981715f37`)
+- 2. Emergency loans — https://www.mcgill.ca/studentaid/other-funding/emergency-loans (`46d99bd3d78e722afc11`)
 - 3. Core Funding for Graduate students > McGill Need-Based Assistance for Graduate Students — https://www.mcgill.ca/studentaid/scholarships-aid/graduate (`e36ec50e5f79e1c11502`)
 
 ### R06_WORK_AUTHORIZATION

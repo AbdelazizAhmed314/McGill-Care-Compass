@@ -155,6 +155,8 @@ def test_evaluation_signature_covers_runtime_frontend_and_dependency_contracts()
         "uv.lock",
         "web/package-lock.json",
     }.issubset(evaluation_module.IMPLEMENTATION_PATHS)
+    assert "scripts/analyze_usability.py" not in evaluation_module.IMPLEMENTATION_PATHS
+    assert "src/mcgill_care_compass/usability.py" not in evaluation_module.IMPLEMENTATION_PATHS
 
 
 def test_official_source_check_uses_governed_source_catalog() -> None:
