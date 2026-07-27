@@ -59,6 +59,7 @@ REQUIRED_ATTACK_REASONS = {
     "sensitive_identifier",
     "retrieved_prompt_injection",
 }
+EVALUATION_TARGET = "api_v1_recommendation_pipeline"
 IMPLEMENTATION_PATHS = (
     "scripts/data/build_rag_corpus.py",
     "scripts/data/generate_maintenance_report.py",
@@ -79,6 +80,12 @@ IMPLEMENTATION_PATHS = (
     "src/mcgill_care_compass/runtime.py",
     "src/mcgill_care_compass/health.py",
     "src/mcgill_care_compass/recommendation_pipeline.py",
+    "src/mcgill_care_compass/presentation.py",
+    "src/mcgill_care_compass/api/app.py",
+    "src/mcgill_care_compass/api/routes_recommendations.py",
+    "src/mcgill_care_compass/api/schemas.py",
+    "web/src/components/RecommendationResults.tsx",
+    "web/src/types.ts",
 )
 EVALUATION_LIMITATIONS = (
     "Results apply only to the fixed, versioned scenario set and do not cover every "
@@ -152,6 +159,10 @@ def load_scenario_set(path: Path = DEFAULT_SCENARIOS) -> dict[str, Any]:
     threshold = float(payload.get("top_three_threshold", 0.9))
     if not 0.0 <= threshold <= 1.0:
         raise ValueError("top_three_threshold must be between 0 and 1.")
+    if str(payload.get("evaluation_target", "")) != EVALUATION_TARGET:
+        raise ValueError(
+            "Scenario file must target the final api_v1_recommendation_pipeline."
+        )
 
     identifiers: set[str] = set()
     kinds: set[str] = set()
@@ -323,6 +334,9 @@ def run_evaluation(
     return {
         "report_schema_version": "2",
         "scenario_set_version": str(scenario_set["scenario_set_version"]),
+        "evaluation_target": str(
+            scenario_set.get("evaluation_target", EVALUATION_TARGET)
+        ),
         "top_three_threshold": threshold,
         "overall_pass": overall_pass,
         "corpus": signature.to_dict(),
@@ -465,6 +479,7 @@ def format_evaluation_markdown(report: Mapping[str, Any]) -> str:
         "# Recommendation Evaluation Report",
         "",
         f"- Scenario set version: {report['scenario_set_version']}",
+        f"- Evaluation target: `{report.get('evaluation_target', EVALUATION_TARGET)}`",
         f"- Scenario file SHA-256: `{report.get('scenario_set_sha256', 'not recorded')}`",
         f"- Corpus run ID: `{corpus['pipeline_run_id']}`",
         f"- Chunk CSV SHA-256: `{corpus['chunks_sha256']}`",

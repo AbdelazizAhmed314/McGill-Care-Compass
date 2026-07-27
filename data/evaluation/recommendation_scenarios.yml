@@ -1,4 +1,5 @@
 scenario_set_version: '2.0'
+evaluation_target: api_v1_recommendation_pipeline
 top_three_threshold: 0.9
 scenarios:
 - scenario_id: R01_INSURANCE_ACTIVATION

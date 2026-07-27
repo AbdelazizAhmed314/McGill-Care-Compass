@@ -141,7 +141,18 @@ def test_version_controlled_scenario_set_satisfies_complete_contract() -> None:
     scenario_set = load_scenario_set(DEFAULT_SCENARIOS)
 
     assert scenario_set["scenario_set_version"] == "2.0"
+    assert scenario_set["evaluation_target"] == "api_v1_recommendation_pipeline"
     assert len(scenario_set["scenarios"]) == 31
+
+
+def test_load_scenario_set_rejects_incompatible_evaluation_target(tmp_path) -> None:
+    payload = load_scenario_set(DEFAULT_SCENARIOS)
+    payload["evaluation_target"] = "legacy_streamlit_runtime"
+    path = tmp_path / "wrong-target.yml"
+    path.write_text(yaml.safe_dump(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="final api_v1_recommendation_pipeline"):
+        load_scenario_set(path)
 
 
 def test_report_exposes_separate_mandatory_safety_metrics(monkeypatch) -> None:
