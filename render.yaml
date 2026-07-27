@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: mcgill-care-compass
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health/ready
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: internal
+      - key: CORS_ORIGINS
+        value: https://mcgill-care-compass.onrender.com

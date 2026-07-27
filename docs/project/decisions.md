@@ -57,3 +57,77 @@ Decision: keep `risk_level` for this PR if renaming is not low-risk, but documen
 Reason: many chunks are marked `high_risk` because their category is tax, finances, immigration, insurance, health care, or mental health. That does not mean each chunk is urgent, unsafe, or out of scope.
 
 Impact: future work should either rename this concept to `topic_sensitivity` and derive it from the taxonomy, or remove it from the corpus and let app logic maintain the sensitive-topic list directly.
+
+## 2026-07-19 - Use FastAPI and React/Vite as the active web architecture
+
+Decision: replace the placeholder Streamlit delivery path with a versioned
+FastAPI backend and a responsive React/Vite frontend. Production serves the
+compiled frontend and API from one container and one origin.
+
+Reason: the API contract can support the web application now and a future
+mobile client without duplicating retrieval, safety, or maintenance logic. A
+single-origin deployment also reduces production CORS and operational
+complexity.
+
+Impact: Streamlit is no longer the active interface direction. The public v1
+intake is structured-first with one optional short, non-persistent query; expensive retrieval resources are reused per
+process, Chroma is built from committed chunks during image construction, and
+all clients must preserve emergency-first routing and safe error responses.
+
+
+## 2026-07-21 - Share one ranked evidence and LLM response pipeline
+
+Decision: the CLI LLM path and FastAPI recommendation endpoint use one pipeline
+with the same defaults: retrieve 21 vector candidates, retain up to 15 approved
+chunks, group by normalized canonical page/service into up to 3 distinct
+options, use up to 5 chunks per option, and validate all model-cited source IDs
+and URLs.
+
+Reason: a retrieved chunk is evidence, not a standalone service recommendation.
+Grouping evidence before response writing prevents multiple cards for the same
+page and keeps CLI and web ranking, evidence use, and user-facing wording
+aligned.
+
+Impact: React renders the validated structured response as cards while the CLI
+renders the same response as Markdown. If the model is unavailable, both clients
+fall back to the same distinct grouped options.
+
+## 2026-07-21 - Use contextual source authority
+
+Decision: rank the responsible official source for the requested service or decision first, rather than applying one global publisher order. Within an equal contextual authority tier, semantic distance precedes freshness and stable tie-breakers.
+
+Reason: McGill is authoritative for McGill services, while government, public-system, or plan-administrator sources are authoritative for the decisions they own. A global hierarchy can incorrectly bury the responsible source.
+
+Impact: ranking receives category and jurisdiction context, remains deterministic, and cannot use intake jurisdiction as a professional or legal determination.
+
+## 2026-07-21 - Enforce guardrails at input, evidence, and response boundaries
+
+Decision: normalize and screen optional text before retrieval, screen retrieved evidence before display or model use, and validate every model-cited source ID and URL against approved evidence. Governed limitation wording is injected by code.
+
+Reason: domain privacy and prompt-injection risks occur at more than one boundary. Model instructions alone cannot enforce privacy, citation, or limitation contracts.
+
+Impact: emergency routing retains precedence; unsafe requests fail before Chroma or the model; rejected evidence is excluded; and provider or validation failures use a generic grounded fallback.
+
+## 2026-07-21 - Sign and atomically prepare runtime artifacts
+
+Decision: derive ignored SQLite and Chroma artifacts in temporary sibling paths, bind both to the exact governed corpus signature, validate them, and replace active artifacts only after success.
+
+Reason: an interrupted rebuild must not destroy the last valid runtime or combine an index with the wrong chunk corpus.
+
+Impact: readiness verifies counts and signatures. Runtime preparation never restamps or recrawls committed source artifacts.
+
+## 2026-07-21 - Use privacy-safe structured operational logs
+
+Decision: emit JSON Lines using a strict field allowlist and exclude intake text, source bodies, prompts, responses, and identifiers.
+
+Reason: operational diagnosis needs correlation, status, timing, stage, and exception class—not student-authored or retrieved content.
+
+Impact: API responses receive request IDs, failures remain diagnosable, and logs stay within the product privacy boundary.
+
+## 2026-07-21 - Adopt the fixed evaluation package as an Issue 8 baseline
+
+Decision: version the labeled scenario set and deterministic evaluator now, while keeping the participant usability study in Issue 8.
+
+Reason: fixed expected categories, service types, pass rules, safety outcomes, and artifact signatures make regressions reproducible without claiming that automated checks prove usability.
+
+Impact: Issue 7 can verify integration safety and relevance consistently; Issue 8 remains responsible for final scenario results, remediation, and at least five participant sessions.

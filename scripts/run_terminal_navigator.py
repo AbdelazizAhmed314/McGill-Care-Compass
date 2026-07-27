@@ -1,4 +1,4 @@
-"""Terminal questionnaire demo for Issue 4 filtered RAG retrieval."""
+"""Terminal navigator for shared guarded RAG retrieval."""
 
 from __future__ import annotations
 
@@ -18,7 +18,9 @@ from mcgill_care_compass.explanations import (  # noqa: E402
     chunk_debug_metadata,
     format_retrieval_response,
 )
-from mcgill_care_compass.llm_response import generate_llm_response  # noqa: E402
+from mcgill_care_compass.recommendation_pipeline import (  # noqa: E402
+    run_recommendation_pipeline,
+)
 from mcgill_care_compass.retrieval import (  # noqa: E402
     CATEGORY_LABELS,
     JURISDICTION_LABELS,
@@ -171,7 +173,7 @@ def route_context_choice(category_id: str) -> Choice:
 def build_intake_from_terminal() -> RetrievalIntake:
     """Collect structured terminal answers and return a retrieval intake."""
 
-    print("McGill Care Compass - Issue 4 terminal retrieval demo")
+    print("McGill Care Compass - terminal navigator")
     print("Use numbered choices. Type q to quit.\n")
 
     category = prompt_choice("1. What do you need help with?", category_choices())
@@ -216,6 +218,14 @@ def print_evidence(label: str, evidence) -> None:
     print(f"- Evidence preview: {preview}")
 
 
+def query_display_status(intake_query: str, response_query: str) -> str:
+    """Describe optional-query handling without echoing student-authored text."""
+
+    if response_query == "[redacted]":
+        return "Redacted by safety guardrail"
+    if intake_query.strip():
+        return "Provided (not displayed)"
+    return "Not provided"
 
 
 def _print_debug_timings(timings: dict[str, float]) -> None:
@@ -246,36 +256,39 @@ def run_demo(args: argparse.Namespace) -> None:
     intake = build_intake_from_terminal()
     timings["intake"] = time.perf_counter() - intake_start
     retrieval_start = time.perf_counter()
+    llm_result = None
+    formatted = ""
     try:
-        response = retrieve_matches(
-            intake,
-            limit=args.evidence_limit if args.llm else args.limit,
-            retrieval_limit=args.retrieval_limit,
-            rebuild_if_missing=args.rebuild_vector_store,
-        )
+        if args.llm:
+            pipeline = run_recommendation_pipeline(
+                intake,
+                model=args.model,
+                retrieval_limit=args.retrieval_limit,
+                evidence_limit=args.evidence_limit,
+                max_options=args.max_options,
+                rebuild_if_missing=args.rebuild_vector_store,
+                collect_timings=args.debug_timing,
+            )
+            response = pipeline.retrieval
+            llm_result = pipeline.presentation
+            formatted = llm_result.markdown
+        else:
+            response = retrieve_matches(
+                intake,
+                limit=args.limit,
+                retrieval_limit=args.retrieval_limit,
+                rebuild_if_missing=args.rebuild_vector_store,
+            )
     except VectorStoreUnavailable as exc:
         raise SystemExit(str(exc)) from exc
     timings["retrieval"] = time.perf_counter() - retrieval_start
-
-    llm_result = None
-    formatted = ""
-    if args.llm:
-        llm_result = generate_llm_response(
-            intake,
-            response,
-            model=args.model,
-            evidence_limit=args.evidence_limit,
-            max_options=args.max_options,
-            collect_timings=args.debug_timing,
-        )
-        formatted = llm_result.markdown
-        if args.debug_timing:
-            timings.update({f"llm.{key}": value for key, value in llm_result.timings.items()})
+    if args.debug_timing and llm_result is not None:
+        timings.update({f"llm.{key}": value for key, value in llm_result.timings.items()})
 
     display_start = time.perf_counter()
     print("\n" + "=" * 72)
     print(f"Status: {response.status}")
-    print(f"Query: {response.query}")
+    print(f"Optional query: {query_display_status(intake.query, response.query)}")
     print(f"Matched filters: {response.matched_filters or 'none'}")
     print(f"Relaxed filter level: {response.relaxed_level}")
     if response.safety_notice:
@@ -305,10 +318,11 @@ def run_demo(args: argparse.Namespace) -> None:
     if args.debug_timing:
         _print_debug_timings(timings)
 
+
 def parse_args() -> argparse.Namespace:
     """Parse terminal demo arguments."""
 
-    parser = argparse.ArgumentParser(description="Run the Issue 4 terminal retrieval demo.")
+    parser = argparse.ArgumentParser(description="Run the McGill Care Compass terminal navigator.")
     parser.add_argument(
         "--limit",
         type=int,

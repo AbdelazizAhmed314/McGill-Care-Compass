@@ -1,11 +1,15 @@
-"""Query the local Chroma RAG corpus with optional questionnaire metadata filters."""
+"""Inspect raw Chroma retrieval with optional metadata filters.
+
+This developer diagnostic bypasses the navigator's guardrails, evidence-pack
+filtering, grouping, and response presentation. Its output must not be treated
+as a student-facing recommendation.
+"""
 
 from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"

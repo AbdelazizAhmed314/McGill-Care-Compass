@@ -110,9 +110,7 @@ def normalized_intake_fields(intake: Mapping[str, object] | object) -> dict[str,
         if value:
             normalized[field_id] = value
     return {
-        field_id: normalized[field_id]
-        for field_id in INTAKE_FIELD_IDS
-        if field_id in normalized
+        field_id: normalized[field_id] for field_id in INTAKE_FIELD_IDS if field_id in normalized
     }
 
 
@@ -133,6 +131,7 @@ def format_intake_summary(intake: Mapping[str, object] | object) -> str:
     """Render selected intake values with stable field ids."""
 
     fields = normalized_intake_fields(intake)
+    fields.pop("query", None)
     if not fields:
         return ""
     return "Intake fields: " + "; ".join(

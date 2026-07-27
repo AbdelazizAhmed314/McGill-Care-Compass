@@ -1,6 +1,6 @@
 # McGill Care Compass
 
-McGill Care Compass: Newcomer Service Navigator is a source-grounded service-navigation tool for newcomer students at McGill. It helps students identify relevant McGill, government, healthcare, financial, tax, work, housing, language, and community services through structured intake and transparent matching.
+McGill Care Compass: Newcomer Service Navigator is a source-grounded service-navigation tool for newcomer students at McGill. It helps students identify relevant McGill, government, healthcare, financial, tax, work, housing, language, and community services through structured-first intake, an optional privacy-guarded short question, and transparent matching.
 
 This is a navigator, not an open-ended advice chatbot. Recommendations must be grounded in retrieved source chunks from the governed RAG corpus, include official source links, and avoid medical, legal, immigration, tax, insurance, or financial eligibility decisions.
 
@@ -16,16 +16,120 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 
 | Path | Purpose |
 | --- | --- |
-| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Guardrails, retrieval/ranking, explanation formatting, optional LLM response writing, and the retained placeholder Streamlit shell. |
+| [`src/mcgill_care_compass/`](src/mcgill_care_compass/) | Guardrails, retrieval/ranking, explanation formatting, health/maintenance logic, and the versioned FastAPI application. |
+| [`web/`](web/) | Responsive React/Vite/TypeScript navigator and internal status interface. |
+| [`scripts/`](scripts/) | Operational CLIs for corpus management, runtime preparation, health, evaluation, API startup, and the terminal navigator. |
 | [`tests/`](tests/) | Unit and behavior tests for RAG pipeline helpers, ranking, and safety rules. |
 | [`data/source-inputs/`](data/source-inputs/) | Seed URL and questionnaire metadata configuration shared by the pipeline and UI. |
 | [`data/bronze/`](data/README.md) | Raw unprocessed source captures generated locally and ignored by git. |
 | [`data/silver/`](data/silver/) | Processed v1 RAG artifacts: reviewable CSVs/reports plus local ignored text, SQLite, and rebuildable Chroma outputs. |
 | [`data/gold/`](data/gold/) | Reserved for reviewed, release-ready data; no Gold dataset exists yet. |
-| [`scripts/data/`](scripts/data/) | RAG corpus build, query, and validation scripts. |
-| [`scripts/demo_issue4_terminal_intake.py`](scripts/demo_issue4_terminal_intake.py) | Terminal intake demo for deterministic RAG retrieval and optional LLM response writing. |
 | [`docs/project/`](docs/project/) | Finalized course/project documents. |
 | [`docs/workflow/`](docs/workflow/) | Collaboration, GitHub, data, and architecture contracts. |
+
+### Operational Scripts
+
+| Script | Purpose |
+| --- | --- |
+| [`scripts/data/build_rag_corpus.py`](scripts/data/build_rag_corpus.py) | Crawl governed sources and generate the complete corpus, reports, metadata, and optional vector index. |
+| [`scripts/data/generate_maintenance_report.py`](scripts/data/generate_maintenance_report.py) | Generate maintenance reports and enforce warning/error exit gates. |
+| [`scripts/data/query_rag_corpus.py`](scripts/data/query_rag_corpus.py) | Inspect raw ranked Chroma chunks for development; it does not run the guarded recommendation pipeline. |
+| [`scripts/data/validate_rag_corpus.py`](scripts/data/validate_rag_corpus.py) | Validate corpus schemas, hashes, counts, metadata, quality, and optional local runtime artifacts. |
+| [`scripts/run_terminal_navigator.py`](scripts/run_terminal_navigator.py) | Run the shared guarded navigator through an interactive terminal client. |
+| [`scripts/evaluate_recommendations.py`](scripts/evaluate_recommendations.py) | Run fixed recommendation and guardrail scenarios and write evaluation evidence. |
+| [`scripts/health_check.py`](scripts/health_check.py) | Run human-readable or JSON runtime health checks. |
+| [`scripts/prepare_runtime.py`](scripts/prepare_runtime.py) | Validate committed data and atomically prepare SQLite and Chroma for deployment. |
+| [`scripts/run_api.py`](scripts/run_api.py) | Start the local FastAPI/Uvicorn application. |
+
+## Quick Start - Docker Walkthrough
+
+### Prerequisites
+
+- Docker Desktop running with Linux containers.
+- An OpenAI API key if you want LLM-written responses.
+
+The app works without an API key, but recommendation wording uses the
+deterministic fallback.
+
+### 1. Configure LLM Mode
+
+In the same PowerShell window that will run Docker:
+
+```powershell
+$env:OPENAI_API_KEY = "your-api-key"
+```
+
+Optionally override the configured model:
+
+```powershell
+$env:MCC_LLM_MODEL = "gpt-5.6-luna"
+```
+
+Never commit an API key, put it in the Docker image, or include it in logs,
+screenshots, issues, or pull requests.
+
+As an alternative, copy the ignored local environment template:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Then set `OPENAI_API_KEY` in `.env`. Docker Compose automatically reads this
+file. Leave `MCC_LLM_MODEL` unchanged unless you deliberately want to test a
+different configured model.
+
+### 2. Build and Start
+
+```powershell
+docker compose up --build -d
+```
+
+The first build can take 15-25 minutes because it installs the CPU embedding
+runtime and builds the signed 4,239-record Chroma index. Follow progress with:
+
+```powershell
+docker compose logs -f care-compass
+```
+
+### 3. Verify Readiness
+
+```powershell
+docker compose ps
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/health/ready
+```
+
+Continue when the container is `healthy` and readiness reports
+`"status": "ok"`.
+
+Confirm that the API key reached the container without displaying it:
+
+```powershell
+docker compose exec care-compass sh -lc 'test -n "$OPENAI_API_KEY" && echo configured || echo missing'
+```
+
+### 4. Walk Through the Application
+
+- Navigator: <http://127.0.0.1:8000/navigator>
+- Status: <http://127.0.0.1:8000/status>
+- API documentation: <http://127.0.0.1:8000/docs>
+
+Submit a routine request and enable **Developer mode**. A successful Responses
+API call shows:
+
+- Generation mode: `llm`
+- Attempts: `1`
+- Fallback reason: none
+- Validation error: none
+
+If the key is absent, connectivity fails, or model output fails grounding
+validation, the application safely uses deterministic fallback.
+
+### 5. Stop the Application
+
+```powershell
+docker compose down
+```
 
 ## Local Setup
 
@@ -41,24 +145,26 @@ Run checks:
 uv run ruff check .
 uv run pytest
 uv run python scripts/data/validate_rag_corpus.py
+uv run python scripts/health_check.py
 ```
 
 Rebuild the ignored local vector store if needed:
 
 ```powershell
-uv run python scripts/demo_issue4_terminal_intake.py --rebuild-vector-store
+uv run python scripts/run_terminal_navigator.py --rebuild-vector-store
 ```
 
 Run the terminal RAG intake demo without the LLM layer:
 
 ```powershell
-uv run python scripts/demo_issue4_terminal_intake.py
+uv run python scripts/run_terminal_navigator.py
 ```
 
-### Optional LLM/API Mode
+### Shared LLM/API Mode
 
-The terminal demo works without an API key by default. To enable LLM-written
-responses, set this environment variable:
+The CLI `--llm` path and the web `/api/v1/recommendations` endpoint use the same recommendation pipeline: retrieve 21 vector candidates, retain up to 15 approved chunks, group them into up to 3 distinct page/service options, use up to 5 chunks per option, and validate the structured model response. Without an API key, both clients use the same grouped deterministic fallback.
+
+To enable LLM-written responses, set this environment variable:
 
 ```text
 OPENAI_API_KEY=...
@@ -81,7 +187,7 @@ notepad .env
 Run the optional LLM response layer:
 
 ```powershell
-uv run python scripts/demo_issue4_terminal_intake.py --llm
+uv run python scripts/run_terminal_navigator.py --llm
 ```
 
 If no valid key is found, the app falls back to deterministic output and prints:
@@ -93,14 +199,39 @@ LLM fallback: OPENAI_API_KEY is not set.
 Use timing diagnostics when investigating latency:
 
 ```powershell
-uv run python scripts/demo_issue4_terminal_intake.py --llm --debug-timing
+uv run python scripts/run_terminal_navigator.py --llm --debug-timing
 ```
 
-The Streamlit app is retained only as a placeholder intake shell until the guardrails, retrieval logic, and response layer are finalized:
+Run a basic app/data health check before internal demos:
 
 ```powershell
-uv run streamlit run src/mcgill_care_compass/app.py
+uv run python scripts/health_check.py
 ```
+
+Generate operational maintenance findings and run the version-controlled recommendation evaluation:
+
+```powershell
+uv run python scripts/data/generate_maintenance_report.py --fail-on-error
+uv run python scripts/evaluate_recommendations.py
+```
+
+Run the FastAPI backend:
+
+```powershell
+uv run python scripts/prepare_runtime.py
+uv run python scripts/run_api.py --reload
+```
+
+Run the React/Vite frontend in another terminal:
+
+```powershell
+cd web
+npm install
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`. For the single-origin production and container
+workflow, see [docs/workflow/deployment.md](docs/workflow/deployment.md).
 
 ## Git Workflow
 

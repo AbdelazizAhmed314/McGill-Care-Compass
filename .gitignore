@@ -9,11 +9,12 @@ htmlcov/
 
 # Environments
 .venv/
+.venv-*/
+.uv-cache/
 venv/
 .env
 .env.*
 !.env.example
-.streamlit/secrets.toml
 
 # Local notebooks and generated artifacts
 .ipynb_checkpoints/
@@ -27,6 +28,7 @@ data/silver/processed/
 data/silver/rag/*.sqlite
 data/silver/rag/*.sqlite-*
 data/silver/vector_store/
+data/silver/maintenance/
 
 # Removed pre-v1 local artifact paths; retained to avoid accidental commits if regenerated locally.
 data/raw/
@@ -47,3 +49,13 @@ Thumbs.db
 .idea/
 scripts/github/bootstrap_github.py
 scripts/github/configure_project_fields.py
+
+# Local app logs
+logs/
+
+# Local test/runtime temp
+.tmp/
+
+# React/Vite generated artifacts
+web/node_modules/
+web/dist/

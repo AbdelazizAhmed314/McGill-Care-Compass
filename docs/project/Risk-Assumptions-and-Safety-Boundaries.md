@@ -22,15 +22,15 @@ The navigator provides grounded service navigation, not professional advice. It 
 
 ## Source Authority Rules
 
-When sources conflict or overlap, the product should use this authority order:
+Source authority is contextual, not one global publisher ladder. Emergency and crisis routing always has precedence. For ordinary recommendations, prefer the official owner of the service or decision relevant to the intake:
 
-1. Emergency and crisis instructions for immediate safety.
-2. Official McGill service pages for McGill-owned student services.
-3. Official Quebec, federal, RAMQ, health-system, and McGill sources for government, healthcare, insurance, and student-service information.
-4. Trusted community or settlement organizations for community referrals.
-5. General informational pages only when no more authoritative source exists.
+1. McGill pages for McGill-owned student services, campus processes, and advising.
+2. Quebec or Canadian government and public-system pages for laws, status, tax, public insurance, healthcare systems, and government programs.
+3. Official insurer or administrator pages for plan administration and claims routes.
+4. Trusted community or settlement organizations for community-delivered services and referrals.
+5. General informational pages only when no responsible official source exists.
 
-If retrieved sources conflict, the tool should prefer the best-supported route using authority, specificity, intake relevance, recency, and non-duplicative corroboration; it should also disclose what differs and direct the user to the responsible office or service for confirmation.
+The intake jurisdiction is a ranking signal, not a claim about legal responsibility. Within the same contextual authority tier, semantic relevance comes before freshness; specificity, student-context fit, accessibility, and recency then refine the order, followed by stable deterministic tie-breakers. If sources materially conflict, disclose the uncertainty and direct the user to the responsible office or service rather than silently resolving professional or eligibility questions.
 
 ## Routing Safety Rules
 
@@ -74,7 +74,7 @@ Use this framing instead:
 ## Data And Privacy Assumptions
 
 - The MVP should not collect sensitive identifiers such as student ID, SIN, passport number, medical record number, or financial account details.
-- The MVP should avoid storing free-text descriptions that may contain sensitive personal information.
+- The optional short question is limited to 300 characters, used ephemerally, screened for common identifier patterns, and must not be logged, echoed in results, or stored by the app. When the configured LLM response layer is enabled, the question and approved evidence are processed by that provider with response storage disabled, and the UI must disclose this processing.
 - Logged events should be minimized and should not include sensitive identifiers.
 - Source chunks must include official URLs, retrieved dates, source-updated dates where available, and source terms metadata.
 

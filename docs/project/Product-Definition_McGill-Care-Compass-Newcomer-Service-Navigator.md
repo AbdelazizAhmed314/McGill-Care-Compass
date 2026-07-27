@@ -42,8 +42,9 @@ The intake should stay structured and low-risk.
 | Language preference | Helps present accessible source or contact options. |
 | Delivery preference | Helps rank online, phone, in-person, email, or web-form routes. |
 | Coverage context | Helps route healthcare and insurance information without deciding coverage. |
+| Optional short question | Adds up to 300 characters of general, ephemeral retrieval context after the structured choices. |
 
-The intake must not collect student ID, SIN, passport number, medical record number, financial account details, document images, detailed symptoms, detailed immigration facts, exact income, policy numbers, claim details, or sensitive free text.
+The optional short question must not collect student ID, SIN, passport number, medical record number, financial account details, document images, detailed symptoms, detailed immigration facts, exact income, policy numbers, claim details, or sensitive narratives. It is used only for the current request and is not logged or returned.
 
 ## Locked Taxonomy
 
@@ -80,7 +81,7 @@ Version 1 should use deterministic filters and source-grounded retrieval:
 2. Map the intake to one taxonomy category and optional need subtype.
 3. Filter chunks by category, student context, jurisdiction, language, and need-type metadata where available.
 4. Run semantic retrieval over `embedding_text` and cite from `chunk_text` plus source metadata.
-5. Rerank using source authority, category fit, student-context fit, freshness, and specificity.
+5. Rerank by the contextual service owner and intake jurisdiction, then semantic relevance, category/student fit, specificity, freshness, and stable tie-breakers.
 6. Return a top-k evidence set, not a single isolated chunk.
 7. Fail safely when evidence is weak, contradictory, generic, or unsupported.
 

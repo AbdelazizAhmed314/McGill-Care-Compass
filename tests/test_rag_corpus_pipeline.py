@@ -8,6 +8,7 @@ import yaml
 
 from mcgill_care_compass.rag_ranking import (
     DEFAULT_LICENCE_OR_TERMS,
+    contextual_source_rank,
     freshness_score,
     rank_retrieved_chunks,
     source_priority_rank,
@@ -326,44 +327,43 @@ def test_freshness_prefers_newer_source_dates() -> None:
     assert newer > older
 
 
-def test_rank_retrieved_chunks_uses_source_priority_then_freshness() -> None:
+def test_rank_retrieved_chunks_uses_contextual_authority_then_distance() -> None:
     candidates = [
         {
-            "document": "mcgill close match",
-            "distance": 0.01,
-            "metadata": {
-                "source_group": "mcgill",
-                "source_priority_rank": "40",
-                "freshness_score": "1.0",
-            },
+            "id": "federal",
+            "distance": 0.05,
+            "metadata": {"source_group": "canada", "freshness_score": "1.0"},
         },
         {
-            "document": "canada official match",
-            "distance": 0.2,
-            "metadata": {
-                "source_group": "canada",
-                "source_priority_rank": "10",
-                "freshness_score": "0.8",
-            },
+            "id": "mcgill-far",
+            "distance": 0.4,
+            "metadata": {"source_group": "mcgill", "freshness_score": "1.0"},
         },
         {
-            "document": "older canada match",
+            "id": "mcgill-near",
             "distance": 0.1,
-            "metadata": {
-                "source_group": "canada",
-                "source_priority_rank": "10",
-                "freshness_score": "0.2",
-            },
+            "metadata": {"source_group": "mcgill", "freshness_score": "0.2"},
         },
     ]
 
-    ranked = rank_retrieved_chunks(candidates)
+    ranked = rank_retrieved_chunks(candidates, category_id="academics")
 
-    assert [item["document"] for item in ranked] == [
-        "canada official match",
-        "older canada match",
-        "mcgill close match",
-    ]
+    assert [item["id"] for item in ranked] == ["mcgill-near", "mcgill-far", "federal"]
+
+
+def test_contextual_authority_changes_with_service_owner() -> None:
+    federal = {"source_group": "canada"}
+    mcgill = {"source_group": "mcgill"}
+
+    assert contextual_source_rank(mcgill, category_id="academics") < contextual_source_rank(
+        federal, category_id="academics"
+    )
+    assert contextual_source_rank(
+        federal, category_id="immigration_status"
+    ) < contextual_source_rank(mcgill, category_id="immigration_status")
+    assert contextual_source_rank(
+        mcgill, category_id="immigration_status", jurisdiction="mcgill"
+    ) < contextual_source_rank(federal, category_id="immigration_status", jurisdiction="mcgill")
 
 
 def test_questionnaire_map_matches_mustafa_chunk_contract() -> None:

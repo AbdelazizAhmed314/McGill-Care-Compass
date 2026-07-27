@@ -67,7 +67,7 @@ Validate the corpus and local runtime artifacts:
 uv run python scripts/data/validate_rag_corpus.py
 ```
 
-Run a retrieval smoke query:
+Run a raw retrieval diagnostic:
 
 ```bash
 uv run python scripts/data/query_rag_corpus.py \
@@ -75,6 +75,10 @@ uv run python scripts/data/query_rag_corpus.py \
   --category-id insurance \
   --need-type costs_coverage
 ```
+
+This developer command queries ranked Chroma chunks directly. It does not run
+the complete guarded recommendation pipeline and must not be used as a
+student-facing response.
 
 ## Operating Rules
 
