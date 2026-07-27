@@ -51,12 +51,14 @@ source-link, limitation, and grounding check.
 
 ## Recorded Finding
 
-The final-runtime run returns 12 relevant top-three results across 13 supported
-journeys (92.3%), above the required 90% threshold. `R13_FREE_TAX_CLINIC`
-returns a normal, source-grounded match but does not place its exact acceptable
-target in the top three. This remains a documented ranking improvement rather
-than being hidden by weakening the scenario rubric. All 18 guardrail scenarios
-and every required source-link, limitation, and grounding check pass.
+The final-runtime run returns relevant top-three results for all 13 supported
+journeys (100%). The original `R13_FREE_TAX_CLINIC` finding was traced to two
+scenario-contract errors rather than missing evidence or a runtime ranking
+defect: the journey requested `contact` metadata instead of `location`, and its
+strict acceptable URL omitted the governed Canada.ca `.html` suffix. Correcting
+those inputs ranks the official “Find a free tax clinic” page first without
+changing the runtime or weakening the acceptable target. All 18 guardrail
+scenarios and every required source-link, limitation, and grounding check pass.
 
 ## Limitations
 

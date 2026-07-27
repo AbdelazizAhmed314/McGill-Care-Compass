@@ -389,3 +389,22 @@ def test_fixed_scenarios_cover_remaining_documented_journeys() -> None:
         "R13_FREE_TAX_CLINIC",
         "G18_PROFESSIONAL_JUDGMENT",
     }.issubset(ids)
+
+
+def test_free_tax_clinic_scenario_targets_governed_location_route() -> None:
+    payload = load_scenario_set(DEFAULT_SCENARIOS)
+    scenario = next(
+        item for item in payload["scenarios"] if item["scenario_id"] == "R13_FREE_TAX_CLINIC"
+    )
+
+    assert scenario["intake"]["need_type"] == "location"
+    assert scenario["acceptable_targets"] == [
+        {
+            "host": "www.canada.ca",
+            "path_prefix": (
+                "/en/revenue-agency/services/tax/individuals/"
+                "community-volunteer-income-tax-program.html"
+            ),
+            "title_contains_any": ["tax clinic", "taxes done", "free"],
+        }
+    ]
