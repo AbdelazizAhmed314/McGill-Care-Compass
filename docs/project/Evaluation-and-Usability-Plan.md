@@ -123,6 +123,25 @@ Findings must be coded separately from raw session observations, linked back to
 supporting sessions, assigned severity and status, and aggregated without
 claiming results that have not been observed.
 
+The implemented Issue 10 workflow consists of:
+
+- The recruitment, consent, fictional-task, observer, and acceptance procedure
+  in [`docs/usability/issue-10-test-kit.md`](../usability/issue-10-test-kit.md).
+- The privacy and evidence-entry rules in
+  [`data/usability/README.md`](../../data/usability/README.md).
+- Anonymous, schema-validated session outcomes in
+  [`data/usability/session_records.csv`](../../data/usability/session_records.csv).
+- Separately coded and traceable findings in
+  [`data/usability/findings.csv`](../../data/usability/findings.csv).
+- `uv run python scripts/analyze_usability.py` to generate aggregate evidence
+  and `uv run python scripts/analyze_usability.py --check` to reject missing or
+  stale reports.
+
+The two CSV files are intentionally header-only in the current branch. This is
+a valid preparation state, not completed usability evidence. Reports and
+readiness claims become valid only after real, consented sessions are recorded
+and the aggregate acceptance gate passes.
+
 ## Community Impact Measures
 
 | Impact indicator | Initial target |
