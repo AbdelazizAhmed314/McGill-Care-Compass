@@ -40,14 +40,21 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    records = load_usability_records(args.records)
-    report = analyze_usability(records)
+    try:
+        records = load_usability_records(args.records)
+        report = analyze_usability(records)
+    except ValueError as exc:
+        print(f"Usability record validation failed: {exc}", file=sys.stderr)
+        return 2
     write_usability_reports(
         report,
         json_path=args.json_output,
         markdown_path=args.markdown_output,
     )
-    print(f"Analyzed {report['metrics']['completed_records']} anonymous records.")
+    print(
+        f"Analyzed {report['metrics']['record_count']} anonymous records; "
+        f"{report['metrics']['completed_records']} completed."
+    )
     print(f"Status: {report['status']}")
     return 0 if report["status"] == "ready" else 1
 

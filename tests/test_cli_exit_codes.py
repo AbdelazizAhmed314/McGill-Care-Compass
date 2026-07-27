@@ -17,6 +17,7 @@ maintenance_cli = load_script(
     "maintenance_cli", ROOT / "scripts" / "data" / "generate_maintenance_report.py"
 )
 evaluation_cli = load_script("evaluation_cli", ROOT / "scripts" / "evaluate_recommendations.py")
+usability_cli = load_script("usability_cli", ROOT / "scripts" / "analyze_usability.py")
 terminal_cli = load_script(
     "terminal_cli", ROOT / "scripts" / "run_terminal_navigator.py"
 )
@@ -127,3 +128,24 @@ def test_evaluation_cli_returns_zero_for_passed_gate(monkeypatch, tmp_path) -> N
     monkeypatch.setattr(evaluation_cli, "write_evaluation_reports", lambda *args, **kwargs: None)
 
     assert evaluation_cli.main() == 0
+
+
+def test_usability_cli_returns_two_for_invalid_private_records(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(
+        usability_cli,
+        "parse_args",
+        lambda: Namespace(
+            records=tmp_path / "records.csv",
+            json_output=tmp_path / "report.json",
+            markdown_output=tmp_path / "report.md",
+        ),
+    )
+    monkeypatch.setattr(
+        usability_cli,
+        "load_usability_records",
+        lambda _path: (_ for _ in ()).throw(ValueError("identifier rejected")),
+    )
+
+    assert usability_cli.main() == 2

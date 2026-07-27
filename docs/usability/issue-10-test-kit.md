@@ -43,6 +43,8 @@ separate approved consent process exists.
 6. Stop timing when they identify a next step or say they cannot continue.
 7. Ask the feedback questions below.
 8. Record boolean results, ratings, and short controlled issue tags only.
+   Mark whether the assigned scenario requires a governed limitation and
+   whether the participant noticed it.
 9. Thank the participant and remind them that the prototype is not professional advice.
 
 ## Fictional Tasks
@@ -62,6 +64,10 @@ Rotate tasks across participants:
 
 Use the emergency scenario only as an additional safety observation, not as a
 replacement for a routine navigation task.
+
+Set `limitation_required` to `true` for `UT01`, `UT02`, `UT03`, and `UT05`.
+Set it to `false` for `UT04`; the analyzer rejects values that do not match
+this fixed scenario contract.
 
 ## Observer Rubric
 
@@ -93,6 +99,13 @@ Ask:
 Convert the final answer into non-identifying tags such as `wording`,
 `form-flow`, `source-visibility`, `limitation-visibility`, `ranking`, or
 `mobile-layout`. Do not store verbatim participant quotations in the CSV.
+Only use the controlled tags documented in `data/usability/README.md`.
+
+For each observed issue, record its highest severity and whether it blocked the
+task. Use `open`, `documented`, or `resolved` for `issue_status`. A documented
+or resolved issue requires a constrained reference such as `issue:#123`,
+`pr:#123`, `commit:abcdef0`, or `docs:path/to/file.md`. Critical issues always
+require a reference and must not remain `open` for the aggregate gate to pass.
 
 ## Analysis and Acceptance
 
@@ -104,14 +117,19 @@ uv run python scripts/analyze_usability.py
 
 The aggregate gate checks:
 
-- At least five anonymous records
+- At least five completed anonymous records
+- At least 80% task completion
 - At least 80% identify an appropriate next step
 - At least 80% find a relevant service in the top three
 - At least 70% understand the explanation
+- At least 80% locate the supporting official source
+- At least 80% notice the limitation across scenarios where it is required
 - Median completed-task time under two minutes
 - Average confidence improvement of at least one point
 - Average usefulness of at least 4/5
 - No unresolved critical usability issue
 
-Prioritize fixes by safety impact, number of affected sessions, and whether the
-problem blocks task completion. Rerun affected tasks after critical fixes.
+The report prioritizes controlled tags by severity, unresolved safety impact,
+task blocking, and number of affected sessions. Review that ranking, implement
+or document the highest-priority fixes, link the resulting issue/PR/commit, and
+rerun affected tasks after critical fixes.
