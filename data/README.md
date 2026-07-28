@@ -29,9 +29,9 @@ team review of Silver outputs.
 The latest governed v1 run produces:
 
 ```text
-Pages: 500
-Links: 22,727
-Chunks: 4,228
+Pages: 490
+Links: 22,548
+Chunks: 4,239
 Categories: 11
 Pipeline version: 1.0.0
 Embedding model: sentence-transformers/all-MiniLM-L6-v2

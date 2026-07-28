@@ -34,7 +34,7 @@ Start the development frontend in another terminal:
 
 ```powershell
 cd web
-npm install
+npm ci
 npm run dev
 ```
 

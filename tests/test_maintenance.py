@@ -36,9 +36,63 @@ def test_maintenance_separates_failed_fetches_from_intentional_link_skips() -> N
     report = build_maintenance_report(pages, links, [], as_of=date(2026, 7, 19))
 
     assert report["failed_sources"]["count"] == 1
+    assert report["failed_sources"]["blocking_count"] == 0
+    assert report["failed_sources"]["nonblocking_count"] == 1
     assert report["failed_sources"]["records"][0]["canonical_url"].endswith("/missing")
+    assert report["failed_sources"]["records"][0]["active_chunk_count"] == 0
     assert report["intentional_link_skips"]["count"] == 1
     assert report["intentional_link_skips"]["by_reason"] == {"duplicate_url": 1}
+
+
+def test_failed_source_blocks_once_only_when_active_chunks_remain(monkeypatch) -> None:
+    monkeypatch.setattr(
+        maintenance_module,
+        "_missing_report",
+        lambda *args: {"rows_with_missing_data": 0, "missing_by_field": {}, "examples": []},
+    )
+    monkeypatch.setattr(
+        maintenance_module,
+        "_coverage_report",
+        lambda *args: {
+            "by_category": {},
+            "categories_without_pages": [],
+            "categories_without_chunks": [],
+        },
+    )
+    monkeypatch.setattr(maintenance_module, "_chunk_quality_report", lambda *args, **kwargs: {})
+    failed_page = {
+        "canonical_url": "https://www.mcgill.ca/unavailable",
+        "http_status": "404",
+        "drift_status": "fetch_failed",
+        "retrieved_at": "2026-07-18T00:00:00+00:00",
+        "fetch_error": "HTTP 404",
+    }
+
+    excluded_report = build_maintenance_report(
+        [failed_page],
+        [],
+        [],
+        as_of=date(2026, 7, 19),
+    )
+    exposed_report = build_maintenance_report(
+        [failed_page],
+        [],
+        [
+            {
+                "chunk_id": "stale-source-chunk",
+                "canonical_url": failed_page["canonical_url"],
+                "chunk_text": "An active chunk from an unavailable source.",
+            }
+        ],
+        as_of=date(2026, 7, 19),
+    )
+
+    assert excluded_report["has_errors"] is False
+    assert excluded_report["severity_counts"] == {"error": 0, "warning": 1, "info": 0}
+    assert excluded_report["failed_sources"]["nonblocking_count"] == 1
+    assert exposed_report["has_errors"] is True
+    assert exposed_report["severity_counts"]["error"] == 1
+    assert exposed_report["failed_sources"]["blocking_count"] == 1
 
 
 def test_maintenance_classifies_chunk_quality_and_category_coverage() -> None:

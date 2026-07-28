@@ -39,7 +39,10 @@ Bronze is unprocessed and local. Silver is processed, queryable, and reviewable,
 
 ## Current Run Snapshot
 
-The latest v1 run contains 500 pages, 22,727 discovered links, 4,228 chunks, and 11 categories. Exact counts, hashes, model/version values, and artifact paths live in [`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json).
+The latest v1 run contains 490 pages, 22,548 discovered links, 4,239 chunks,
+and 11 retrieval categories. Exact counts, hashes, model/version values, and
+artifact paths live in
+[`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json).
 
 ## Commands
 
@@ -67,6 +70,17 @@ Validate the corpus and local runtime artifacts:
 uv run python scripts/data/validate_rag_corpus.py
 ```
 
+Generate the operational maintenance report:
+
+```bash
+uv run python scripts/data/generate_maintenance_report.py --fail-on-error
+```
+
+The error gate covers defects exposed to active retrieval. Fetch failures for
+pages with no active chunks remain reviewer warnings, while an unavailable page
+that still supplies chunks is blocking. Use `--fail-on-attention` for the
+stricter review of changed, new, stale, unavailable, and noisy sources.
+
 Run a raw retrieval diagnostic:
 
 ```bash
@@ -85,5 +99,7 @@ student-facing response.
 - Rebuild Chroma from [`data/silver/datasets/rag_chunks.csv`](../../data/silver/datasets/rag_chunks.csv); do not commit the vector store.
 - Treat `risk_level` as legacy topic-sensitivity metadata, not actual chunk danger.
 - If taxonomy, questionnaire IDs, source authority, or metadata rules change, update the source-input files and rerun the pipeline.
+- Review generated page, link, chunk, quality-report, and manifest diffs
+  together; never hand-edit a generated Silver row as an isolated fix.
 - Use Silver chunks for future app retrieval only with source links, limitation wording, and evidence checks.
 - Promote data to Gold only after explicit review.

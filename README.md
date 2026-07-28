@@ -10,6 +10,8 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 - Project plan: [docs/project/Project-Plan-High-Level.md](docs/project/Project-Plan-High-Level.md)
 - Team workload appendix: [docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md](docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md)
 - Data evidence: [data/README.md](data/README.md)
+- Matching and routing: [docs/workflow/matching-routing.md](docs/workflow/matching-routing.md)
+- Runtime updates and rollback: [docs/workflow/runtime-operations.md](docs/workflow/runtime-operations.md)
 - Agent/collaboration contract: [AGENTS.md](AGENTS.md)
 
 ## Repository Layout
@@ -136,7 +138,7 @@ docker compose down
 Install dependencies with `uv`:
 
 ```powershell
-uv sync
+uv sync --frozen
 ```
 
 Run checks:
@@ -216,6 +218,12 @@ uv run python scripts/evaluate_recommendations.py
 uv run python scripts/evaluate_recommendations.py --check
 ```
 
+The maintenance error gate fails only for defects that can affect active
+retrieval, such as missing required metadata, missing category coverage, or an
+unavailable page that still supplies chunks. Changed, stale, newly discovered,
+or unavailable pages excluded from active chunks remain visible reviewer
+warnings. Use `--fail-on-attention` when every warning must be reviewed.
+
 The evaluation command rebuilds a missing or signature-invalid ignored vector
 store from the committed chunk corpus. Use `--check` in review and CI to rerun
 the fixed scenarios and reject stale committed reports.
@@ -231,12 +239,33 @@ Run the React/Vite frontend in another terminal:
 
 ```powershell
 cd web
-npm install
+npm ci
 npm run dev
 ```
 
 Open `http://127.0.0.1:5173`. For the single-origin production and container
 workflow, see [docs/workflow/deployment.md](docs/workflow/deployment.md).
+
+## Assumptions and Known Limitations
+
+- The committed dataset is Silver: processed and governed, but not a
+  manually approved Gold directory.
+- The current corpus is English-only and excludes PDFs, login-gated pages,
+  and JavaScript-only pages.
+- Retrieval metadata is assigned by deterministic keywords and can miss
+  implied intent.
+- The fixed evaluation is a regression suite, not participant usability
+  testing or a professional-advice assessment.
+- Contact and location are separate intake needs. A source that only provides
+  a locator must not be relabelled as direct contact information merely to
+  improve a benchmark result.
+- Maintenance warnings require review before release even when the
+  integrity-blocking error gate passes.
+
+See [docs/workflow/matching-routing.md](docs/workflow/matching-routing.md),
+[docs/workflow/data-policy.md](docs/workflow/data-policy.md), and
+[docs/project/Risk-Assumptions-and-Safety-Boundaries.md](docs/project/Risk-Assumptions-and-Safety-Boundaries.md)
+for the complete operational boundaries.
 
 ## Git Workflow
 

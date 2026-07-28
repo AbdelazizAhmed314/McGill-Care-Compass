@@ -28,11 +28,11 @@ the corpus relevant, versioned, auditable, and safe for high-risk navigation.
 | Evidence item | Current v1 result | Interpretation |
 | --- | ---: | --- |
 | Active seed URLs | 21 | The source universe is explicit and reproducible. |
-| Pages processed | 500 | The crawler reaches the configured page target under depth and source-scope limits. |
-| Discovered links recorded | 22,727 | The pipeline preserves crawl decisions and skipped links for review. |
-| Header-aware chunks | 4,228 | The corpus contains retrievable, section-aware source text. |
+| Pages processed | 490 | The crawler remains near the 500-page target under depth and source-scope limits. |
+| Discovered links recorded | 22,548 | The pipeline preserves crawl decisions and skipped links for review. |
+| Header-aware chunks | 4,239 | The corpus contains retrievable, section-aware source text. |
 | Categories covered | 11 | The corpus covers the locked taxonomy categories needed for the MVP. |
-| Vector count | 4,228 | Chroma contains one vector per active chunk. |
+| Vector count | 4,239 | Chroma contains one vector per active chunk. |
 | Pipeline version | 1.0.0 | Generated artifacts are tied to a versioned pipeline run. |
 
 ## Source Layers

@@ -1,7 +1,8 @@
 # Data Policy
 
-The active data layer is the v1 local RAG corpus. The project no longer keeps
-the active RAG artifacts in the repository.
+The active data layer is the v1 local RAG corpus. Reviewable Silver CSVs,
+reports, and the run manifest are committed; raw captures, cleaned text,
+SQLite, and Chroma runtime artifacts are generated locally and ignored.
 
 ## Medallion Policy
 

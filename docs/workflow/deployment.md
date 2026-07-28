@@ -16,7 +16,7 @@ same `/api/v1` contract available to a future mobile client.
 Prepare the Python environment:
 
 ```powershell
-uv sync
+uv sync --frozen
 uv run python scripts/prepare_runtime.py
 ```
 
@@ -30,7 +30,7 @@ In another terminal, run the frontend:
 
 ```powershell
 cd web
-npm install
+npm ci
 npm run dev
 ```
 
@@ -63,8 +63,10 @@ Readiness:
 Invoke-RestMethod http://127.0.0.1:8000/api/v1/health/ready
 ```
 
-The build must fail if committed corpus validation, maintenance report
-generation, vector-store preparation, or strict health checks fail.
+Before building a release image, require committed corpus validation, the
+maintenance error gate, backend tests/lint, frontend tests/build, and the fixed
+evaluation to pass. The image build itself prepares and validates the signed
+SQLite and Chroma runtime artifacts.
 
 ## Hosted Internal Environment
 
@@ -109,12 +111,22 @@ Developer mode shows the generation mode, model, attempt count, application requ
 The logger uses an explicit allowlist. It must never record optional-question text, raw intake, retrieved passages, prompts, model output, identifiers, or API keys.
 ## Update Procedure
 
-1. Merge reviewed code and data changes.
-2. Run backend tests, Ruff, corpus validation, frontend tests, and frontend build.
-3. Build a new immutable container image from the reviewed commit.
-4. Deploy the new image.
-5. Wait for readiness to pass.
-6. Run the hosted smoke checks before announcing the update.
+1. Change governed source configuration or pipeline logic, not isolated
+   generated Silver rows.
+2. Rebuild the full corpus, or use `--metadata-only` only when source content
+   is unchanged and the change is limited to questionnaire metadata.
+3. Review the page, link, chunk, quality-report, and run-manifest diffs
+   together, including changed/new/failed/stale sources and provenance fields.
+4. Run `uv run ruff check .`, `uv run pytest`,
+   `uv run python scripts/data/validate_rag_corpus.py`,
+   `uv run python scripts/data/generate_maintenance_report.py --fail-on-error`,
+   and `uv run python scripts/evaluate_recommendations.py`.
+5. Run `npm ci`, `npm test`, and `npm run build` under `web/`.
+6. Merge only the reviewed code, configuration, Silver artifacts, reports, and
+   manifest. Do not commit raw captures, SQLite, Chroma, or operational logs.
+7. Build and deploy a new immutable container image from the reviewed commit.
+8. Wait for readiness and complete the routine/emergency hosted smoke checks
+   before announcing the update.
 
 The vector store is rebuilt during the image build. Startup does not mutate the
 governed corpus.

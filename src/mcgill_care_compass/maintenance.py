@@ -97,7 +97,11 @@ def build_maintenance_report(
         stale_after_days=stale_after_days,
         example_limit=example_limit,
     )
-    failed_sources = _failed_source_report(pages, example_limit=example_limit)
+    failed_sources = _failed_source_report(
+        pages,
+        chunks,
+        example_limit=example_limit,
+    )
     skipped_links = _skipped_link_report(links, example_limit=example_limit)
     missing_data = {
         "pages": _missing_report(pages, REQUIRED_FIELDS["pages"], example_limit),
@@ -107,8 +111,7 @@ def build_maintenance_report(
     coverage = _coverage_report(pages, chunks)
     quality = _chunk_quality_report(chunks, example_limit=example_limit)
     error_count = (
-        freshness["fetch_failed_count"]
-        + failed_sources["count"]
+        failed_sources["blocking_count"]
         + sum(section["rows_with_missing_data"] for section in missing_data.values())
         + len(coverage.get("categories_without_pages", []))
         + len(coverage.get("categories_without_chunks", []))
@@ -117,6 +120,7 @@ def build_maintenance_report(
         freshness["changed_count"]
         + freshness["new_count"]
         + freshness["stale_count"]
+        + failed_sources["nonblocking_count"]
         + sum(item["count"] for item in quality.values())
     )
     severity_counts = {
@@ -202,7 +206,10 @@ def format_maintenance_markdown(report: dict[str, Any]) -> str:
         "## Failed sources and link decisions",
         "",
         f"- Failed page fetches: {failed['count']}",
+        f"- Failed pages with active retrieval chunks: {failed['blocking_count']}",
+        f"- Failed pages excluded from active retrieval chunks: {failed['nonblocking_count']}",
         f"- Intentionally skipped/not-crawled links: {skipped['count']}",
+        "- A failed page blocks the error gate only when its URL still supplies active chunks.",
         "- Skipped links are reported separately and are not classified as broken.",
     ]
     for label, records, fields in (
@@ -218,7 +225,12 @@ def format_maintenance_markdown(report: dict[str, Any]) -> str:
         if records:
             lines.extend(["", f"### {label}"])
             lines.extend(_record_lines(records, fields))
-    lines.extend(_record_lines(failed["records"], ("canonical_url", "http_status", "fetch_error")))
+    lines.extend(
+        _record_lines(
+            failed["records"],
+            ("canonical_url", "http_status", "fetch_error", "active_chunk_count"),
+        )
+    )
     if skipped["by_reason"]:
         lines.extend(["", "### Intentional skip reasons", ""])
         for reason, count in skipped["by_reason"].items():
@@ -305,7 +317,15 @@ def _freshness_report(
     }
 
 
-def _failed_source_report(pages: list[dict[str, str]], *, example_limit: int) -> dict[str, Any]:
+def _failed_source_report(
+    pages: list[dict[str, str]],
+    chunks: list[dict[str, str]],
+    *,
+    example_limit: int,
+) -> dict[str, Any]:
+    active_chunk_counts = Counter(
+        row.get("canonical_url", "") for row in chunks if row.get("canonical_url")
+    )
     failed = []
     for row in pages:
         status = _integer(row.get("http_status", ""))
@@ -320,9 +340,19 @@ def _failed_source_report(pages: list[dict[str, str]], *, example_limit: int) ->
                     "http_status": row.get("http_status", ""),
                     "fetch_error": row.get("fetch_error", ""),
                     "drift_status": row.get("drift_status", ""),
+                    "active_chunk_count": active_chunk_counts.get(
+                        row.get("canonical_url", ""),
+                        0,
+                    ),
                 }
             )
-    return {"count": len(failed), "records": failed[:example_limit]}
+    blocking_count = sum(bool(row["active_chunk_count"]) for row in failed)
+    return {
+        "count": len(failed),
+        "blocking_count": blocking_count,
+        "nonblocking_count": len(failed) - blocking_count,
+        "records": failed[:example_limit],
+    }
 
 
 def _skipped_link_report(links: list[dict[str, str]], *, example_limit: int) -> dict[str, Any]:

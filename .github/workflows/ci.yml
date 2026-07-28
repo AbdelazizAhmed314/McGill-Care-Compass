@@ -24,6 +24,8 @@ jobs:
         run: uv run pytest
       - name: Validate committed corpus
         run: uv run python scripts/data/validate_rag_corpus.py
+      - name: Enforce active-retrieval maintenance gate
+        run: uv run python scripts/data/generate_maintenance_report.py --fail-on-error
       - name: Prepare reports without local vector build
         run: uv run python scripts/prepare_runtime.py --skip-vector-store
       - name: Verify fixed recommendation evaluation
