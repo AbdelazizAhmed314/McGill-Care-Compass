@@ -611,6 +611,22 @@ def format_evaluation_markdown(report: Mapping[str, Any]) -> str:
         "`matched` response. Overall success additionally requires full supported-scenario "
         "coverage, every fixed attack and benign control, and all safety/source checks.",
         "",
+        "## Plain-language evaluation summary",
+        "",
+        "Each relevance scenario defines expected categories and exact acceptable source "
+        "targets. The evaluator passes a scenario when at least one of the first three "
+        "serialized recommendations matches those expectations, then separately checks "
+        "official links, required limitations, and citation grounding. Safety, adversarial, "
+        "and controlled fallback cases are scored as guardrail checks instead of relevance "
+        "matches.",
+        "",
+        f"In this run, {summary['top_three_relevant']} of "
+        f"{summary['normal_match_scenarios']} relevance scenarios passed the top-three "
+        f"check, and {summary['guardrail_scenarios_passed']} of "
+        f"{summary['guardrail_scenarios']} required guardrail scenarios passed. This "
+        "automated package supports the bounded MVP claim for the fixed scenario set; it "
+        "does not replace participant usability testing.",
+        "",
         "## Scenario results",
         "",
         "| Scenario | Kind | Class | Expected | Actual | Result | Failed checks |",
@@ -623,6 +639,33 @@ def format_evaluation_markdown(report: Mapping[str, Any]) -> str:
             f"| {result['scenario_id']} | {result['kind']} | {guardrail_class} | "
             f"{result['expected_status']} | {result['actual_status']} | "
             f"{'PASS' if result['passed'] else 'FAIL'} | {failures} |"
+        )
+    retained_r13 = next(
+        (
+            result
+            for result in report["results"]
+            if result["scenario_id"] == "R13_FREE_TAX_CLINIC"
+            and "top_three_relevant" in result["failure_reasons"]
+        ),
+        None,
+    )
+    if retained_r13 is not None:
+        lines.extend(
+            [
+                "",
+                "## Retained known finding",
+                "",
+                "`R13_FREE_TAX_CLINIC` remains a failed contact-intent scenario: the first "
+                "three results do not include the expected CRA free-tax-clinic route because "
+                "the governed clinic evidence provides a location route rather than reviewed "
+                "contact metadata. The overall gate still passes above its predefined 90% "
+                "threshold, but this result must not be rewritten as a pass.",
+                "",
+                "Future work should first verify an official contact route, then add reviewed "
+                "contact metadata or adjust the contact fallback without weakening the exact-"
+                "target rubric. `R14_FREE_TAX_CLINIC_LOCATION` separately confirms that the "
+                "official clinic page ranks for the distinct location intent.",
+            ]
         )
     lines.extend(["", "## Top-three evidence", ""])
     for result in report["results"]:

@@ -13,7 +13,7 @@ same `/api/v1` contract available to a future mobile client.
 
 ## Current Deployment Status
 
-As of 2026-07-27, `https://mcgill-care-compass.onrender.com` returns HTTP 404 at
+As of 2026-07-28, `https://mcgill-care-compass.onrender.com` returns HTTP 404 at
 both the root and `/api/v1/health/ready`. It is a candidate service name, not a
 verified deliverable URL. The current final-demo candidate is the local Docker
 workflow documented in
@@ -98,7 +98,7 @@ started manually from the reviewed commit and followed by the checks below.
 After the final submission, the team may deliberately choose `checksPass` if it
 wants Render to deploy only after linked CI checks pass.
 
-No API key is required for the grouped deterministic fallback. When `OPENAI_API_KEY` is configured, the web and CLI use the same validated LLM pipeline. `MCC_LLM_MODEL` selects the response model. The structured intake, optional short question, and approved source evidence are sent to the configured response model with `store=False`; the app does not log or echo the optional question. Do not place student intake data, identifiers, or source content in environment variables.
+No API key is required for the grouped deterministic fallback. When `OPENAI_API_KEY` is configured, the web and CLI use the same validated LLM pipeline. `MCC_LLM_MODEL` selects the response model. The structured intake, optional short question, and approved source evidence are sent to the configured response model with `store=False`; the app does not log the optional question or return it in recommendation results. Do not place student intake data, identifiers, or source content in environment variables.
 
 Set `PRELOAD_RETRIEVAL=1` in the hosted process so startup loads the embedding model and verifies the signed Chroma collection before readiness can pass. Image construction and local source deployment must use `scripts/prepare_runtime.py`, which atomically derives signed SQLite and Chroma artifacts from the committed corpus. A mismatched or partial artifact must fail readiness rather than trigger an in-place production rebuild.
 

@@ -12,15 +12,20 @@ The primary local navigator is <http://127.0.0.1:8000/navigator>; status is
 available at <http://127.0.0.1:8000/status>, and API documentation is available
 at <http://127.0.0.1:8000/docs>.
 
-As of 2026-07-27, no hosted release URL has passed the documented readiness
+As of 2026-07-28, no hosted release URL has passed the documented readiness
 checks, so the current candidate is the local Docker workflow. Follow the
 [final demo runbook](docs/workflow/final-demo-runbook.md) for setup, smoke
 scenarios, privacy checks, backup operation, and rehearsal evidence.
 
+Current release state: final candidate pending recorded Docker rehearsal and
+final QA. The 2026-07-27 feature freeze is in effect, so only critical fixes
+should be accepted before the final submission and presentation on 2026-07-30.
+
 The demo uses governed Silver RAG data, not a manually approved Gold
-recommendation corpus. Passing the fixed evaluation supports the bounded MVP
-navigator claim; it does not create professional advice or eligibility
-decisions.
+recommendation corpus. Passing the
+[fixed evaluation](docs/evaluation/recommendation-evaluation-report.md) supports
+the bounded MVP navigator claim; it does not create professional advice or
+eligibility decisions.
 
 ## Start Here
 
@@ -31,6 +36,8 @@ decisions.
 - Team workload appendix: [docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md](docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md)
 - Data evidence: [data/README.md](data/README.md)
 - Matching and routing: [docs/workflow/matching-routing.md](docs/workflow/matching-routing.md)
+- Evaluation plan and current status: [docs/project/Evaluation-and-Usability-Plan.md](docs/project/Evaluation-and-Usability-Plan.md)
+- Generated recommendation evaluation report: [docs/evaluation/recommendation-evaluation-report.md](docs/evaluation/recommendation-evaluation-report.md)
 - Runtime updates and rollback: [docs/workflow/runtime-operations.md](docs/workflow/runtime-operations.md)
 - Agent/collaboration contract: [AGENTS.md](AGENTS.md)
 

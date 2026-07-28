@@ -541,7 +541,18 @@ def test_report_verification_detects_result_drift(tmp_path) -> None:
             "grounding_checks_passed": 1,
             "grounding_checks": 1,
         },
-        "results": [],
+        "results": [
+            {
+                "scenario_id": "R13_FREE_TAX_CLINIC",
+                "kind": "relevance",
+                "guardrail_class": "",
+                "expected_status": "matched",
+                "actual_status": "matched",
+                "passed": False,
+                "failure_reasons": ["top_three_relevant"],
+                "top_three": [],
+            }
+        ],
         "limitations": [],
     }
     write_evaluation_reports(
@@ -550,6 +561,10 @@ def test_report_verification_detects_result_drift(tmp_path) -> None:
         json_path=json_path,
         markdown_path=markdown_path,
     )
+    markdown = markdown_path.read_text(encoding="utf-8")
+    assert "## Plain-language evaluation summary" in markdown
+    assert "## Retained known finding" in markdown
+    assert "`R13_FREE_TAX_CLINIC` remains a failed contact-intent scenario" in markdown
     verify_evaluation_reports(
         report,
         scenario_path=scenario_path,

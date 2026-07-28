@@ -5,10 +5,16 @@
 The canonical final-demo application is the single-container FastAPI/React
 application. Streamlit is superseded and is not an approved final-demo path.
 
-As of 2026-07-27, the documented Render candidate returns HTTP 404 at both the
-root and readiness paths, so no hosted release URL is claimed. The verified
-candidate path is local Docker until a release owner records a successful hosted
-deployment, commit, URL, and verification time in this document.
+As of 2026-07-28, the documented Render candidate returns HTTP 404 at both the
+root and readiness paths, so no hosted release URL is claimed. The primary
+candidate path is local Docker, pending the recorded end-to-end rehearsal
+required below. No successful Docker rehearsal is recorded in this document as
+of 2026-07-28; do not describe the candidate as verified until a release owner
+records the commit, verification time, and routine and emergency results.
+
+Current release state: final candidate pending recorded Docker rehearsal and
+final QA. The 2026-07-27 feature freeze is in effect, so only critical fixes
+should be accepted before the final submission and presentation on 2026-07-30.
 
 | Surface | Local URL |
 | --- | --- |
