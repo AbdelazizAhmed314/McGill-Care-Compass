@@ -11,6 +11,7 @@ control how the pipeline runs.
 | [`rag_seed_urls.csv`](rag_seed_urls.csv) | Official seed URLs, source ownership, source authority, allowlists, per-seed crawl limits, taxonomy, source terms, and default user-context metadata. |
 | [`questionnaire_metadata_map.yml`](questionnaire_metadata_map.yml) | Stable questionnaire IDs, category IDs, need-type IDs, keyword rules, and fields shared with Mustafa's intake flow. |
 | [`rag_failed_source_dispositions.csv`](rag_failed_source_dispositions.csv) | Explicit reviews that may downgrade a known zero-chunk fetch failure from an error to a warning. |
+| [`rag_required_source_urls.csv`](rag_required_source_urls.csv) | Additional service-critical URLs that can never be downgraded when a fetch fails. Seed URLs are already non-waivable and do not need to be repeated here. |
 
 ## Seed Contract
 
@@ -56,11 +57,18 @@ is valid only when it uses `reviewed_nonblocking` and includes:
 - an ISO review date
 - an issue or review reference
 - the exact governed `pipeline_run_id` reviewed
+- an official `replacement_url` in the same category with active chunks from that
+  pipeline run
 
-A disposition never exempts a failed page that still supplies active chunks.
-A new corpus run invalidates old dispositions, requiring reviewers to reassess
-the current fetch result and coverage. Remove obsolete rows when a source is
-restored, replaced, or becomes required.
+A seed page can never receive a nonblocking disposition. A non-seed failure
+listed in `rag_required_source_urls.csv`, or one without machine-verifiable
+replacement coverage, also remains blocking. Add a URL to that file when a
+non-seed page is service-critical and no replacement is acceptable. The review
+date cannot be in the future and expires after 30 calendar days. A disposition
+never exempts a failed page that still supplies active chunks. A new corpus run
+invalidates old dispositions, requiring reviewers to reassess the current fetch
+result and coverage. Remove obsolete rows when a source is restored, replaced,
+or becomes required.
 
 ## Version Governance
 
@@ -71,6 +79,6 @@ The seed and questionnaire configuration files are hashed into
 page, link, and chunk row. If either file changes, the next generated Silver
 artifacts carry new config hashes.
 
-Failed-source dispositions are operational review policy, not corpus-generation
-inputs, so they are version controlled but are not included in the corpus
-configuration hashes.
+Failed-source dispositions and the required-source list are operational review
+policy, not corpus-generation inputs, so they are version controlled but are
+not included in the corpus configuration hashes.

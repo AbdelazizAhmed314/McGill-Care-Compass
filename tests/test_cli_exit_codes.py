@@ -43,6 +43,7 @@ def test_maintenance_strict_mode_returns_one_when_attention_is_required(
             json_output=tmp_path / "report.json",
             markdown_output=tmp_path / "report.md",
             failed_source_dispositions=tmp_path / "dispositions.csv",
+            required_sources=tmp_path / "required-sources.csv",
             stale_after_days=30,
             as_of=None,
             fail_on_attention=True,

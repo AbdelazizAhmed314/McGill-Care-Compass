@@ -160,7 +160,12 @@ export type MaintenanceReport = {
       reviewed_at: string
       review_reference: string
       disposition_pipeline_run_id: string
+      replacement_url: string
+      replacement_active_chunk_count: number
+      disposition_validation_errors: string[]
     }>
+    review_max_age_days?: number
+    configured_required_source_count?: number
   }
   category_coverage: {
     observed_categories?: string[]

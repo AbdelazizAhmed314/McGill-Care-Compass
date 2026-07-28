@@ -20,7 +20,7 @@ Issue 8 evaluation foundation. Issue 10 study infrastructure is not included.
 | `D11-02` | Data policy said active artifacts were not committed, contradicting the tracked Silver CSV/report policy. | Medium | Resolved. Tracked and ignored artifacts are now distinguished explicitly. |
 | `D11-03` | README/deployment instructions did not completely distinguish build-time checks, release gates, update steps, assumptions, and limitations. | Medium | Resolved in the README and workflow documentation. |
 | `R13` | The fixed contact journey does not surface the free-tax-clinic page; that page carries location rather than contact metadata. | Medium | Documented. The source must not receive false contact metadata. The distinct location journey ranks the official locator first. |
-| `S11-01` | Four failed page fetches are present in the governed page manifest. | Medium | Explicitly reviewed in `rag_failed_source_dispositions.csv`. They are non-seed pages, supply zero active chunks, and are not required for current category coverage. Dispositions are bound to the reviewed pipeline run, so a future run blocks until they are reassessed, replaced, or removed. |
+| `S11-01` | Four failed page fetches are present in the governed page manifest. | Medium | Explicitly reviewed in `rag_failed_source_dispositions.csv`. They are non-seed pages, supply zero active chunks, and each identifies an active official same-category replacement. Dispositions expire after 30 days and are bound to the reviewed pipeline run, so an expired review or future run blocks until reassessment. |
 | `S11-02` | The committed source capture is older than the 30-day reviewer threshold as of July 27, 2026. | Medium | Documented for the release owner. The maintenance attention gate remains nonzero until the corpus is refreshed or each warning is reviewed. |
 
 No critical data or matching defect is exposed to active retrieval in the
@@ -75,7 +75,7 @@ warnings await review. The error gate must pass.
 Recorded on the Issue 11 branch:
 
 - Ruff: passed.
-- Python: 133 tests passed.
+- Python: 139 tests passed.
 - Corpus validation: passed for 490 pages, 4,239 chunks, and 11 categories.
 - Maintenance error gate: passed; reviewer attention remains required.
 - Fixed evaluation drift check: passed with 13/14 top-three relevance, 18/18
@@ -92,7 +92,8 @@ The final reviewer should confirm:
 1. Issue 10 is described as deferred, not completed.
 2. R13 remains visible and is not hidden by changing the evaluation rubric.
 3. Four failed pages still contribute zero active chunks and retain complete,
-   justified dispositions.
+   current dispositions whose official same-category replacements have active
+   chunks.
 4. No critical data or matching defect remains open in the available automated
    evidence; no claim is made about unavailable participant findings.
 5. Source freshness and Silver/Gold limitations remain visible in the final

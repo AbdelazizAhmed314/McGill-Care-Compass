@@ -69,17 +69,24 @@ Errors cover failed fetches by default, required-field gaps, and missing categor
 page/chunk coverage. A failed fetch is downgraded to a warning only when it has
 zero active chunks and a complete `reviewed_nonblocking` record in
 [`data/source-inputs/rag_failed_source_dispositions.csv`](../../data/source-inputs/rag_failed_source_dispositions.csv).
-A failure with active chunks always blocks. Changed, new, stale, and explicitly
-reviewed nonblocking sources are warnings; intentional crawl skips are
-informational. `--fail-on-error` is the deployment gate; `--fail-on-attention`
-is the stricter reviewer gate.
+A seed failure, a URL listed in
+[`rag_required_source_urls.csv`](../../data/source-inputs/rag_required_source_urls.csv),
+or a failure with active chunks always blocks. Another non-seed failure can be
+nonblocking only when the review is no more than 30 days old and identifies an
+active official replacement in the same category and pipeline run. Changed,
+new, stale, and explicitly reviewed nonblocking sources are warnings;
+intentional crawl skips are informational. `--fail-on-error` is the deployment
+gate; `--fail-on-attention` is the stricter reviewer gate.
 
-When reviewing a failed source, first confirm that it is not a seed or otherwise
+When reviewing a failed source, first confirm that it is not a seed or listed
 required page, that no active chunks use it, and that its category retains
-appropriate official coverage. Record a concrete reason, ISO review date, and
-issue or review reference, and bind the disposition to the exact governed
-`pipeline_run_id`. A new run invalidates an old disposition. Removing an
-obsolete disposition also restores the blocking default.
+appropriate official coverage. Add service-critical non-seed URLs to the
+required-source file. Otherwise, record a concrete reason, ISO review date,
+issue or review reference, active same-category `replacement_url`, and the
+exact governed `pipeline_run_id`. Future-dated and more-than-30-day-old reviews
+are invalid. A new run invalidates an old disposition. Removing an obsolete
+disposition also restores the blocking default. The report retains every failed
+source and its validation errors for complete auditability.
 
 The fixed evaluation scenario source is version controlled under `data/evaluation/`. The command rebuilds a missing or signature-invalid ignored vector store from committed chunks. Its report records scenario, corpus, manifest, implementation, dependency, and model-revision signatures; relevance scenarios run through the shared pipeline and serialized API response contract with live LLM generation disabled. `--check` reruns the gate without rewriting evidence and rejects report drift. Safety gates separately test escalation/redaction, adversarial blocking, fallback handling, governed limitations, governed official links, and citation grounding. These automated checks support Issue 8 but do not replace the documented five-participant usability study.
 The default embedding model is resolved at the pinned revision recorded in the

@@ -222,13 +222,14 @@ uv run python scripts/evaluate_recommendations.py --check
 ```
 
 The maintenance error gate fails for missing required metadata, missing category
-coverage, and failed source fetches by default. A failed page can be downgraded
-to a warning only when it has zero active chunks and a complete reviewed
-disposition in
+coverage, and failed source fetches by default. A non-seed failed page can be
+downgraded to a warning only when it has zero active chunks, a review no more
+than 30 days old, and an active official same-category replacement recorded in
 [`data/source-inputs/rag_failed_source_dispositions.csv`](data/source-inputs/rag_failed_source_dispositions.csv).
-A failed page with active chunks always blocks. Changed, stale, and newly
-discovered pages remain reviewer warnings. Use `--fail-on-attention` when every
-warning must be reviewed.
+A seed failure, a configured required-source failure, or a failed page with
+active chunks always blocks. Changed, stale, and newly discovered pages remain
+reviewer warnings. Use `--fail-on-attention` when every warning must be
+reviewed.
 
 The evaluation command rebuilds a missing or signature-invalid ignored vector
 store from the committed chunk corpus. Use `--check` in review and CI to rerun

@@ -75,12 +75,14 @@ Generate the operational maintenance report:
 uv run python scripts/data/generate_maintenance_report.py --fail-on-error
 ```
 
-The error gate treats fetch failures as blocking by default. A failed page with
-zero active chunks is a warning only when it has a complete reviewed disposition
-in
+The error gate treats fetch failures as blocking by default. A non-seed failed
+page with zero active chunks is a warning only when it has a complete,
+non-expired reviewed disposition and an active official same-category
+replacement in
 [`rag_failed_source_dispositions.csv`](../../data/source-inputs/rag_failed_source_dispositions.csv).
-A failure with active chunks always blocks. Use `--fail-on-attention` for the
-stricter review of changed, new, stale, reviewed unavailable, and noisy sources.
+A seed failure, configured required-source failure, or failure with active
+chunks always blocks. Use `--fail-on-attention` for the stricter review of
+changed, new, stale, reviewed unavailable, and noisy sources.
 
 Run a raw retrieval diagnostic:
 
