@@ -135,16 +135,20 @@ legal, immigration, tax, insurance, financial, or eligibility decisions.
 
 ## Source Authority
 
-Retrieval reranking prefers source groups in this order when chunks are relevant
-to the same need:
+Source authority is contextual rather than one global source-group ladder:
 
-1. Canada
-2. Quebec
-3. Official healthcare systems
-4. McGill
-5. Other approved sources
+1. Prefer McGill for McGill-owned student services, campus processes, and
+   advising.
+2. Prefer Canadian or Quebec government and public-system sources for laws,
+   immigration, tax, public insurance, and government programs.
+3. Prefer the responsible official healthcare system, insurer, or plan
+   administrator for decisions and processes it owns.
+4. Use approved community sources only for appropriate referral-focused gaps
+   where no official route is available.
 
-Within the same source tier, fresher source-updated dates rank higher.
+Within an equal contextual authority tier, semantic relevance comes before
+freshness and stable tie-breakers. Intake jurisdiction is a ranking signal, not
+a legal or eligibility determination.
 
 ## Validation
 

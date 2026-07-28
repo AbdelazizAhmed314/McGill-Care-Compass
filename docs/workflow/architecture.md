@@ -8,7 +8,9 @@ deterministic guardrails, filtered retrieval, and a governed local RAG layer.
 
 1. **Web interface**: `web/` provides a responsive structured intake,
    recommendation states, emergency-first presentation, and an internal status
-   view. It does not collect open-ended text or sensitive identifiers.
+   view. It is structured-first and allows one optional 300-character short
+   question. The question is screened for sensitive identifiers, used
+   ephemerally, and excluded from application logs and recommendation results.
 2. **Versioned API**: `src/mcgill_care_compass/api/` exposes liveness,
    readiness, intake options, recommendations, and a read-only maintenance
    report under `/api/v1`.
