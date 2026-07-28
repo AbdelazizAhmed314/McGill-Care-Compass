@@ -88,7 +88,8 @@ docker compose up --build -d
 ```
 
 The first build can take 15-25 minutes because it installs the CPU embedding
-runtime and builds the signed 4,239-record Chroma index. Follow progress with:
+runtime and builds the signed Chroma index from the committed corpus. Follow
+progress with:
 
 ```powershell
 docker compose logs -f care-compass
@@ -147,10 +148,12 @@ Run checks:
 uv run ruff check .
 uv run pytest
 uv run python scripts/data/validate_rag_corpus.py
+uv run python scripts/prepare_runtime.py
 uv run python scripts/health_check.py
 ```
 
-Rebuild the ignored local vector store if needed:
+`prepare_runtime.py` builds the ignored SQLite and Chroma artifacts required by
+the strict health check. To force a vector-store rebuild:
 
 ```powershell
 uv run python scripts/run_terminal_navigator.py --rebuild-vector-store
@@ -218,11 +221,14 @@ uv run python scripts/evaluate_recommendations.py
 uv run python scripts/evaluate_recommendations.py --check
 ```
 
-The maintenance error gate fails only for defects that can affect active
-retrieval, such as missing required metadata, missing category coverage, or an
-unavailable page that still supplies chunks. Changed, stale, newly discovered,
-or unavailable pages excluded from active chunks remain visible reviewer
-warnings. Use `--fail-on-attention` when every warning must be reviewed.
+The maintenance error gate fails for missing required metadata, missing category
+coverage, and failed source fetches by default. A failed page can be downgraded
+to a warning only when it has zero active chunks and a complete reviewed
+disposition in
+[`data/source-inputs/rag_failed_source_dispositions.csv`](data/source-inputs/rag_failed_source_dispositions.csv).
+A failed page with active chunks always blocks. Changed, stale, and newly
+discovered pages remain reviewer warnings. Use `--fail-on-attention` when every
+warning must be reviewed.
 
 The evaluation command rebuilds a missing or signature-invalid ignored vector
 store from the committed chunk corpus. Use `--check` in review and CI to rerun

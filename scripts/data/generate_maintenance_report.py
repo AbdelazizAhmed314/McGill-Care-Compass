@@ -15,6 +15,7 @@ if str(SRC) not in sys.path:
 from mcgill_care_compass.maintenance import (  # noqa: E402
     DEFAULT_JSON_REPORT,
     DEFAULT_MARKDOWN_REPORT,
+    FAILED_SOURCE_DISPOSITIONS_CSV,
     generate_maintenance_reports,
 )
 
@@ -23,6 +24,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate RAG maintenance JSON and Markdown.")
     parser.add_argument("--json-output", type=Path, default=DEFAULT_JSON_REPORT)
     parser.add_argument("--markdown-output", type=Path, default=DEFAULT_MARKDOWN_REPORT)
+    parser.add_argument(
+        "--failed-source-dispositions",
+        type=Path,
+        default=FAILED_SOURCE_DISPOSITIONS_CSV,
+        help="Reviewed failed-source disposition CSV.",
+    )
     parser.add_argument("--stale-after-days", type=int, default=30)
     parser.add_argument(
         "--as-of",
@@ -47,6 +54,7 @@ def main() -> int:
     report = generate_maintenance_reports(
         json_path=args.json_output,
         markdown_path=args.markdown_output,
+        failed_source_dispositions_csv=args.failed_source_dispositions,
         as_of=args.as_of,
         stale_after_days=args.stale_after_days,
     )

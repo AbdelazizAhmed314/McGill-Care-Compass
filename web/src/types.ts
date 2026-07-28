@@ -130,6 +130,7 @@ export type HealthResponse = {
 }
 
 export type MaintenanceReport = {
+  report_schema_version?: string
   generated_at?: string
   as_of?: string
   counts: { pages: number; links: number; chunks: number }
@@ -147,6 +148,19 @@ export type MaintenanceReport = {
   }
   failed_sources?: {
     count: number
+    blocking_count?: number
+    nonblocking_count?: number
+    records?: Array<{
+      canonical_url: string
+      http_status: string
+      fetch_error: string
+      active_chunk_count: number
+      classification: "blocking" | "reviewed_nonblocking"
+      disposition_reason: string
+      reviewed_at: string
+      review_reference: string
+      disposition_pipeline_run_id: string
+    }>
   }
   category_coverage: {
     observed_categories?: string[]

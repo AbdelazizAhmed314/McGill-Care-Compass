@@ -10,6 +10,7 @@ control how the pipeline runs.
 | --- | --- |
 | [`rag_seed_urls.csv`](rag_seed_urls.csv) | Official seed URLs, source ownership, source authority, allowlists, per-seed crawl limits, taxonomy, source terms, and default user-context metadata. |
 | [`questionnaire_metadata_map.yml`](questionnaire_metadata_map.yml) | Stable questionnaire IDs, category IDs, need-type IDs, keyword rules, and fields shared with Mustafa's intake flow. |
+| [`rag_failed_source_dispositions.csv`](rag_failed_source_dispositions.csv) | Explicit reviews that may downgrade a known zero-chunk fetch failure from an error to a warning. |
 
 ## Seed Contract
 
@@ -45,11 +46,31 @@ requires a full rebuild:
 uv run python scripts/data/build_rag_corpus.py --force-rechunk
 ```
 
+## Failed-Source Disposition Contract
+
+Failed page fetches block the maintenance error gate by default. A disposition
+is valid only when it uses `reviewed_nonblocking` and includes:
+
+- the exact canonical URL
+- a concrete reason the page is not required for current service/category coverage
+- an ISO review date
+- an issue or review reference
+- the exact governed `pipeline_run_id` reviewed
+
+A disposition never exempts a failed page that still supplies active chunks.
+A new corpus run invalidates old dispositions, requiring reviewers to reassess
+the current fetch result and coverage. Remove obsolete rows when a source is
+restored, replaced, or becomes required.
+
 ## Version Governance
 
 `risk_level` is kept for v1 compatibility, but it should be read as topic sensitivity, not actual chunk-level danger. Future work may rename it to `topic_sensitivity` or let the app derive sensitive-topic behavior directly from the taxonomy.
 
-Both source-input files are hashed into
+The seed and questionnaire configuration files are hashed into
 [`data/silver/reports/rag_run_manifest.json`](../silver/reports/rag_run_manifest.json) and stamped onto every generated
 page, link, and chunk row. If either file changes, the next generated Silver
 artifacts carry new config hashes.
+
+Failed-source dispositions are operational review policy, not corpus-generation
+inputs, so they are version controlled but are not included in the corpus
+configuration hashes.

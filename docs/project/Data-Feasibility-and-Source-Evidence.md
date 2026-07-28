@@ -25,15 +25,14 @@ the corpus relevant, versioned, auditable, and safe for high-risk navigation.
 
 ## Current Evidence
 
-| Evidence item | Current v1 result | Interpretation |
-| --- | ---: | --- |
-| Active seed URLs | 21 | The source universe is explicit and reproducible. |
-| Pages processed | 490 | The crawler remains near the 500-page target under depth and source-scope limits. |
-| Discovered links recorded | 22,548 | The pipeline preserves crawl decisions and skipped links for review. |
-| Header-aware chunks | 4,239 | The corpus contains retrievable, section-aware source text. |
-| Categories covered | 11 | The corpus covers the locked taxonomy categories needed for the MVP. |
-| Vector count | 4,239 | Chroma contains one vector per active chunk. |
-| Pipeline version | 1.0.0 | Generated artifacts are tied to a versioned pipeline run. |
+The governed
+[`rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json) is
+the canonical current-run evidence for seed, page, link, chunk, category, and
+vector counts; pipeline/model versions; and artifact hashes. The pipeline
+preserves crawl decisions and skipped links for review, produces retrievable
+section-aware source text across the locked taxonomy, and ties generated
+artifacts to a versioned run. Exact values are not copied here so this
+descriptive document cannot drift from the manifest.
 
 ## Source Layers
 

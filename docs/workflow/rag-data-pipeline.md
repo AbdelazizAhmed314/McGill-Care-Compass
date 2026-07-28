@@ -39,9 +39,8 @@ Bronze is unprocessed and local. Silver is processed, queryable, and reviewable,
 
 ## Current Run Snapshot
 
-The latest v1 run contains 490 pages, 22,548 discovered links, 4,239 chunks,
-and 11 retrieval categories. Exact counts, hashes, model/version values, and
-artifact paths live in
+Exact counts, hashes, model/version values, and artifact paths for the latest
+governed run live in
 [`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json).
 
 ## Commands
@@ -76,10 +75,12 @@ Generate the operational maintenance report:
 uv run python scripts/data/generate_maintenance_report.py --fail-on-error
 ```
 
-The error gate covers defects exposed to active retrieval. Fetch failures for
-pages with no active chunks remain reviewer warnings, while an unavailable page
-that still supplies chunks is blocking. Use `--fail-on-attention` for the
-stricter review of changed, new, stale, unavailable, and noisy sources.
+The error gate treats fetch failures as blocking by default. A failed page with
+zero active chunks is a warning only when it has a complete reviewed disposition
+in
+[`rag_failed_source_dispositions.csv`](../../data/source-inputs/rag_failed_source_dispositions.csv).
+A failure with active chunks always blocks. Use `--fail-on-attention` for the
+stricter review of changed, new, stale, reviewed unavailable, and noisy sources.
 
 Run a raw retrieval diagnostic:
 

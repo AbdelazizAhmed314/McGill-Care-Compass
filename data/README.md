@@ -26,19 +26,10 @@ team review of Silver outputs.
 
 ## Current Corpus
 
-The latest governed v1 run produces:
-
-```text
-Pages: 490
-Links: 22,548
-Chunks: 4,239
-Categories: 11
-Pipeline version: 1.0.0
-Embedding model: sentence-transformers/all-MiniLM-L6-v2
-```
-
-The run manifest is the source of truth for exact run ID, artifact hashes, and
-configuration hashes.
+[`silver/reports/rag_run_manifest.json`](silver/reports/rag_run_manifest.json)
+is the source of truth for current row counts, model and pipeline versions, run
+ID, artifact hashes, and configuration hashes. Keeping exact run values in the
+manifest prevents descriptive documentation from drifting after a rebuild.
 
 ## Workflow
 
@@ -112,6 +103,10 @@ missing metadata, category coverage, and chunk-quality findings:
 uv run python scripts/data/generate_maintenance_report.py
 uv run python scripts/data/generate_maintenance_report.py --fail-on-error
 ```
+
+Failed fetches block by default. Only a complete reviewed disposition in
+[`source-inputs/rag_failed_source_dispositions.csv`](source-inputs/rag_failed_source_dispositions.csv)
+can downgrade a zero-chunk failure to a warning.
 
 Use `--fail-on-attention` for the stricter reviewer gate. Reports are written under
 `silver/maintenance/` and are not committed because they describe the local operational run.

@@ -6,45 +6,16 @@ from mcgill_care_compass.maintenance import (
     format_maintenance_markdown,
 )
 
-
-def test_maintenance_separates_failed_fetches_from_intentional_link_skips() -> None:
-    pages = [
-        {
-            "canonical_url": "https://www.mcgill.ca/good",
-            "http_status": "200",
-            "drift_status": "unchanged",
-            "retrieved_at": "2026-07-18T00:00:00+00:00",
-        },
-        {
-            "canonical_url": "https://www.mcgill.ca/missing",
-            "http_status": "404",
-            "drift_status": "fetch_failed",
-            "retrieved_at": "2026-06-01T00:00:00+00:00",
-            "fetch_error": "HTTP 404",
-        },
-    ]
-    links = [
-        {
-            "source_canonical_url": "https://www.mcgill.ca/good",
-            "target_canonical_url": "https://www.mcgill.ca/duplicate",
-            "link_type": "in_scope",
-            "crawl_decision": "not_crawled",
-            "skip_reason": "duplicate_url",
-        }
-    ]
-
-    report = build_maintenance_report(pages, links, [], as_of=date(2026, 7, 19))
-
-    assert report["failed_sources"]["count"] == 1
-    assert report["failed_sources"]["blocking_count"] == 0
-    assert report["failed_sources"]["nonblocking_count"] == 1
-    assert report["failed_sources"]["records"][0]["canonical_url"].endswith("/missing")
-    assert report["failed_sources"]["records"][0]["active_chunk_count"] == 0
-    assert report["intentional_link_skips"]["count"] == 1
-    assert report["intentional_link_skips"]["by_reason"] == {"duplicate_url": 1}
+REVIEWED_NONBLOCKING = {
+    "disposition": "reviewed_nonblocking",
+    "reason": "Discovered page is not required for current category coverage.",
+    "reviewed_at": "2026-07-19",
+    "review_reference": "Issue #11",
+    "pipeline_run_id": "test-run",
+}
 
 
-def test_failed_source_blocks_once_only_when_active_chunks_remain(monkeypatch) -> None:
+def _isolate_failed_source_findings(monkeypatch) -> None:
     monkeypatch.setattr(
         maintenance_module,
         "_missing_report",
@@ -60,18 +31,83 @@ def test_failed_source_blocks_once_only_when_active_chunks_remain(monkeypatch) -
         },
     )
     monkeypatch.setattr(maintenance_module, "_chunk_quality_report", lambda *args, **kwargs: {})
+
+
+def test_maintenance_separates_failed_fetches_from_intentional_link_skips() -> None:
+    pages = [
+        {
+            "canonical_url": "https://www.mcgill.ca/good",
+            "http_status": "200",
+            "drift_status": "unchanged",
+            "retrieved_at": "2026-07-18T00:00:00+00:00",
+        },
+        {
+            "canonical_url": "https://www.mcgill.ca/missing",
+            "http_status": "404",
+            "drift_status": "fetch_failed",
+            "retrieved_at": "2026-06-01T00:00:00+00:00",
+            "fetch_error": "HTTP 404",
+            "pipeline_run_id": "test-run",
+        },
+    ]
+    links = [
+        {
+            "source_canonical_url": "https://www.mcgill.ca/good",
+            "target_canonical_url": "https://www.mcgill.ca/duplicate",
+            "link_type": "in_scope",
+            "crawl_decision": "not_crawled",
+            "skip_reason": "duplicate_url",
+        }
+    ]
+
+    report = build_maintenance_report(
+        pages,
+        links,
+        [],
+        failed_source_dispositions={
+            "https://www.mcgill.ca/missing": REVIEWED_NONBLOCKING
+        },
+        as_of=date(2026, 7, 19),
+    )
+
+    assert report["report_schema_version"] == "2"
+    assert report["failed_sources"]["count"] == 1
+    assert report["failed_sources"]["blocking_count"] == 0
+    assert report["failed_sources"]["nonblocking_count"] == 1
+    assert report["failed_sources"]["records"][0]["canonical_url"].endswith("/missing")
+    assert report["failed_sources"]["records"][0]["active_chunk_count"] == 0
+    assert (
+        report["failed_sources"]["records"][0]["classification"]
+        == "reviewed_nonblocking"
+    )
+    assert report["intentional_link_skips"]["count"] == 1
+    assert report["intentional_link_skips"]["by_reason"] == {"duplicate_url": 1}
+
+
+def test_failed_source_blocks_once_without_reviewed_disposition(monkeypatch) -> None:
+    _isolate_failed_source_findings(monkeypatch)
     failed_page = {
         "canonical_url": "https://www.mcgill.ca/unavailable",
         "http_status": "404",
         "drift_status": "fetch_failed",
         "retrieved_at": "2026-07-18T00:00:00+00:00",
         "fetch_error": "HTTP 404",
+        "pipeline_run_id": "test-run",
     }
 
-    excluded_report = build_maintenance_report(
+    undisposed_report = build_maintenance_report(
         [failed_page],
         [],
         [],
+        as_of=date(2026, 7, 19),
+    )
+    reviewed_report = build_maintenance_report(
+        [failed_page],
+        [],
+        [],
+        failed_source_dispositions={
+            failed_page["canonical_url"]: REVIEWED_NONBLOCKING
+        },
         as_of=date(2026, 7, 19),
     )
     exposed_report = build_maintenance_report(
@@ -84,15 +120,78 @@ def test_failed_source_blocks_once_only_when_active_chunks_remain(monkeypatch) -
                 "chunk_text": "An active chunk from an unavailable source.",
             }
         ],
+        failed_source_dispositions={
+            failed_page["canonical_url"]: REVIEWED_NONBLOCKING
+        },
         as_of=date(2026, 7, 19),
     )
 
-    assert excluded_report["has_errors"] is False
-    assert excluded_report["severity_counts"] == {"error": 0, "warning": 1, "info": 0}
-    assert excluded_report["failed_sources"]["nonblocking_count"] == 1
+    assert undisposed_report["has_errors"] is True
+    assert undisposed_report["severity_counts"] == {"error": 1, "warning": 0, "info": 0}
+    assert undisposed_report["failed_sources"]["blocking_count"] == 1
+    assert reviewed_report["has_errors"] is False
+    assert reviewed_report["severity_counts"] == {"error": 0, "warning": 1, "info": 0}
+    assert reviewed_report["failed_sources"]["nonblocking_count"] == 1
     assert exposed_report["has_errors"] is True
     assert exposed_report["severity_counts"]["error"] == 1
     assert exposed_report["failed_sources"]["blocking_count"] == 1
+
+
+def test_incomplete_failed_source_disposition_does_not_bypass_gate(monkeypatch) -> None:
+    _isolate_failed_source_findings(monkeypatch)
+    failed_url = "https://www.mcgill.ca/unavailable"
+
+    report = build_maintenance_report(
+        [
+            {
+                "canonical_url": failed_url,
+                "http_status": "404",
+                "drift_status": "fetch_failed",
+                "fetch_error": "HTTP 404",
+                "pipeline_run_id": "test-run",
+            }
+        ],
+        [],
+        [],
+        failed_source_dispositions={
+            failed_url: {
+                "disposition": "reviewed_nonblocking",
+                "reason": "",
+                "reviewed_at": "2026-07-19",
+                "review_reference": "Issue #11",
+                "pipeline_run_id": "test-run",
+            }
+        },
+        as_of=date(2026, 7, 19),
+    )
+
+    assert report["has_errors"] is True
+    assert report["failed_sources"]["records"][0]["classification"] == "blocking"
+
+
+def test_disposition_for_previous_pipeline_run_does_not_bypass_gate(monkeypatch) -> None:
+    _isolate_failed_source_findings(monkeypatch)
+    failed_url = "https://www.mcgill.ca/unavailable"
+    old_disposition = REVIEWED_NONBLOCKING | {"pipeline_run_id": "previous-run"}
+
+    report = build_maintenance_report(
+        [
+            {
+                "canonical_url": failed_url,
+                "http_status": "404",
+                "drift_status": "fetch_failed",
+                "fetch_error": "HTTP 404",
+                "pipeline_run_id": "current-run",
+            }
+        ],
+        [],
+        [],
+        failed_source_dispositions={failed_url: old_disposition},
+        as_of=date(2026, 7, 19),
+    )
+
+    assert report["has_errors"] is True
+    assert report["failed_sources"]["records"][0]["classification"] == "blocking"
 
 
 def test_maintenance_classifies_chunk_quality_and_category_coverage() -> None:

@@ -1,0 +1,5 @@
+canonical_url,disposition,reason,reviewed_at,review_reference,pipeline_run_id
+https://www.mcgill.ca/studentaid/special-funding/quebec-students-priority-fields,reviewed_nonblocking,"Discovered non-seed page returned 404, has no active chunks, and is not required for current finances category coverage.",2026-07-27,Issue #11,20260701T223504Z
+https://www.mcgill.ca/internationalstudents/immigration-documents/renewing-documents/study-permit-renewal-guide,reviewed_nonblocking,"Discovered non-seed page returned 403, has no active chunks, and is not required for current immigration category coverage.",2026-07-27,Issue #11,20260701T223504Z
+https://www.mcgill.ca/libraries/using-libraries/libraries/locations/islamic,reviewed_nonblocking,"Discovered non-seed page returned 404, has no active chunks, and is not required for current academics category coverage.",2026-07-27,Issue #11,20260701T223504Z
+https://www.mcgill.ca/libraries/using/computers/authentication-and-network-access,reviewed_nonblocking,"Discovered non-seed page returned 404, has no active chunks, and is not required for current academics category coverage.",2026-07-27,Issue #11,20260701T223504Z

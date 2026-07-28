@@ -17,9 +17,13 @@ DATASETS_DIR = ROOT / "data" / "silver" / "datasets"
 PAGES_CSV = DATASETS_DIR / "rag_pages.csv"
 LINKS_CSV = DATASETS_DIR / "rag_links.csv"
 CHUNKS_CSV = DATASETS_DIR / "rag_chunks.csv"
+FAILED_SOURCE_DISPOSITIONS_CSV = (
+    ROOT / "data" / "source-inputs" / "rag_failed_source_dispositions.csv"
+)
 OUTPUT_DIR = ROOT / "data" / "silver" / "maintenance"
 DEFAULT_JSON_REPORT = OUTPUT_DIR / "rag_maintenance_report.json"
 DEFAULT_MARKDOWN_REPORT = OUTPUT_DIR / "rag_maintenance_report.md"
+NONBLOCKING_DISPOSITION = "reviewed_nonblocking"
 WORD_RE = re.compile(r"[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)?")
 NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
 BOILERPLATE_RE = re.compile(
@@ -84,6 +88,7 @@ def build_maintenance_report(
     links: list[dict[str, str]],
     chunks: list[dict[str, str]],
     *,
+    failed_source_dispositions: dict[str, dict[str, str]] | None = None,
     as_of: date | None = None,
     stale_after_days: int = 30,
     example_limit: int = 25,
@@ -100,6 +105,7 @@ def build_maintenance_report(
     failed_sources = _failed_source_report(
         pages,
         chunks,
+        dispositions=failed_source_dispositions or {},
         example_limit=example_limit,
     )
     skipped_links = _skipped_link_report(links, example_limit=example_limit)
@@ -130,7 +136,7 @@ def build_maintenance_report(
     }
     needs_attention = bool(error_count or warning_count)
     return {
-        "report_schema_version": "1",
+        "report_schema_version": "2",
         "as_of": report_date.isoformat(),
         "stale_after_days": stale_after_days,
         "pipeline_run_id": _single_value(pages, "pipeline_run_id"),
@@ -153,6 +159,7 @@ def generate_maintenance_reports(
     pages_csv: Path = PAGES_CSV,
     links_csv: Path = LINKS_CSV,
     chunks_csv: Path = CHUNKS_CSV,
+    failed_source_dispositions_csv: Path = FAILED_SOURCE_DISPOSITIONS_CSV,
     json_path: Path = DEFAULT_JSON_REPORT,
     markdown_path: Path = DEFAULT_MARKDOWN_REPORT,
     as_of: date | None = None,
@@ -164,6 +171,9 @@ def generate_maintenance_reports(
         read_csv_records(pages_csv),
         read_csv_records(links_csv),
         read_csv_records(chunks_csv),
+        failed_source_dispositions=_read_failed_source_dispositions(
+            failed_source_dispositions_csv
+        ),
         as_of=as_of,
         stale_after_days=stale_after_days,
     )
@@ -206,10 +216,12 @@ def format_maintenance_markdown(report: dict[str, Any]) -> str:
         "## Failed sources and link decisions",
         "",
         f"- Failed page fetches: {failed['count']}",
-        f"- Failed pages with active retrieval chunks: {failed['blocking_count']}",
-        f"- Failed pages excluded from active retrieval chunks: {failed['nonblocking_count']}",
+        f"- Blocking failed pages: {failed['blocking_count']}",
+        f"- Reviewed nonblocking failed pages: {failed['nonblocking_count']}",
         f"- Intentionally skipped/not-crawled links: {skipped['count']}",
-        "- A failed page blocks the error gate only when its URL still supplies active chunks.",
+        "- Failed pages block by default. A zero-chunk failure becomes a warning only "
+        "when it has a complete reviewed_nonblocking disposition.",
+        "- A failed page with active chunks always blocks, regardless of disposition.",
         "- Skipped links are reported separately and are not classified as broken.",
     ]
     for label, records, fields in (
@@ -228,7 +240,17 @@ def format_maintenance_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         _record_lines(
             failed["records"],
-            ("canonical_url", "http_status", "fetch_error", "active_chunk_count"),
+            (
+                "canonical_url",
+                "http_status",
+                "fetch_error",
+                "active_chunk_count",
+                "classification",
+                "disposition_reason",
+                "reviewed_at",
+                "review_reference",
+                "disposition_pipeline_run_id",
+            ),
         )
     )
     if skipped["by_reason"]:
@@ -321,6 +343,7 @@ def _failed_source_report(
     pages: list[dict[str, str]],
     chunks: list[dict[str, str]],
     *,
+    dispositions: dict[str, dict[str, str]],
     example_limit: int,
 ) -> dict[str, Any]:
     active_chunk_counts = Counter(
@@ -334,25 +357,63 @@ def _failed_source_report(
             or row.get("drift_status") == "fetch_failed"
             or (status is not None and not 200 <= status < 400)
         ):
+            canonical_url = row.get("canonical_url", "")
+            active_chunk_count = active_chunk_counts.get(canonical_url, 0)
+            disposition = dispositions.get(canonical_url, {})
+            disposition_is_valid = _valid_nonblocking_disposition(disposition, row)
+            classification = (
+                NONBLOCKING_DISPOSITION
+                if not active_chunk_count and disposition_is_valid
+                else "blocking"
+            )
             failed.append(
                 {
-                    "canonical_url": row.get("canonical_url", ""),
+                    "canonical_url": canonical_url,
                     "http_status": row.get("http_status", ""),
                     "fetch_error": row.get("fetch_error", ""),
                     "drift_status": row.get("drift_status", ""),
-                    "active_chunk_count": active_chunk_counts.get(
-                        row.get("canonical_url", ""),
-                        0,
+                    "active_chunk_count": active_chunk_count,
+                    "classification": classification,
+                    "disposition": disposition.get("disposition", ""),
+                    "disposition_reason": disposition.get("reason", ""),
+                    "reviewed_at": disposition.get("reviewed_at", ""),
+                    "review_reference": disposition.get("review_reference", ""),
+                    "disposition_pipeline_run_id": disposition.get(
+                        "pipeline_run_id", ""
                     ),
                 }
             )
-    blocking_count = sum(bool(row["active_chunk_count"]) for row in failed)
+    blocking_count = sum(row["classification"] == "blocking" for row in failed)
     return {
         "count": len(failed),
         "blocking_count": blocking_count,
         "nonblocking_count": len(failed) - blocking_count,
         "records": failed[:example_limit],
     }
+
+
+def _read_failed_source_dispositions(path: Path) -> dict[str, dict[str, str]]:
+    if not path.exists():
+        return {}
+    return {
+        row["canonical_url"]: row
+        for row in read_csv_records(path)
+        if row.get("canonical_url")
+    }
+
+
+def _valid_nonblocking_disposition(
+    disposition: dict[str, str],
+    page: dict[str, str],
+) -> bool:
+    return (
+        disposition.get("disposition") == NONBLOCKING_DISPOSITION
+        and bool(disposition.get("reason"))
+        and _parse_date(disposition.get("reviewed_at", "")) is not None
+        and bool(disposition.get("review_reference"))
+        and bool(page.get("pipeline_run_id"))
+        and disposition.get("pipeline_run_id") == page.get("pipeline_run_id")
+    )
 
 
 def _skipped_link_report(links: list[dict[str, str]], *, example_limit: int) -> dict[str, Any]:
