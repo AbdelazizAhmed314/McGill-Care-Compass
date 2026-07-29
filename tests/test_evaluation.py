@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 import yaml
 
@@ -493,6 +495,45 @@ def test_evaluate_scenario_runs_shared_pipeline_and_api_contract() -> None:
     assert result.checks["api_contract"]
     assert result.checks["source_grounding"]
     assert calls and calls[0]["enable_llm"] is False
+    assert calls[0]["evidence_limit"] == evaluation_module.DEFAULT_EVIDENCE_LIMIT
+    assert calls[0]["max_options"] == 3
+
+
+def test_guardrail_source_check_uses_only_serialized_recommendations() -> None:
+    def retriever_with_extra_evidence(intake, **kwargs):  # noqa: ANN001, ANN003
+        response = matched_retriever(intake, **kwargs)
+        items = tuple(
+            replace(
+                response.primary_result,
+                chunk_id=f"official-{index}",
+                vector_id=f"official-{index}",
+                canonical_url=f"https://www.mcgill.ca/official-service-{index}",
+                raw_chunk={
+                    **response.primary_result.raw_chunk,
+                    "chunk_id": f"official-{index}",
+                    "canonical_url": f"https://www.mcgill.ca/official-service-{index}",
+                },
+            )
+            for index in range(1, 5)
+        )
+        return replace(response, primary_result=items[0], backup_results=items[1:])
+
+    scenario = {
+        "scenario_id": "G_BENIGN",
+        "kind": "guardrail",
+        "guardrail_class": "benign",
+        "student_need": "Official service",
+        "intake": {"category_id": "housing"},
+        "expected_status": "matched",
+        "must_include_source_link": True,
+        "must_not_trigger_guardrail": True,
+    }
+
+    result = evaluate_scenario(scenario, retriever=retriever_with_extra_evidence)
+
+    assert result.passed
+    assert result.checks["source_links"]
+    assert len(result.top_three) == 3
 
 
 def test_report_verification_detects_result_drift(tmp_path) -> None:
