@@ -18,6 +18,7 @@ import yaml
 from mcgill_care_compass.api.schemas import RecommendationResponseModel
 from mcgill_care_compass.corpus_signature import corpus_signature
 from mcgill_care_compass.guardrails import limitation_notice
+from mcgill_care_compass.llm_response import DEFAULT_EVIDENCE_LIMIT
 from mcgill_care_compass.recommendation_pipeline import (
     RecommendationPipelineResult,
     run_recommendation_pipeline,
@@ -496,7 +497,16 @@ def evaluate_scenario(
                 required and any(required in item for item in presented_limitations)
             )
     else:
-        checks.update(_guardrail_checks(scenario, intake, response, rendered, controlled))
+        checks.update(
+            _guardrail_checks(
+                scenario,
+                intake,
+                response,
+                api_response,
+                rendered,
+                controlled,
+            )
+        )
     failures = tuple(name for name, passed in checks.items() if not passed)
     return ScenarioResult(
         scenario_id=str(scenario["scenario_id"]),
@@ -658,7 +668,7 @@ def _scenario_pipeline(
     controlled_mode = str(scenario.get("controlled_mode", ""))
     controlled: dict[str, bool] = {}
     kwargs: dict[str, Any] = {
-        "evidence_limit": 3,
+        "evidence_limit": DEFAULT_EVIDENCE_LIMIT,
         "max_options": 3,
         "enable_llm": False,
         "retriever": retriever,
@@ -732,6 +742,7 @@ def _guardrail_checks(
     scenario: Mapping[str, Any],
     intake: RetrievalIntake,
     response: RetrievalResponse,
+    api_response: RecommendationResponseModel,
     rendered: str,
     controlled: Mapping[str, bool],
 ) -> dict[str, bool]:
@@ -748,14 +759,14 @@ def _guardrail_checks(
             response.limitation_notice and (not required or required in response.limitation_notice)
         )
     if scenario.get("must_include_source_link"):
-        fallback_urls = [resource.source_url for resource in response.fallback_resources]
-        emergency_urls = [resource.source_url for resource in response.emergency_resources]
+        official_urls = [source.url for source in api_response.official_sources]
+        emergency_urls = [resource.source_url for resource in api_response.emergency_resources]
         evidence_urls = [
             item.canonical_url
-            for item in (response.primary_result, *response.backup_results)
+            for item in (api_response.primary_result, *api_response.backup_results)
             if item is not None
         ]
-        urls = [url for url in (*fallback_urls, *emergency_urls, *evidence_urls) if url]
+        urls = [url for url in (*official_urls, *emergency_urls, *evidence_urls) if url]
         checks["source_links"] = bool(urls) and all(
             _valid_source_url(url) and url in rendered for url in urls
         )

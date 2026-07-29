@@ -7,7 +7,7 @@
 - Chunk CSV SHA-256: `e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12`
 - Embedding model: `sentence-transformers/all-MiniLM-L6-v2`
 - Embedding model revision: `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`
-- Implementation SHA-256: `ddba447f0078bcfbd2dc5b3b0122d554373d55b785220f6a48bdd87ec0025de0`
+- Implementation SHA-256: `d63caac2c16e31b708d528eb314274f71fdeebebfbf3b99214750af8ab69ee1e`
 - Overall result: PASS
 - Top-three relevance: 13/14 (92.9%)
 - Required threshold: 90.0%
@@ -82,6 +82,8 @@ The top-three denominator contains supported scenarios that produced a normal `m
 ### R04_NEWCOMER_TAX
 
 - 1. Taxes for International students studying in Canada > Forms and publications — https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/international-students-studying-canada.html (`2ce15114c9c62a2c51fd`)
+- 2. Deemed residents of Canada > Forms and publications — https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/deemed-residents.html (`ba93d718b9eb734159ef`)
+- 3. Non-residents of Canada > Forms and publications — https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/non-residents-canada.html (`a045cfc3861d12936cc7`)
 
 ### R05_FINANCIAL_HARDSHIP
 
@@ -98,16 +100,20 @@ The top-three denominator contains supported scenarios that produced a normal `m
 ### R07_CAMPUS_DOCUMENTS
 
 - 1. Troubleshooting Tips — https://www.mcgill.ca/servicepoint/pinreset (`4b9f2a1497a345c608d2`)
+- 2. Minerva Help webform — https://www.mcgill.ca/servicepoint/minerva-access (`dbd5dcda2bd649f401c8`)
+- 3. Canada Award 2024 > DISBURSEMENT — https://www.mcgill.ca/servicepoint/canada-award (`4c284a879c10c544449c`)
 
 ### R08_OFF_CAMPUS_HOUSING
 
 - 1. Off-campus housing | Student Housing - McGill University — https://www.mcgill.ca/students/housing/offcampus (`e7879d49344bcd9fdd63`)
 - 2. Life Beyond McGill Residences | Student Housing - McGill University — https://www.mcgill.ca/students/housing/offcampus/life-beyond-mcgill-residences (`792acf6cab55a44c0422`)
+- 3. Why Choose Residence as an Upper Year Student? — https://www.mcgill.ca/students/housing/residence-options/2nd-and-3rd-year-undergraduate-housing (`7d743aab1fa36757df7b`)
 
 ### R09_ACADEMIC_ADVISING
 
 - 1. Academic Advising Mission — https://www.mcgill.ca/academic-advising (`390ef90b2757620b9965`)
 - 2. Requesting Items > Faculty Office Delivery — https://www.mcgill.ca/libraries/using-libraries/borrowing-mcgill/request/faculty (`fe3058a7b6fbdf25a6b4`)
+- 3. Sponsored borrowers — https://www.mcgill.ca/libraries/using-libraries/borrowing-mcgill/request (`15e7f1562003fb1e300f`)
 
 ### R10_IMMIGRATION_DOCUMENTS
 
@@ -129,6 +135,7 @@ The top-three denominator contains supported scenarios that produced a normal `m
 
 - 1. Students — https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html (`58b2022ddfa63be08334`)
 - 2. Income Tax Folio S1-F1-C1, Medical Expense Tax Credit > Discussion and interpretation > Eligible medical expenses > Cost of attendant care and care in certain types of facilities — https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-1-health-medical/income-tax-folio-s1-f1-c1-medical-expense-tax-credit.html (`1bca99d18d97463e45b2`)
+- 3. Income Tax Folio S1-F2-C2, Tuition Tax Credit > Discussion and interpretation > Certificate to support claims > Receipt for occupational, trade, or professional examinations — https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-2-students/income-tax-folio-s1-f2-c2-tuition-tax-credit.html (`527c88b64f7ed8a6e114`)
 
 ### R14_FREE_TAX_CLINIC_LOCATION
 
