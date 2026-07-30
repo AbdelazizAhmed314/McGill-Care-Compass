@@ -8,6 +8,11 @@ Passing automated checks demonstrates repeatable recommendation, safety, and
 source-grounding behavior for a fixed scenario set. It does not demonstrate
 that students can use the interface successfully.
 
+Delivery status: Issue 10 was deferred by team decision. Its study design is
+preserved here, but no participant sessions or findings are claimed. Issue 11
+uses automated evaluation, corpus, maintenance, and documentation evidence
+only.
+
 | Workstream | Owner | Evidence |
 | --- | --- | --- |
 | Fixed recommendation and guardrail evaluation | Issue 8 | Versioned scenarios, automated evaluator, machine-readable results, reviewable report, and acceptance record |

@@ -34,7 +34,7 @@ Start the development frontend in another terminal:
 
 ```powershell
 cd web
-npm install
+npm ci
 npm run dev
 ```
 
@@ -64,7 +64,49 @@ uv run python scripts/evaluate_recommendations.py
 uv run python scripts/evaluate_recommendations.py --check
 ```
 
-Maintenance output is operational and ignored under `data/silver/maintenance/`. Errors cover failed fetches, required-field gaps, and missing category page/chunk coverage. Warnings cover changed, new, or stale sources and chunk-quality findings. Intentional crawl skips are informational. `--fail-on-error` is the deployment gate; `--fail-on-attention` is the stricter reviewer gate.
+Maintenance output is operational and ignored under `data/silver/maintenance/`.
+Errors cover failed fetches by default, required-field gaps, and missing category
+page/chunk coverage. A failed fetch is downgraded to a warning only when it has
+zero active chunks and a complete `reviewed_nonblocking` record in
+[`data/source-inputs/rag_failed_source_dispositions.csv`](../../data/source-inputs/rag_failed_source_dispositions.csv).
+A seed failure, a URL listed in
+[`rag_required_source_urls.csv`](../../data/source-inputs/rag_required_source_urls.csv),
+or a failure with active chunks always blocks. Another non-seed failure can be
+nonblocking only when the review is no more than 30 days old and identifies an
+active official replacement in the same category and pipeline run. Changed,
+new, stale, and explicitly reviewed nonblocking sources are warnings;
+intentional crawl skips are informational. `--fail-on-error` is the deployment
+gate; `--fail-on-attention` is the stricter reviewer gate.
+
+`prepare_runtime.py` enforces the error gate before it builds SQLite or Chroma,
+so blocking findings cannot produce a newly prepared runtime. Attention
+warnings remain reviewer signals and do not become recommendation evidence:
+
+- the maintenance report is read only by the dedicated
+  `/api/v1/maintenance/report` endpoint and the internal status view, not by
+  `/api/v1/recommendations`;
+- a reviewed failed source can be nonblocking only when it has zero active
+  chunks, so that failed page has no document that retrieval could return;
+- chunk-quality findings are independently screened by `quality_warnings()` and
+  `evidence_passes()` before a retrieved candidate is eligible for a response;
+- freshness and drift findings stay in the operational report and update
+  workflow. The recommendation pipeline receives the governed source chunk and
+  provenance fields, not the maintenance warning record.
+
+This separation means a warning can require internal review without its text or
+classification being presented as student guidance. It does not promote the
+underlying Silver source to Gold or waive its recorded retrieval date.
+
+When reviewing a failed source, first confirm that it is not a seed or listed
+required page, that no active chunks use it, and that its category retains
+appropriate official coverage. Add service-critical non-seed URLs to the
+required-source file. Otherwise, record a concrete reason, ISO review date,
+approver identity in `reviewed_by`, direct approval link in `review_reference`,
+active same-category `replacement_url`, and the exact governed
+`pipeline_run_id`. Future-dated and more-than-30-day-old reviews are invalid. A
+new run invalidates an old disposition. Removing an obsolete disposition also
+restores the blocking default. The report retains every failed source, approver,
+approval reference, and validation error for complete auditability.
 
 The fixed evaluation scenario source is version controlled under `data/evaluation/`. The command rebuilds a missing or signature-invalid ignored vector store from committed chunks. Its report records scenario, corpus, manifest, implementation, dependency, and model-revision signatures; relevance scenarios run through the shared pipeline and serialized API response contract with live LLM generation disabled. `--check` reruns the gate without rewriting evidence and rejects report drift. Safety gates separately test escalation/redaction, adversarial blocking, fallback handling, governed limitations, governed official links, and citation grounding. These automated checks support Issue 8 but do not replace the documented five-participant usability study.
 The default embedding model is resolved at the pinned revision recorded in the

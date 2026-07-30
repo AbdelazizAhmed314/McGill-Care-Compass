@@ -381,6 +381,7 @@ def get_chroma_collection(
     except VectorStoreUnavailable:
         if not rebuild_if_missing:
             raise
+    _clear_chroma_system_cache()
     rebuild_vector_store_from_chunks(chunks_csv=chunks_csv, vector_dir=vector_dir)
     _clear_chroma_system_cache()
     return _open_valid_collection(chunks_csv=chunks_csv, vector_dir=vector_dir)

@@ -39,7 +39,9 @@ Bronze is unprocessed and local. Silver is processed, queryable, and reviewable,
 
 ## Current Run Snapshot
 
-The latest v1 run contains 500 pages, 22,727 discovered links, 4,228 chunks, and 11 categories. Exact counts, hashes, model/version values, and artifact paths live in [`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json).
+Exact counts, hashes, model/version values, and artifact paths for the latest
+governed run live in
+[`data/silver/reports/rag_run_manifest.json`](../../data/silver/reports/rag_run_manifest.json).
 
 ## Commands
 
@@ -67,6 +69,29 @@ Validate the corpus and local runtime artifacts:
 uv run python scripts/data/validate_rag_corpus.py
 ```
 
+Generate the operational maintenance report:
+
+```bash
+uv run python scripts/data/generate_maintenance_report.py --fail-on-error
+```
+
+The error gate treats fetch failures as blocking by default. A non-seed failed
+page with zero active chunks is a warning only when it has a complete,
+non-expired reviewed disposition and an active official same-category
+replacement in
+[`rag_failed_source_dispositions.csv`](../../data/source-inputs/rag_failed_source_dispositions.csv).
+A seed failure, configured required-source failure, or failure with active
+chunks always blocks. Use `--fail-on-attention` for the stricter review of
+changed, new, stale, reviewed unavailable, and noisy sources.
+
+Attention findings stay in the operational maintenance pipeline. They are not
+copied into chunk text, vector documents, recommendation prompts, or
+recommendation responses. Reviewed unavailable pages must have zero active
+chunks, and noisy retrieved candidates face the separate runtime evidence
+quality gate before any recommendation is formed. Freshness and drift findings
+remain inputs to the source-review and refresh procedure, not student-facing
+guidance.
+
 Run a raw retrieval diagnostic:
 
 ```bash
@@ -85,5 +110,7 @@ student-facing response.
 - Rebuild Chroma from [`data/silver/datasets/rag_chunks.csv`](../../data/silver/datasets/rag_chunks.csv); do not commit the vector store.
 - Treat `risk_level` as legacy topic-sensitivity metadata, not actual chunk danger.
 - If taxonomy, questionnaire IDs, source authority, or metadata rules change, update the source-input files and rerun the pipeline.
+- Review generated page, link, chunk, quality-report, and manifest diffs
+  together; never hand-edit a generated Silver row as an isolated fix.
 - Use Silver chunks for future app retrieval only with source links, limitation wording, and evidence checks.
 - Promote data to Gold only after explicit review.

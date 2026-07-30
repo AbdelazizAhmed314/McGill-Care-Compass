@@ -26,19 +26,10 @@ team review of Silver outputs.
 
 ## Current Corpus
 
-The latest governed v1 run produces:
-
-```text
-Pages: 500
-Links: 22,727
-Chunks: 4,228
-Categories: 11
-Pipeline version: 1.0.0
-Embedding model: sentence-transformers/all-MiniLM-L6-v2
-```
-
-The run manifest is the source of truth for exact run ID, artifact hashes, and
-configuration hashes.
+[`silver/reports/rag_run_manifest.json`](silver/reports/rag_run_manifest.json)
+is the source of truth for current row counts, model and pipeline versions, run
+ID, artifact hashes, and configuration hashes. Keeping exact run values in the
+manifest prevents descriptive documentation from drifting after a rebuild.
 
 ## Workflow
 
@@ -113,8 +104,21 @@ uv run python scripts/data/generate_maintenance_report.py
 uv run python scripts/data/generate_maintenance_report.py --fail-on-error
 ```
 
+Failed fetches block by default. Only a complete reviewed disposition in
+[`source-inputs/rag_failed_source_dispositions.csv`](source-inputs/rag_failed_source_dispositions.csv)
+can downgrade a zero-chunk failure to a warning.
+
+The disposition must name the approver in `reviewed_by` and link to that
+approval in `review_reference`.
+
 Use `--fail-on-attention` for the stricter reviewer gate. Reports are written under
 `silver/maintenance/` and are not committed because they describe the local operational run.
+
+Maintenance findings are operational metadata: they are not added to the
+Silver chunk CSV, SQLite retrieval metadata, Chroma documents, recommendation
+prompt, or recommendation response. Failed-source warnings have zero active
+chunks by definition. Chunk-quality findings are checked again by the retrieval
+quality gate before evidence is eligible for a recommendation.
 
 Run the fixed, version-controlled recommendation and safety evaluation:
 

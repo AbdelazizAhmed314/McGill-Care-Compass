@@ -10,6 +10,8 @@ This is a navigator, not an open-ended advice chatbot. Recommendations must be g
 - Project plan: [docs/project/Project-Plan-High-Level.md](docs/project/Project-Plan-High-Level.md)
 - Team workload appendix: [docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md](docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md)
 - Data evidence: [data/README.md](data/README.md)
+- Matching and routing: [docs/workflow/matching-routing.md](docs/workflow/matching-routing.md)
+- Runtime updates and rollback: [docs/workflow/runtime-operations.md](docs/workflow/runtime-operations.md)
 - Agent/collaboration contract: [AGENTS.md](AGENTS.md)
 
 ## Repository Layout
@@ -86,7 +88,8 @@ docker compose up --build -d
 ```
 
 The first build can take 15-25 minutes because it installs the CPU embedding
-runtime and builds the signed 4,239-record Chroma index. Follow progress with:
+runtime and builds the signed Chroma index from the committed corpus. Follow
+progress with:
 
 ```powershell
 docker compose logs -f care-compass
@@ -136,7 +139,7 @@ docker compose down
 Install dependencies with `uv`:
 
 ```powershell
-uv sync
+uv sync --frozen
 ```
 
 Run checks:
@@ -145,10 +148,12 @@ Run checks:
 uv run ruff check .
 uv run pytest
 uv run python scripts/data/validate_rag_corpus.py
+uv run python scripts/prepare_runtime.py
 uv run python scripts/health_check.py
 ```
 
-Rebuild the ignored local vector store if needed:
+`prepare_runtime.py` builds the ignored SQLite and Chroma artifacts required by
+the strict health check. To force a vector-store rebuild:
 
 ```powershell
 uv run python scripts/run_terminal_navigator.py --rebuild-vector-store
@@ -216,6 +221,16 @@ uv run python scripts/evaluate_recommendations.py
 uv run python scripts/evaluate_recommendations.py --check
 ```
 
+The maintenance error gate fails for missing required metadata, missing category
+coverage, and failed source fetches by default. A non-seed failed page can be
+downgraded to a warning only when it has zero active chunks, a review no more
+than 30 days old, and an active official same-category replacement recorded in
+[`data/source-inputs/rag_failed_source_dispositions.csv`](data/source-inputs/rag_failed_source_dispositions.csv).
+A seed failure, a configured required-source failure, or a failed page with
+active chunks always blocks. Changed, stale, and newly discovered pages remain
+reviewer warnings. Use `--fail-on-attention` when every warning must be
+reviewed.
+
 The evaluation command rebuilds a missing or signature-invalid ignored vector
 store from the committed chunk corpus. Use `--check` in review and CI to rerun
 the fixed scenarios and reject stale committed reports.
@@ -231,12 +246,33 @@ Run the React/Vite frontend in another terminal:
 
 ```powershell
 cd web
-npm install
+npm ci
 npm run dev
 ```
 
 Open `http://127.0.0.1:5173`. For the single-origin production and container
 workflow, see [docs/workflow/deployment.md](docs/workflow/deployment.md).
+
+## Assumptions and Known Limitations
+
+- The committed dataset is Silver: processed and governed, but not a
+  manually approved Gold directory.
+- The current corpus is English-only and excludes PDFs, login-gated pages,
+  and JavaScript-only pages.
+- Retrieval metadata is assigned by deterministic keywords and can miss
+  implied intent.
+- The fixed evaluation is a regression suite, not participant usability
+  testing or a professional-advice assessment.
+- Contact and location are separate intake needs. A source that only provides
+  a locator must not be relabelled as direct contact information merely to
+  improve a benchmark result.
+- Maintenance warnings require review before release even when the
+  integrity-blocking error gate passes.
+
+See [docs/workflow/matching-routing.md](docs/workflow/matching-routing.md),
+[docs/workflow/data-policy.md](docs/workflow/data-policy.md), and
+[docs/project/Risk-Assumptions-and-Safety-Boundaries.md](docs/project/Risk-Assumptions-and-Safety-Boundaries.md)
+for the complete operational boundaries.
 
 ## Git Workflow
 

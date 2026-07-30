@@ -1,3 +1,4 @@
+import json
 from dataclasses import replace
 
 import pytest
@@ -536,7 +537,7 @@ def test_guardrail_source_check_uses_only_serialized_recommendations() -> None:
     assert len(result.top_three) == 3
 
 
-def test_report_verification_detects_result_drift(tmp_path) -> None:
+def test_report_verification_ignores_platform_hashes_and_detects_result_drift(tmp_path) -> None:
     scenario_path = tmp_path / "scenarios.yml"
     scenario_path.write_text("scenario: fixed\n", encoding="utf-8")
     json_path = tmp_path / "report.json"
@@ -590,6 +591,25 @@ def test_report_verification_detects_result_drift(tmp_path) -> None:
         scenario_path=scenario_path,
         json_path=json_path,
         markdown_path=markdown_path,
+    )
+    verify_evaluation_reports(
+        report,
+        scenario_path=scenario_path,
+        json_path=json_path,
+        markdown_path=markdown_path,
+    )
+
+    platform_committed = json.loads(json_path.read_text(encoding="utf-8"))
+    platform_committed["scenario_set_sha256"] = "platform"
+    platform_committed["reproducibility"]["implementation_sha256"] = "platform"
+    platform_committed["reproducibility"]["manifest_sha256"] = "platform"
+    json_path.write_text(
+        json.dumps(platform_committed, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    markdown_path.write_text(
+        evaluation_module.format_evaluation_markdown(platform_committed),
+        encoding="utf-8",
     )
     verify_evaluation_reports(
         report,

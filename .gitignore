@@ -39,6 +39,8 @@ data/external/
 data/source-inputs/*
 !data/source-inputs/README.md
 !data/source-inputs/rag_seed_urls.csv
+!data/source-inputs/rag_failed_source_dispositions.csv
+!data/source-inputs/rag_required_source_urls.csv
 !data/source-inputs/questionnaire_metadata_map.yml
 
 # OS/editor noise
