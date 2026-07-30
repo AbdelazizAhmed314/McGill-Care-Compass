@@ -11,6 +11,10 @@ from mcgill_care_compass.corpus_signature import (
     CorpusSignature,
     corpus_signature,
 )
+from mcgill_care_compass.embedding_config import (
+    EMBEDDING_MODEL,
+    EMBEDDING_MODEL_REVISION,
+)
 from mcgill_care_compass.runtime import rebuild_sqlite_metadata
 
 
@@ -28,6 +32,7 @@ def signature_rows(count: int = 2) -> list[dict[str, str]]:
             "chunk_id": f"c{index}",
             "pipeline_run_id": "run-1",
             "embedding_model": "model-1",
+            "embedding_model_revision": "revision-1",
             "artifact_schema_version": "2",
         }
         for index in range(count)
@@ -43,6 +48,59 @@ def test_corpus_signature_round_trips_collection_metadata(tmp_path) -> None:
 
     assert actual == expected
     assert expected.chunk_count == 2
+
+
+def test_default_embedding_revision_is_pinned_when_legacy_chunks_omit_it(
+    tmp_path,
+) -> None:
+    chunks = tmp_path / "chunks.csv"
+    rows = signature_rows(1)
+    rows[0]["embedding_model"] = EMBEDDING_MODEL
+    rows[0].pop("embedding_model_revision")
+    write_csv(chunks, rows)
+
+    signature = corpus_signature(chunks)
+
+    assert signature.embedding_model_revision == EMBEDDING_MODEL_REVISION
+
+
+def test_default_embedding_revision_rejects_mismatched_chunk_revision(tmp_path) -> None:
+    chunks = tmp_path / "chunks.csv"
+    rows = signature_rows(1)
+    rows[0]["embedding_model"] = EMBEDDING_MODEL
+    rows[0]["embedding_model_revision"] = "different-revision"
+    write_csv(chunks, rows)
+
+    with pytest.raises(ValueError, match="pinned runtime revision"):
+        corpus_signature(chunks)
+
+
+def test_embedding_loader_pins_the_governed_model_revision(monkeypatch) -> None:
+    calls = []
+
+    class FakeSentenceTransformer:
+        def __init__(self, model, **options):  # noqa: ANN001, ANN003
+            calls.append((model, options))
+
+    retrieval_module.load_embedding_model.cache_clear()
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        SimpleNamespace(SentenceTransformer=FakeSentenceTransformer),
+    )
+
+    retrieval_module.load_embedding_model(EMBEDDING_MODEL, True)
+
+    assert calls == [
+        (
+            EMBEDDING_MODEL,
+            {
+                "local_files_only": True,
+                "revision": EMBEDDING_MODEL_REVISION,
+            },
+        )
+    ]
+    retrieval_module.load_embedding_model.cache_clear()
 
 
 def test_corpus_signature_rejects_mixed_governance_values(tmp_path) -> None:
@@ -167,6 +225,7 @@ def test_rebuild_if_missing_does_not_rebuild_a_valid_store(monkeypatch, tmp_path
 def test_rebuild_if_missing_replaces_an_invalid_store(monkeypatch, tmp_path) -> None:
     sentinel = object()
     attempts = []
+    cache_clears = []
 
     def open_collection(**kwargs):  # noqa: ANN003
         attempts.append("open")
@@ -181,6 +240,11 @@ def test_rebuild_if_missing_replaces_an_invalid_store(monkeypatch, tmp_path) -> 
         "rebuild_vector_store_from_chunks",
         lambda **kwargs: rebuilt.append(True),
     )
+    monkeypatch.setattr(
+        retrieval_module,
+        "_clear_chroma_system_cache",
+        lambda: cache_clears.append(True),
+    )
 
     result = retrieval_module.get_chroma_collection(
         rebuild_if_missing=True,
@@ -190,6 +254,7 @@ def test_rebuild_if_missing_replaces_an_invalid_store(monkeypatch, tmp_path) -> 
 
     assert result is sentinel
     assert rebuilt == [True]
+    assert cache_clears == [True]
     assert attempts == ["open", "open"]
 
 

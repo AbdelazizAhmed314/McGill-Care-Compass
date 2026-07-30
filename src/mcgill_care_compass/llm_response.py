@@ -25,7 +25,6 @@ from mcgill_care_compass.retrieval import (
     RetrievedEvidence,
     evidence_adversarial_reasons,
     is_emergency_intake,
-    retrieve_matches,
 )
 
 DEFAULT_LLM_MODEL = "gpt-5.6-luna"
@@ -411,13 +410,14 @@ def generate_llm_response(
     max_options: int = DEFAULT_MAX_OPTIONS,
     max_chunks_per_option: int = DEFAULT_MAX_CHUNKS_PER_OPTION,
     collect_timings: bool = False,
+    enable_llm: bool = True,
 ) -> LlmResponseResult:
     """Generate a structured LLM answer or return deterministic fallback Markdown."""
 
     pipeline_start = time.perf_counter()
     timings: dict[str, float] = {}
     if is_emergency_intake(intake) or adversarial_input_reasons(intake.query):
-        governed_response = retrieve_matches(intake)
+        governed_response = response
         _, configured_model = _llm_env_config()
         reason_code = f"governed_{governed_response.status}"
         log_event(
@@ -478,8 +478,8 @@ def generate_llm_response(
             evidence_pack=pack,
         )
 
-    if client is None and not api_key:
-        reason_code = "openai_api_key_missing"
+    if not enable_llm or (client is None and not api_key):
+        reason_code = "llm_disabled" if not enable_llm else "openai_api_key_missing"
         log_event(
             "llm_response_skipped",
             status="fallback",
@@ -493,7 +493,11 @@ def generate_llm_response(
         return LlmResponseResult(
             markdown=fallback,
             used_llm=False,
-            fallback_reason="OPENAI_API_KEY is not set.",
+            fallback_reason=(
+                "LLM generation is disabled for this run."
+                if not enable_llm
+                else "OPENAI_API_KEY is not set."
+            ),
             fallback_reason_code=reason_code,
             model=selected_model,
             timings=timings if collect_timings else {},

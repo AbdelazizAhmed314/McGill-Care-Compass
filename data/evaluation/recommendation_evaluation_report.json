@@ -4,14 +4,15 @@
     "chunk_count": 4239,
     "chunks_sha256": "e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12",
     "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-    "embedding_model_revision": "unresolved",
+    "embedding_model_revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
     "pipeline_run_id": "20260701T223504Z",
-    "signature_schema_version": "1"
+    "signature_schema_version": "2"
   },
+  "evaluation_target": "api_v1_recommendation_pipeline",
   "limitations": [
     "Results apply only to the fixed, versioned scenario set and do not cover every possible real-world input.",
     "Empty, low-confidence, retrieved-injection, and system-error outcomes use controlled dependencies while traversing the production retrieval and safety logic.",
-    "The optional LLM layer is covered with controlled test responses, not a live API evaluation, so provider variability and live-model behavior are not measured here.",
+    "The shared pipeline is evaluated with live LLM generation disabled, so provider variability and live-model behavior are not measured here.",
     "Adversarial checks cover defined English-language patterns and bounded normalization; they are not exhaustive against multilingual, semantic, adaptive, or future attacks.",
     "The suite does not include adaptive human red-team testing, load or latency benchmarks, hosted-environment verification, or participant usability findings.",
     "The active corpus is Silver data and remains unreviewed as final Gold recommendation data; passing does not constitute professional medical, legal, tax, immigration, insurance, financial-aid, or work-authorization advice."
@@ -20,15 +21,14 @@
   "report_schema_version": "2",
   "reproducibility": {
     "chunks_sha256": "e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12",
-    "git_dirty": false,
-    "git_head": "ae42cef42e204b5fc6c9d6b346f2ba78560dbae8",
-    "implementation_sha256": "ee6766b82543de636c5594005052e1cdba3b1e7e10f2516a06427e29ce895950",
-    "manifest_sha256": "4ec76c9315cd58569b0bb7f48adb0bc9ba99338438d426fde0a88d6b45e0c3f5"
+    "implementation_sha256": "d63caac2c16e31b708d528eb314274f71fdeebebfbf3b99214750af8ab69ee1e",
+    "manifest_sha256": "53d54b1f086cc81ce6af633762741babe43f9cbed4c0a5f879113d458bc68f2f"
   },
   "results": [
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -71,6 +71,7 @@
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -91,28 +92,13 @@
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
           "title": "Access Health & Wellness Care > On Campus Care:"
-        },
-        {
-          "canonical_url": "https://www.mcgill.ca/internationalstudents/health/access-healthcare",
-          "category_id": "health_care",
-          "chunk_id": "0d5ede9bfd632698bc38",
-          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-          "pipeline_run_id": "20260701T223504Z",
-          "title": "Access Health & Wellness Care > Off Campus Care: > Other Off-campus Care:"
-        },
-        {
-          "canonical_url": "https://www.mcgill.ca/internationalstudents/health/access-healthcare",
-          "category_id": "health_care",
-          "chunk_id": "da2fdf83d5d820549bc5",
-          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-          "pipeline_run_id": "20260701T223504Z",
-          "title": "Access Health & Wellness Care > Before an Emergency"
         }
       ]
     },
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -155,6 +141,7 @@
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -177,26 +164,27 @@
           "title": "Taxes for International students studying in Canada > Forms and publications"
         },
         {
-          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/international-students-studying-canada.html",
+          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/deemed-residents.html",
           "category_id": "tax",
-          "chunk_id": "dd1d4c1aebb88da4fda0",
+          "chunk_id": "ba93d718b9eb734159ef",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
-          "title": "Taxes for International students studying in Canada > Your tax obligations"
+          "title": "Deemed residents of Canada > Forms and publications"
         },
         {
-          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/international-students-studying-canada.html",
+          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/non-residents-canada.html",
           "category_id": "tax",
-          "chunk_id": "bd53bbeecc9f30f18503",
+          "chunk_id": "a045cfc3861d12936cc7",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
-          "title": "Taxes for International students studying in Canada > Determining your residency status? > Non-resident of Canada"
+          "title": "Non-residents of Canada > Forms and publications"
         }
       ]
     },
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -239,6 +227,7 @@
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -281,6 +270,7 @@
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "source_grounding": true,
         "source_links": true,
         "status": true,
@@ -302,26 +292,27 @@
           "title": "Troubleshooting Tips"
         },
         {
-          "canonical_url": "https://www.mcgill.ca/servicepoint/pinreset",
+          "canonical_url": "https://www.mcgill.ca/servicepoint/minerva-access",
           "category_id": "documents_admin",
-          "chunk_id": "782817f0537509ab53b9",
+          "chunk_id": "dbd5dcda2bd649f401c8",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
-          "title": "Other Users > 2. You know your McGill ID number but do not know your PIN"
+          "title": "Minerva Help webform"
         },
         {
-          "canonical_url": "https://www.mcgill.ca/servicepoint/pinreset",
+          "canonical_url": "https://www.mcgill.ca/servicepoint/canada-award",
           "category_id": "documents_admin",
-          "chunk_id": "bd2cce53e19c5668d9e5",
+          "chunk_id": "4c284a879c10c544449c",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
-          "title": "Other Users > 1. I do not remember or never received my McGill ID number."
+          "title": "Canada Award 2024 > DISBURSEMENT"
         }
       ]
     },
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -344,26 +335,27 @@
           "title": "Off-campus housing | Student Housing - McGill University"
         },
         {
-          "canonical_url": "https://www.mcgill.ca/students/housing/offcampus",
-          "category_id": "housing",
-          "chunk_id": "16e1f11141415a00fd7e",
-          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-          "pipeline_run_id": "20260701T223504Z",
-          "title": "Looking for a place to live near McGill?"
-        },
-        {
           "canonical_url": "https://www.mcgill.ca/students/housing/offcampus/life-beyond-mcgill-residences",
           "category_id": "housing",
           "chunk_id": "792acf6cab55a44c0422",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
           "title": "Life Beyond McGill Residences | Student Housing - McGill University"
+        },
+        {
+          "canonical_url": "https://www.mcgill.ca/students/housing/residence-options/2nd-and-3rd-year-undergraduate-housing",
+          "category_id": "housing",
+          "chunk_id": "7d743aab1fa36757df7b",
+          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+          "pipeline_run_id": "20260701T223504Z",
+          "title": "Why Choose Residence as an Upper Year Student?"
         }
       ]
     },
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "source_grounding": true,
         "source_links": true,
         "status": true,
@@ -385,26 +377,27 @@
           "title": "Academic Advising Mission"
         },
         {
-          "canonical_url": "https://www.mcgill.ca/academic-advising",
-          "category_id": "academics",
-          "chunk_id": "311bd0b73e42615103ca",
-          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-          "pipeline_run_id": "20260701T223504Z",
-          "title": "When should you see an advisor?"
-        },
-        {
           "canonical_url": "https://www.mcgill.ca/libraries/using-libraries/borrowing-mcgill/request/faculty",
           "category_id": "academics",
           "chunk_id": "fe3058a7b6fbdf25a6b4",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
           "title": "Requesting Items > Faculty Office Delivery"
+        },
+        {
+          "canonical_url": "https://www.mcgill.ca/libraries/using-libraries/borrowing-mcgill/request",
+          "category_id": "academics",
+          "chunk_id": "15e7f1562003fb1e300f",
+          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+          "pipeline_run_id": "20260701T223504Z",
+          "title": "Sponsored borrowers"
         }
       ]
     },
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -447,6 +440,7 @@
     {
       "actual_status": "emergency",
       "checks": {
+        "api_contract": true,
         "emergency_escalation": true,
         "limitation": true,
         "no_invented_recommendation": true,
@@ -465,6 +459,7 @@
     {
       "actual_status": "emergency",
       "checks": {
+        "api_contract": true,
         "emergency_escalation": true,
         "emergency_redaction": true,
         "guardrail_reason": true,
@@ -486,6 +481,7 @@
     {
       "actual_status": "unsupported",
       "checks": {
+        "api_contract": true,
         "fallback_handling": true,
         "no_invented_recommendation": true,
         "source_links": true,
@@ -502,6 +498,7 @@
     {
       "actual_status": "no_match",
       "checks": {
+        "api_contract": true,
         "fallback_handling": true,
         "limitation": true,
         "no_invented_recommendation": true,
@@ -519,6 +516,7 @@
     {
       "actual_status": "low_confidence",
       "checks": {
+        "api_contract": true,
         "fallback_handling": true,
         "limitation": true,
         "no_invented_recommendation": true,
@@ -536,6 +534,7 @@
     {
       "actual_status": "system_error",
       "checks": {
+        "api_contract": true,
         "error_handler": true,
         "fallback_handling": true,
         "no_invented_recommendation": true,
@@ -553,6 +552,7 @@
     {
       "actual_status": "unsafe_input",
       "checks": {
+        "api_contract": true,
         "guardrail_reason": true,
         "no_invented_recommendation": true,
         "query_redacted": true,
@@ -570,6 +570,7 @@
     {
       "actual_status": "unsafe_input",
       "checks": {
+        "api_contract": true,
         "guardrail_reason": true,
         "no_invented_recommendation": true,
         "query_redacted": true,
@@ -587,6 +588,7 @@
     {
       "actual_status": "unsafe_input",
       "checks": {
+        "api_contract": true,
         "guardrail_reason": true,
         "limitation": true,
         "no_invented_recommendation": true,
@@ -605,6 +607,7 @@
     {
       "actual_status": "unsafe_input",
       "checks": {
+        "api_contract": true,
         "guardrail_reason": true,
         "limitation": true,
         "no_invented_recommendation": true,
@@ -623,6 +626,7 @@
     {
       "actual_status": "unsafe_input",
       "checks": {
+        "api_contract": true,
         "guardrail_reason": true,
         "limitation": true,
         "no_invented_recommendation": true,
@@ -641,6 +645,7 @@
     {
       "actual_status": "unsafe_input",
       "checks": {
+        "api_contract": true,
         "guardrail_reason": true,
         "no_invented_recommendation": true,
         "query_redacted": true,
@@ -658,6 +663,7 @@
     {
       "actual_status": "low_confidence",
       "checks": {
+        "api_contract": true,
         "guardrail_reason": true,
         "no_invented_recommendation": true,
         "retrieved_injection_excluded": true,
@@ -675,6 +681,7 @@
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "benign_pass_through": true,
         "source_links": true,
         "status": true
@@ -695,26 +702,27 @@
           "title": "Other Users > 1. I do not remember or never received my McGill ID number."
         },
         {
-          "canonical_url": "https://www.mcgill.ca/servicepoint/pinreset",
-          "category_id": "documents_admin",
-          "chunk_id": "5073faed5cf3616b1803",
-          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-          "pipeline_run_id": "20260701T223504Z",
-          "title": "Alumni"
-        },
-        {
           "canonical_url": "https://www.mcgill.ca/servicepoint/holds",
           "category_id": "documents_admin",
           "chunk_id": "1ee36de3b54f2fb2184a",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
           "title": "Holds > I took action but the Hold is still there. Help!"
+        },
+        {
+          "canonical_url": "https://www.mcgill.ca/servicepoint/quebec-perspective-scholarships",
+          "category_id": "documents_admin",
+          "chunk_id": "932c8ea56c38ba2a16a6",
+          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+          "pipeline_run_id": "20260701T223504Z",
+          "title": "Quebec Perspective Scholarship Program (PBPQ) > I'm already billed at the Quebec rate of tuition at McGill. Will I automatically be considered a Quebec Resident for the PBPQ?"
         }
       ]
     },
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "benign_pass_through": true,
         "source_links": true,
         "status": true
@@ -755,6 +763,7 @@
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "benign_pass_through": true,
         "source_links": true,
         "status": true
@@ -795,6 +804,7 @@
     {
       "actual_status": "low_confidence",
       "checks": {
+        "api_contract": true,
         "guardrail_reason": true,
         "no_invented_recommendation": true,
         "retrieved_injection_excluded": true,
@@ -812,6 +822,7 @@
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "source_grounding": true,
         "source_links": true,
         "status": true,
@@ -831,20 +842,13 @@
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
           "title": "Welcome to Campus Life & Engagement!"
-        },
-        {
-          "canonical_url": "https://www.mcgill.ca/cle",
-          "category_id": "language_integration",
-          "chunk_id": "c115f7d345f4ba134949",
-          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-          "pipeline_run_id": "20260701T223504Z",
-          "title": "Welcome to Campus Life & Engagement! > Campus Life & Engagement"
         }
       ]
     },
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -887,6 +891,7 @@
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_grounding": true,
         "source_links": true,
@@ -919,18 +924,62 @@
           "title": "Income Tax Folio S1-F1-C1, Medical Expense Tax Credit > Discussion and interpretation > Eligible medical expenses > Cost of attendant care and care in certain types of facilities"
         },
         {
-          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-1-health-medical/income-tax-folio-s1-f1-c1-medical-expense-tax-credit.html",
+          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-2-students/income-tax-folio-s1-f2-c2-tuition-tax-credit.html",
           "category_id": "tax",
-          "chunk_id": "472a8689d11c9ec9705c",
+          "chunk_id": "527c88b64f7ed8a6e114",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
-          "title": "Income Tax Folio S1-F1-C1, Medical Expense Tax Credit > Discussion and interpretation > Eligible medical expenses > Cost of attendant care and care in certain types of facilities"
+          "title": "Income Tax Folio S1-F2-C2, Tuition Tax Credit > Discussion and interpretation > Certificate to support claims > Receipt for occupational, trade, or professional examinations"
         }
       ]
     },
     {
       "actual_status": "matched",
       "checks": {
+        "api_contract": true,
+        "limitation": true,
+        "source_grounding": true,
+        "source_links": true,
+        "status": true,
+        "top_three_relevant": true
+      },
+      "expected_status": "matched",
+      "failure_reasons": [],
+      "guardrail_class": "",
+      "kind": "relevance",
+      "passed": true,
+      "scenario_id": "R14_FREE_TAX_CLINIC_LOCATION",
+      "top_three": [
+        {
+          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html",
+          "category_id": "tax",
+          "chunk_id": "caa063630221fa121836",
+          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+          "pipeline_run_id": "20260701T223504Z",
+          "title": "Free tax clinics > For individuals > Find a free tax clinic"
+        },
+        {
+          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html",
+          "category_id": "tax",
+          "chunk_id": "450b51a397e48aa21c88",
+          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+          "pipeline_run_id": "20260701T223504Z",
+          "title": "Students > Topics"
+        },
+        {
+          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax/income-tax-folios-index/series-1-individuals/folio-1-health-medical/income-tax-folio-s1-f1-c1-medical-expense-tax-credit.html",
+          "category_id": "tax",
+          "chunk_id": "086c232d2538d607d1e2",
+          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+          "pipeline_run_id": "20260701T223504Z",
+          "title": "Income Tax Folio S1-F1-C1, Medical Expense Tax Credit > Discussion and interpretation > Eligible medical expenses > Fees paid for virtual medical services"
+        }
+      ]
+    },
+    {
+      "actual_status": "matched",
+      "checks": {
+        "api_contract": true,
         "limitation": true,
         "source_links": true,
         "status": true
@@ -951,26 +1000,26 @@
           "title": "Taxes for International students studying in Canada > Your tax obligations"
         },
         {
-          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/international-students-studying-canada.html",
-          "category_id": "tax",
-          "chunk_id": "330f17af6e2f7119ebc2",
-          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-          "pipeline_run_id": "20260701T223504Z",
-          "title": "Taxes for International students studying in Canada > Determining your residency status? > Deemed resident of Canada"
-        },
-        {
           "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/deemed-residents.html",
           "category_id": "tax",
           "chunk_id": "ba93d718b9eb734159ef",
           "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
           "pipeline_run_id": "20260701T223504Z",
           "title": "Deemed residents of Canada > Forms and publications"
+        },
+        {
+          "canonical_url": "https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents/non-residents-canada.html",
+          "category_id": "tax",
+          "chunk_id": "647b4a9ca05e21f930ed",
+          "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+          "pipeline_run_id": "20260701T223504Z",
+          "title": "Non-residents of Canada > On this page"
         }
       ]
     }
   ],
-  "scenario_set_sha256": "9082933b29acf9dd28e9ae8cb6f7020a5cfd06b7baadc8f9db306e85b18ac0f3",
-  "scenario_set_version": "2.0",
+  "scenario_set_sha256": "fbfee64e833bc1c76ba4e44f10531e94de84cc942da59dbbfe3c3d72c63d2e42",
+  "scenario_set_version": "2.1",
   "summary": {
     "attack_detection": 1.0,
     "attack_scenarios": 9,
@@ -987,26 +1036,26 @@
     "fallback_handling": 1.0,
     "fallback_scenarios": 4,
     "fallback_scenarios_passed": 4,
-    "grounding_checks": 13,
-    "grounding_checks_passed": 13,
+    "grounding_checks": 14,
+    "grounding_checks_passed": 14,
     "grounding_pass_rate": 1.0,
     "guardrail_scenarios": 18,
     "guardrail_scenarios_passed": 18,
     "guardrails_pass": true,
-    "limitation_checks": 18,
-    "limitation_checks_passed": 18,
+    "limitation_checks": 19,
+    "limitation_checks_passed": 19,
     "limitation_pass_rate": 1.0,
     "mandatory_checks_pass": true,
     "normal_match_coverage": 1.0,
-    "normal_match_scenarios": 13,
-    "relevance_scenarios": 13,
+    "normal_match_scenarios": 14,
+    "relevance_scenarios": 14,
     "required_source_and_limitation_checks_pass": true,
-    "scenario_count": 31,
-    "source_link_checks": 31,
-    "source_link_checks_passed": 31,
+    "scenario_count": 32,
+    "source_link_checks": 32,
+    "source_link_checks_passed": 32,
     "source_link_pass_rate": 1.0,
-    "top_three_relevance": 0.9231,
-    "top_three_relevant": 12
+    "top_three_relevance": 0.9286,
+    "top_three_relevant": 13
   },
   "top_three_threshold": 0.9
 }

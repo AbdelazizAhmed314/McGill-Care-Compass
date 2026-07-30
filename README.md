@@ -213,7 +213,12 @@ Generate operational maintenance findings and run the version-controlled recomme
 ```powershell
 uv run python scripts/data/generate_maintenance_report.py --fail-on-error
 uv run python scripts/evaluate_recommendations.py
+uv run python scripts/evaluate_recommendations.py --check
 ```
+
+The evaluation command rebuilds a missing or signature-invalid ignored vector
+store from the committed chunk corpus. Use `--check` in review and CI to rerun
+the fixed scenarios and reject stale committed reports.
 
 Run the FastAPI backend:
 

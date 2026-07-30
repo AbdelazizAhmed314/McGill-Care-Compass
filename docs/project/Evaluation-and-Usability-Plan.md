@@ -1,86 +1,127 @@
 # Evaluation and Usability Plan
 
-## Purpose
+## Purpose and Ownership
 
-This document defines how McGill Care Compass will be evaluated. It makes the top-three relevance target reproducible and connects recommendation quality to usability and community impact.
+This document records the implemented automated evaluation for Issue 8 and
+keeps it separate from the participant usability study owned by Issue 10.
+Passing automated checks demonstrates repeatable recommendation, safety, and
+source-grounding behavior for a fixed scenario set. It does not demonstrate
+that students can use the interface successfully.
 
-## Evaluation Goals
+| Workstream | Owner | Evidence |
+| --- | --- | --- |
+| Fixed recommendation and guardrail evaluation | Issue 8 | Versioned scenarios, automated evaluator, machine-readable results, reviewable report, and acceptance record |
+| Participant usability testing | Issue 10 | Session records, coded findings, aggregate analysis, and remediation evidence |
 
-The evaluation should answer four questions:
+## Implemented Issue 8 Evaluation
 
-1. Does the v1 RAG corpus contain enough source-grounded chunks to support the MVP?
-2. Does matching return relevant, source-linked recommendations for predefined student scenarios?
-3. Do high-risk and unsupported scenarios receive safe, bounded outputs?
-4. Can users identify an appropriate next step quickly and clearly?
+The evaluation package uses:
 
-## Recommendation Quality Target
+- Scenario set version `2.1` in
+  [`data/evaluation/recommendation_scenarios.yml`](../../data/evaluation/recommendation_scenarios.yml).
+- Evaluation target `api_v1_recommendation_pipeline`.
+- The shared retrieval-to-presentation pipeline with live LLM generation
+  disabled, followed by validation of the serialized FastAPI response.
+- `uv run python scripts/evaluate_recommendations.py --check` as the
+  non-writing reproducibility and report-drift gate.
+- A JSON report in
+  [`data/evaluation/recommendation_evaluation_report.json`](../../data/evaluation/recommendation_evaluation_report.json)
+  and a reviewable report in
+  [`docs/evaluation/recommendation-evaluation-report.md`](../evaluation/recommendation-evaluation-report.md).
+- The scope, acceptance mapping, workflow, and retained finding documented in
+  [`docs/evaluation/issue-08-acceptance.md`](../evaluation/issue-08-acceptance.md).
 
-The main recommendation-quality target is:
+### Scenario Contract and Scoring
 
-> At least 90% of a fixed, labeled evaluation set of student scenarios return at least one acceptable service in the top three recommendations.
+The 14 relevance scenarios define expected categories and exact acceptable
+targets. A target can require an HTTPS source host and path, service title, and
+category; this prevents a broad category match from counting as the intended
+service. A relevance scenario passes when at least one acceptable target
+appears in the top three serialized recommendations.
 
-A recommendation is relevant only if its service category and service type match the expected labels for that scenario. The pass/fail rule must be defined before running the final evaluation.
+Relevance is scored separately from required response behavior:
 
-## Scenario Set Structure
+- Source-link checks confirm that recommendation links are present and
+  governed.
+- Limitation checks confirm required bounded wording for professional or
+  high-impact topics.
+- Citation-grounding checks confirm that response citations refer only to
+  approved retrieved evidence.
+- Guardrail scenarios verify emergency routing, adversarial input handling,
+  unsupported requests, and safe fallbacks.
+- Benign controls confirm that ordinary requests containing words that resemble
+  attack patterns are not incorrectly blocked.
 
-Each evaluation scenario should include:
+Empty collection, no-match, low-confidence, retrieved-injection, and
+system-error paths use controlled dependencies while still traversing the
+production retrieval and safety logic.
 
-| Field | Purpose |
+## Current Automated Results
+
+| Measure | Result |
 | --- | --- |
-| `scenario_id` | Stable scenario identifier, such as `S01`. |
-| `student_need` | Plain-English student situation. |
-| `student_type` | International, exchange, graduate, undergraduate, permanent resident, etc. |
-| `stage` | Pre-arrival, newly arrived, first term, continuing student. |
-| `urgency_level` | Emergency, urgent but not emergency, routine, planning ahead. |
-| `expected_categories` | Locked taxonomy categories that count as relevant. |
-| `acceptable_services` | Specific services or service types that count as relevant. |
-| `must_include_safety_note` | Whether limitation/safety language is required. |
-| `must_include_source_link` | Whether official source link presence is required. Usually true. |
-| `pass_rule` | Exact top-three relevance rule. |
+| Overall gate | PASS |
+| Top-three relevance | 13/14 (92.9%), above the 90% threshold |
+| Required guardrail scenarios | 18/18 |
+| Attack detection | 9/9 |
+| Benign pass-through | 3/3 |
+| Source-link checks | 32/32 |
+| Limitation checks | 19/19 |
+| Citation-grounding checks | 14/14 |
 
-Example:
+In plain language: for 13 of the 14 fixed newcomer journeys, the API returned
+at least one specifically acceptable service in its first three results. Every
+required safety, fallback, source-link, limitation, and grounding check passed.
+The package therefore passes its predefined automated gate, with one retained
+and documented relevance miss.
 
-| Field | Example |
-| --- | --- |
-| `scenario_id` | `S01` |
-| `student_need` | New international student feels unwell and does not know whether to contact McGill, call 811, or visit a clinic. |
-| `expected_categories` | `health_care`, `insurance`, `mental_health` depending on intake details |
-| `acceptable_services` | Info-Sante 811, McGill Student Wellness Hub, IHI information |
-| `must_include_safety_note` | `true` |
-| `pass_rule` | At least one acceptable service appears in top 3 and the output includes source links plus limitation wording. |
+### Retained R13 Finding
 
-## Scenario Coverage
+`R13_FREE_TAX_CLINIC` asks for contact information and does not rank the
+official clinic page in its top three. The governed clinic chunk contains
+location metadata but not contact metadata. Version `2.1` retains that failure
+and adds `R14_FREE_TAX_CLINIC_LOCATION`, which ranks the official “Find a free
+tax clinic” page first for the distinct location intent.
 
-The fixed scenario set should cover:
+The R13 result must not be rewritten as a pass. A future matching/data change
+should first confirm that the official page provides a valid contact route,
+then add reviewed contact metadata or adjust the contact fallback without
+weakening the exact-target rubric.
 
-- International student needs to activate or understand health insurance.
-- Student feels unwell but does not describe an emergency.
-- Student indicates emergency or immediate safety risk.
-- Student needs mental-health support and prefers online options.
-- Student is unsure whether they need to file taxes in Canada.
-- Student is experiencing financial hardship and needs emergency support.
-- Student wants to work on or off campus.
-- Student needs proof of enrolment or an ID card.
-- Student wants French-language or community integration support.
-- Student has housing/basic-needs concerns.
-- Student lives near Macdonald Campus and needs campus-specific support.
-- Student enters an unsupported need and should receive a graceful fallback.
-- Student asks a question requiring professional judgment and should be directed to qualified services.
+## Automated Evaluation Limitations
 
-## Required Tests
+The Issue 8 result applies only to the fixed, versioned scenarios and the
+tracked Silver corpus. It does not cover:
 
-| Test area | Required check |
-| --- | --- |
-| Schema | Required fields are present, including taxonomy category, source URL, retrieved date, source-updated date where available, source terms, and source metadata. |
-| Version governance | Page, link, and chunk rows include pipeline version, run ID, config hashes, artifact schema version, and embedding model. |
-| Taxonomy | Chunks, intake, matching, UI, and evaluation scenarios use the locked taxonomy. |
-| Matching | Supported scenarios return ranked results with match reasons. |
-| Routing precedence | Emergency/high-risk and official-authority rules are applied before lower-priority matching rules. |
-| Tie-breaking | Repeated runs produce stable ordering for tied services. |
-| Empty result | No service or next step is invented when retrieved evidence is missing. |
-| Unsupported case | Unsupported needs return a useful fallback and source-linked next step where possible. |
-| Source link | Every recommendation includes at least one official or trusted source URL. |
-| Safety wording | Medical, immigration, tax, insurance, financial-aid, and employment-authorization outputs include limitations. |
+- Every real-world student question.
+- Live LLM provider behavior or variability.
+- Multilingual, adaptive, or exhaustive adversarial testing.
+- Hosted performance, latency, or load.
+- Human interpretation of the interface.
+- Participant usability or community-impact outcomes.
+- Professional medical, legal, tax, immigration, insurance, financial-aid, or
+  work-authorization advice.
+
+## Issue 10 Usability Plan
+
+Issue 10 must collect real participant evidence separately. The minimum target
+is five participants from the intended McGill newcomer population; a proxy may
+be used only when target recruitment is unavailable and must be labeled as
+such. Sessions should use the same core tasks and record:
+
+- Anonymous participant and session identifiers.
+- Participant type and target-user or proxy status.
+- Scenario attempted and whether it was completed.
+- Completion time and whether an appropriate next step was identified.
+- Whether the recommendation reason, source link, and limitation were
+  understood or visible.
+- Confidence before and after the task.
+- Usefulness rating.
+- Observed confusion, defects, and qualitative comments.
+
+Findings must be coded separately from raw session observations, linked back to
+supporting sessions, assigned severity and status, and aggregated without
+claiming results that have not been observed.
 
 ## Community Impact Measures
 
@@ -94,49 +135,15 @@ The fixed scenario set should cover:
 | Dead-end searches avoided | Measured through scenarios and feedback |
 | User-reported usefulness rating | Average rating of at least four out of five |
 
-## Usability Testing Plan
+## Acceptance Boundaries
 
-Minimum target:
+The current Issue 8 evidence satisfies its technical acceptance gate, subject
+to pull-request review and merge, because the scenario contract and generated
+reports are versioned, relevance exceeds 90%, all mandatory safety and source
+checks pass, report drift is checked in CI, and the single relevance miss is
+retained with a remediation path.
 
-- At least five participants from upcoming McGill newcomer cohorts.
-- Proxy users only if target recruitment is insufficient.
-- Each session uses the same core task structure so findings are comparable.
-
-Each session should record:
-
-- Participant type or proxy status.
-- Scenario attempted.
-- Completion time.
-- Whether the user identified a next step.
-- Whether the user understood why the service was recommended.
-- Whether source links and limitations were visible.
-- Confidence before and after using the tool.
-- Usefulness rating.
-- Confusing wording, layout, or recommendation behavior.
-
-## Evaluation Report Contents
-
-The final evaluation report should include:
-
-- Scenario set version.
-- Number of scenarios.
-- Number and percentage passing top-three relevance.
-- Failures by category.
-- Safety/limitation wording results.
-- Source-link results.
-- Empty-result and unsupported-case results.
-- Fixes made after failures.
-- Residual risks.
-- Usability testing summary.
-- Final recommendation on whether the tool is presentation-ready.
-
-## Acceptance Criteria
-
-The evaluation package is complete when:
-
-- A fixed scenario set exists.
-- Each scenario has expected categories, acceptable services/service types, and pass/fail rules.
-- At least 90% of scenarios return a relevant service in the top three or failures are documented with fixes.
-- Required safety and source-link tests pass.
-- Usability findings are documented.
-- Critical usability, matching, or safety defects are fixed or explicitly deferred with rationale.
+Issue 10 remains a separate acceptance decision. It is complete only when the
+required real sessions and findings exist, the aggregate usability targets are
+evaluated, and critical open usability defects are fixed or explicitly
+deferred with rationale.

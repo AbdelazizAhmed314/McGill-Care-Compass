@@ -1,4 +1,5 @@
-scenario_set_version: '2.0'
+scenario_set_version: '2.1'
+evaluation_target: api_v1_recommendation_pipeline
 top_three_threshold: 0.9
 scenarios:
 - scenario_id: R01_INSURANCE_ACTIVATION
@@ -573,7 +574,7 @@ scenarios:
   pass_rule: At least one acceptable target must appear in the top three source pages.
 - scenario_id: R13_FREE_TAX_CLINIC
   kind: relevance
-  student_need: Find an official free tax-clinic route without deciding filing obligations.
+  student_need: Find an official free tax-clinic contact route without deciding filing obligations.
   intake:
     category_id: tax
     need_type: contact
@@ -590,7 +591,33 @@ scenarios:
   - official tax information
   acceptable_targets:
   - host: www.canada.ca
-    path_prefix: /en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program
+    path_prefix: /en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html
+    title_contains_any:
+    - tax clinic
+    - taxes done
+    - free
+  must_include_source_link: true
+  must_include_limitation: true
+  pass_rule: At least one acceptable target must appear in the top three source pages.
+- scenario_id: R14_FREE_TAX_CLINIC_LOCATION
+  kind: relevance
+  student_need: Find the official route for locating a nearby free tax clinic.
+  intake:
+    category_id: tax
+    need_type: location
+    query: official free tax clinic location for a newcomer student
+    student_type: international_student
+    jurisdiction: canada
+    urgency_level: planning_ahead
+    language: en
+  expected_status: matched
+  expected_categories:
+  - tax
+  acceptable_service_types:
+  - free tax clinic
+  acceptable_targets:
+  - host: www.canada.ca
+    path_prefix: /en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html
     title_contains_any:
     - tax clinic
     - taxes done

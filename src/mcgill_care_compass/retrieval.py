@@ -15,6 +15,10 @@ from uuid import uuid4
 import pandas as pd
 
 from mcgill_care_compass.corpus_signature import CorpusSignature, corpus_signature
+from mcgill_care_compass.embedding_config import (
+    EMBEDDING_MODEL,
+    EMBEDDING_MODEL_REVISION,
+)
 from mcgill_care_compass.guardrails import (
     EmergencyResource,
     OfficialFallbackResource,
@@ -34,7 +38,6 @@ ROOT = Path(__file__).resolve().parents[2]
 CHUNKS_CSV = ROOT / "data" / "silver" / "datasets" / "rag_chunks.csv"
 VECTOR_DIR = ROOT / "data" / "silver" / "vector_store" / "chroma"
 COLLECTION_NAME = "mcgill_care_compass_rag"
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 NEED_TYPE_TO_BOOL = {
     "eligibility": "has_eligibility",
@@ -357,6 +360,8 @@ def load_embedding_model(embedding_model: str, local_only: bool):
     from sentence_transformers import SentenceTransformer
 
     options = {"local_files_only": True} if local_only else {}
+    if embedding_model == EMBEDDING_MODEL:
+        options["revision"] = EMBEDDING_MODEL_REVISION
     return SentenceTransformer(embedding_model, **options)
 
 
@@ -377,7 +382,16 @@ def get_chroma_collection(
         if not rebuild_if_missing:
             raise
     rebuild_vector_store_from_chunks(chunks_csv=chunks_csv, vector_dir=vector_dir)
+    _clear_chroma_system_cache()
     return _open_valid_collection(chunks_csv=chunks_csv, vector_dir=vector_dir)
+
+
+def _clear_chroma_system_cache() -> None:
+    """Forget clients opened against a vector path before its atomic rebuild."""
+
+    from chromadb.api.client import SharedSystemClient
+
+    SharedSystemClient.clear_system_cache()
 
 
 def _open_valid_collection(*, chunks_csv: Path, vector_dir: Path):

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -13,7 +14,12 @@ from mcgill_care_compass.llm_response import (
     LlmResponseResult,
     generate_llm_response,
 )
-from mcgill_care_compass.retrieval import RetrievalIntake, RetrievalResponse, retrieve_matches
+from mcgill_care_compass.retrieval import (
+    RetrievalIntake,
+    RetrievalResponse,
+    retrieve_matches,
+    retrieve_matches_safely,
+)
 
 
 @dataclass(frozen=True)
@@ -37,11 +43,16 @@ def run_recommendation_pipeline(
     max_chunks_per_option: int = DEFAULT_MAX_CHUNKS_PER_OPTION,
     rebuild_if_missing: bool = False,
     collect_timings: bool = False,
+    enable_llm: bool = True,
+    retriever: Callable[..., RetrievalResponse] | None = None,
+    retrieval_error_handler: Callable[..., None] | None = None,
 ) -> RecommendationPipelineResult:
     """Run the same ranked, filtered, grouped, validated pipeline for every client."""
 
-    retrieval = retrieve_matches(
+    retrieval = retrieve_matches_safely(
         intake,
+        retriever=retriever or retrieve_matches,
+        error_handler=retrieval_error_handler,
         limit=evidence_limit,
         retrieval_limit=retrieval_limit,
         rebuild_if_missing=rebuild_if_missing,
@@ -57,6 +68,7 @@ def run_recommendation_pipeline(
         max_options=max_options,
         max_chunks_per_option=max_chunks_per_option,
         collect_timings=collect_timings,
+        enable_llm=enable_llm,
     )
     return RecommendationPipelineResult(
         retrieval=retrieval,

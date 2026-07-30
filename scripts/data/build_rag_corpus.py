@@ -60,6 +60,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from mcgill_care_compass.embedding_config import EMBEDDING_MODEL  # noqa: E402
 from mcgill_care_compass.rag_ranking import (  # noqa: E402
     DEFAULT_LICENCE_OR_TERMS,
     ranking_metadata,
@@ -75,7 +76,6 @@ ARTIFACT_SCHEMA_VERSION = "2"
 CHUNKING_CONFIG_VERSION = "1"
 LINK_PRIORITY_CONFIG_VERSION = "1"
 COLLECTION_NAME = "mcgill_care_compass_rag"
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 USER_AGENT = "McGill-Care-Compass-RAG-MVP/1.0 (+student research; official-source refresh)"
 TRACKING_QUERY_PREFIXES = ("utm_",)
 TRACKING_QUERY_KEYS = {"fbclid", "gclid", "mc_cid", "mc_eid", "igshid", "ref"}
