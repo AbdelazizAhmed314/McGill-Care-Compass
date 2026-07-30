@@ -12,6 +12,7 @@ REVIEWED_NONBLOCKING = {
     "disposition": "reviewed_nonblocking",
     "reason": "An active official page covers the same service and category.",
     "reviewed_at": "2026-07-19",
+    "reviewed_by": "data-owner",
     "review_reference": "Issue #11",
     "pipeline_run_id": "test-run",
     "replacement_url": REPLACEMENT_URL,
@@ -99,7 +100,7 @@ def test_maintenance_separates_failed_fetches_from_intentional_link_skips() -> N
         as_of=date(2026, 7, 19),
     )
 
-    assert report["report_schema_version"] == "3"
+    assert report["report_schema_version"] == "4"
     assert report["failed_sources"]["count"] == 1
     assert report["failed_sources"]["blocking_count"] == 0
     assert report["failed_sources"]["nonblocking_count"] == 1
@@ -190,6 +191,7 @@ def test_incomplete_failed_source_disposition_does_not_bypass_gate(monkeypatch) 
                 "disposition": "reviewed_nonblocking",
                 "reason": "",
                 "reviewed_at": "2026-07-19",
+                "reviewed_by": "",
                 "review_reference": "Issue #11",
                 "pipeline_run_id": "test-run",
             }
@@ -199,6 +201,9 @@ def test_incomplete_failed_source_disposition_does_not_bypass_gate(monkeypatch) 
 
     assert report["has_errors"] is True
     assert report["failed_sources"]["records"][0]["classification"] == "blocking"
+    assert "missing_reviewed_by" in report["failed_sources"]["records"][0][
+        "disposition_validation_errors"
+    ]
 
 
 def test_disposition_for_previous_pipeline_run_does_not_bypass_gate(monkeypatch) -> None:

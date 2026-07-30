@@ -572,7 +572,14 @@ def _report_with_scenario_signature(
 
 
 def _stable_report(report: Mapping[str, Any]) -> dict[str, Any]:
-    return json.loads(json.dumps(report))
+    stable = json.loads(json.dumps(report))
+    # These provenance hashes vary when a checkout rewrites line endings.
+    stable.pop("scenario_set_sha256", None)
+    reproducibility = stable.get("reproducibility")
+    if isinstance(reproducibility, dict):
+        reproducibility.pop("implementation_sha256", None)
+        reproducibility.pop("manifest_sha256", None)
+    return stable
 
 
 def format_evaluation_markdown(report: Mapping[str, Any]) -> str:

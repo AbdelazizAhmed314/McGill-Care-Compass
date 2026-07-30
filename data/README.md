@@ -108,8 +108,17 @@ Failed fetches block by default. Only a complete reviewed disposition in
 [`source-inputs/rag_failed_source_dispositions.csv`](source-inputs/rag_failed_source_dispositions.csv)
 can downgrade a zero-chunk failure to a warning.
 
+The disposition must name the approver in `reviewed_by` and link to that
+approval in `review_reference`.
+
 Use `--fail-on-attention` for the stricter reviewer gate. Reports are written under
 `silver/maintenance/` and are not committed because they describe the local operational run.
+
+Maintenance findings are operational metadata: they are not added to the
+Silver chunk CSV, SQLite retrieval metadata, Chroma documents, recommendation
+prompt, or recommendation response. Failed-source warnings have zero active
+chunks by definition. Chunk-quality findings are checked again by the retrieval
+quality gate before evidence is eligible for a recommendation.
 
 Run the fixed, version-controlled recommendation and safety evaluation:
 

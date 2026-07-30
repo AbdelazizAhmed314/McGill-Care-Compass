@@ -254,7 +254,7 @@ def test_rebuild_if_missing_replaces_an_invalid_store(monkeypatch, tmp_path) -> 
 
     assert result is sentinel
     assert rebuilt == [True]
-    assert cache_clears == [True]
+    assert cache_clears == [True, True]
     assert attempts == ["open", "open"]
 
 

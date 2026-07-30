@@ -158,6 +158,7 @@ export type MaintenanceReport = {
       classification: "blocking" | "reviewed_nonblocking"
       disposition_reason: string
       reviewed_at: string
+      reviewed_by: string
       review_reference: string
       disposition_pipeline_run_id: string
       replacement_url: string

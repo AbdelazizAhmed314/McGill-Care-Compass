@@ -2,12 +2,12 @@
 
 - Scenario set version: 2.1
 - Evaluation target: `api_v1_recommendation_pipeline`
-- Scenario file SHA-256: `fbfee64e833bc1c76ba4e44f10531e94de84cc942da59dbbfe3c3d72c63d2e42`
+- Scenario file SHA-256: `859c14091d9c18ee4860d613473a6c0cc2a85cc2eba416f0074f9ed16c19fd66`
 - Corpus run ID: `20260701T223504Z`
 - Chunk CSV SHA-256: `e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12`
 - Embedding model: `sentence-transformers/all-MiniLM-L6-v2`
 - Embedding model revision: `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`
-- Implementation SHA-256: `20f9aa91f925502b154a70a001e6ddb2c3e0cbee3b64b14e7167d7e53c848d9e`
+- Implementation SHA-256: `841fc47f53402067dc5a5c41e3655133eb3af87ae9b903fb52cf42537a17b3b6`
 - Overall result: PASS
 - Top-three relevance: 13/14 (92.9%)
 - Required threshold: 90.0%
@@ -23,12 +23,6 @@
 - Citation-grounding checks: 14/14
 
 The top-three denominator contains supported scenarios that produced a normal `matched` response. Overall success additionally requires full supported-scenario coverage, every fixed attack and benign control, and all safety/source checks.
-
-## Plain-language evaluation summary
-
-Each relevance scenario defines expected categories and exact acceptable source targets. The evaluator passes a scenario when at least one of the first three serialized recommendations matches those expectations, then separately checks official links, required limitations, and citation grounding. Safety, adversarial, and controlled fallback cases are scored as guardrail checks instead of relevance matches.
-
-In this run, 13 of 14 relevance scenarios passed the top-three check, and 18 of 18 required guardrail scenarios passed. This automated package supports the bounded MVP claim for the fixed scenario set; it does not replace participant usability testing.
 
 ## Scenario results
 
@@ -66,12 +60,6 @@ In this run, 13 of 14 relevance scenarios passed the top-three check, and 18 of 
 | R13_FREE_TAX_CLINIC | relevance | — | matched | matched | FAIL | top_three_relevant |
 | R14_FREE_TAX_CLINIC_LOCATION | relevance | — | matched | matched | PASS | — |
 | G18_PROFESSIONAL_JUDGMENT | guardrail | professional_judgment | matched | matched | PASS | — |
-
-## Retained known finding
-
-`R13_FREE_TAX_CLINIC` remains a failed contact-intent scenario: the first three results do not include the expected CRA free-tax-clinic route because the governed clinic evidence provides a location route rather than reviewed contact metadata. The overall gate still passes above its predefined 90% threshold, but this result must not be rewritten as a pass.
-
-Future work should first verify an official contact route, then add reviewed contact metadata or adjust the contact fallback without weakening the exact-target rubric. `R14_FREE_TAX_CLINIC_LOCATION` separately confirms that the official clinic page ranks for the distinct location intent.
 
 ## Top-three evidence
 
