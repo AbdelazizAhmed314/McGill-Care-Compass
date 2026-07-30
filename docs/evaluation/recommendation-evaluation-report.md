@@ -2,12 +2,12 @@
 
 - Scenario set version: 2.1
 - Evaluation target: `api_v1_recommendation_pipeline`
-- Scenario file SHA-256: `fbfee64e833bc1c76ba4e44f10531e94de84cc942da59dbbfe3c3d72c63d2e42`
+- Scenario file SHA-256: `859c14091d9c18ee4860d613473a6c0cc2a85cc2eba416f0074f9ed16c19fd66`
 - Corpus run ID: `20260701T223504Z`
 - Chunk CSV SHA-256: `e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12`
 - Embedding model: `sentence-transformers/all-MiniLM-L6-v2`
 - Embedding model revision: `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`
-- Implementation SHA-256: `39e3baf452b57a0dc082e9f249d8d1abacd38ecc8fb51330afaacf3ad020c070`
+- Implementation SHA-256: `cc9e7f51e8a79b4aa5138daead7c616a3c9997a6741f93e489c55ca150edde1e`
 - Overall result: PASS
 - Top-three relevance: 13/14 (92.9%)
 - Required threshold: 90.0%

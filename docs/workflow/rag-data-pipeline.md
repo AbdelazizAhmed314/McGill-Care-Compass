@@ -84,6 +84,14 @@ A seed failure, configured required-source failure, or failure with active
 chunks always blocks. Use `--fail-on-attention` for the stricter review of
 changed, new, stale, reviewed unavailable, and noisy sources.
 
+Attention findings stay in the operational maintenance pipeline. They are not
+copied into chunk text, vector documents, recommendation prompts, or
+recommendation responses. Reviewed unavailable pages must have zero active
+chunks, and noisy retrieved candidates face the separate runtime evidence
+quality gate before any recommendation is formed. Freshness and drift findings
+remain inputs to the source-review and refresh procedure, not student-facing
+guidance.
+
 Run a raw retrieval diagnostic:
 
 ```bash

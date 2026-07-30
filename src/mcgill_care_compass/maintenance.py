@@ -140,7 +140,7 @@ def build_maintenance_report(
     }
     needs_attention = bool(error_count or warning_count)
     return {
-        "report_schema_version": "3",
+        "report_schema_version": "4",
         "as_of": report_date.isoformat(),
         "stale_after_days": stale_after_days,
         "pipeline_run_id": _single_value(pages, "pipeline_run_id"),
@@ -259,6 +259,7 @@ def format_maintenance_markdown(report: dict[str, Any]) -> str:
                 "classification",
                 "disposition_reason",
                 "reviewed_at",
+                "reviewed_by",
                 "review_reference",
                 "disposition_pipeline_run_id",
                 "replacement_url",
@@ -409,6 +410,7 @@ def _failed_source_report(
                     "disposition": disposition.get("disposition", ""),
                     "disposition_reason": disposition.get("reason", ""),
                     "reviewed_at": disposition.get("reviewed_at", ""),
+                    "reviewed_by": disposition.get("reviewed_by", ""),
                     "review_reference": disposition.get("review_reference", ""),
                     "disposition_pipeline_run_id": disposition.get(
                         "pipeline_run_id", ""
@@ -476,6 +478,8 @@ def _nonblocking_disposition_errors(
 
     if not disposition.get("review_reference"):
         errors.append("missing_review_reference")
+    if not disposition.get("reviewed_by"):
+        errors.append("missing_reviewed_by")
     if not page.get("pipeline_run_id"):
         errors.append("missing_page_pipeline_run_id")
     elif disposition.get("pipeline_run_id") != page.get("pipeline_run_id"):

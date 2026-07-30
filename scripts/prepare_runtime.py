@@ -56,6 +56,13 @@ def main() -> None:
 
     report = generate_maintenance_reports()
     print(f"Maintenance report generated for {report['counts']['chunks']} chunks.")
+    if report["has_errors"]:
+        error_count = report["severity_counts"]["error"]
+        print(
+            "Runtime preparation stopped: "
+            f"maintenance found {error_count} blocking error(s)."
+        )
+        raise SystemExit(1)
 
     sqlite_counts = rebuild_sqlite_metadata()
     print(f"SQLite metadata ready with {sqlite_counts['chunks']} chunks.")
