@@ -99,3 +99,17 @@ Before final release, verify:
 - Retrieved chunks include source and terms metadata.
 - Matching uses documented routing precedence and tie-breakers.
 - The app can be run from documented commands.
+
+## Progress Report 3 Closeout Risk Register
+
+Progress Report 3 was submitted through the course webform. No repository
+artifact is expected for that submission. The following register records the
+remaining risks and their disposition as of 2026-07-30 so project tracking does
+not imply that deferred or later work was part of the submitted report.
+
+| Risk or tracking gap | Owner | Action | Milestone disposition |
+| --- | --- | --- | --- |
+| Delivery-board status fields and several issue states lag the merged implementation. | Abdelaziz | Reconcile the board and close Issues 6, 8, 9, and 11 only with linked merge evidence. | Closeout action for the Progress Report 3 milestone. |
+| The fixed evaluation retains the documented `R13_FREE_TAX_CLINIC` contact-information miss. | Future matching/data owner | Preserve the finding and address it only if reviewed source evidence supports a genuine contact route. | Non-blocking: the fixed evaluation passed at 13/14 relevance journeys (92.9%) and all guardrail checks passed. |
+| Participant usability sessions were not conducted within the available timeline. | Future project iteration | Treat participant testing as deferred work; do not substitute automated evaluation for participant evidence. | Not part of the completed automated evaluation or Progress Report 3 evidence. |
+| Production release and final delivery checks remain separate from the Progress Report 3 milestone. | Abdelaziz | Track deployment, release tagging, and remaining delivery verification in their dedicated issue. | Does not block truthful closure of the earlier Progress Report 3 milestone. |

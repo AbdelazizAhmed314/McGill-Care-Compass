@@ -131,3 +131,26 @@ Decision: version the labeled scenario set and deterministic evaluator in Issue 
 Reason: fixed expected categories, service types, pass rules, safety outcomes, and artifact signatures make regressions reproducible without claiming that automated checks prove usability.
 
 Impact: Issue 7 can verify integration safety and relevance consistently; Issue 8 owns the final automated scenario results and remediation record, while Issue 10 owns at least five participant sessions and their findings.
+
+## 2026-07-30 - Close Progress Report 3 from audited implementation evidence
+
+Decision: accept the submitted course webform as the Progress Report 3
+submission record and close its implementation dependencies from their merged
+evidence. PR #21 supplies the integrated Issue 6 prototype, PR #26 supplies the
+fixed Issue 8 evaluation, and PR #28 supplies the available Issue 11 data,
+matching, maintenance, and documentation work. Issue 11's participant-finding
+tasks are not applicable to this closeout because participant testing was
+deferred rather than completed.
+
+Reason: repository and board state should reflect what was actually delivered.
+Automated evaluation and maintenance evidence can support their own acceptance
+criteria, but they cannot be described as participant evidence. The course
+webform does not produce a repository artifact, so the issue owner's submission
+confirmation is the durable closeout record.
+
+Impact: the delivery board can mark Issues 6, 8, 9, and 11 complete with linked
+evidence and explicit scope boundaries. PR #16 is rejected without merge because
+its static actionable-service pipeline was superseded by the merged RAG
+pipeline in PR #17. Remaining participant testing and the retained
+`R13_FREE_TAX_CLINIC` finding stay visible as deferred or non-blocking work
+instead of being represented as completed.
