@@ -7,7 +7,7 @@
 - Chunk CSV SHA-256: `e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12`
 - Embedding model: `sentence-transformers/all-MiniLM-L6-v2`
 - Embedding model revision: `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`
-- Implementation SHA-256: `cc9e7f51e8a79b4aa5138daead7c616a3c9997a6741f93e489c55ca150edde1e`
+- Implementation SHA-256: `841fc47f53402067dc5a5c41e3655133eb3af87ae9b903fb52cf42537a17b3b6`
 - Overall result: PASS
 - Top-three relevance: 13/14 (92.9%)
 - Required threshold: 90.0%
