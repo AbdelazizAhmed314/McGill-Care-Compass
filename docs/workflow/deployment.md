@@ -11,6 +11,18 @@ McGill Care Compass deploys as one container:
 The single-origin deployment avoids production CORS dependencies and leaves the
 same `/api/v1` contract available to a future mobile client.
 
+## Current Deployment Status
+
+As of 2026-07-28, `https://mcgill-care-compass.onrender.com` returns HTTP 404 at
+both the root and `/api/v1/health/ready`. It is a candidate service name, not a
+verified deliverable URL. The current final-demo candidate is the local Docker
+workflow documented in
+[`final-demo-runbook.md`](final-demo-runbook.md).
+
+Do not publish a hosted URL until a release owner records the exact deployed
+commit, URL, verification time, and successful routine, emergency, liveness,
+readiness, maintenance, source-link, and privacy checks.
+
 ## Local Development
 
 Prepare the Python environment:
@@ -63,6 +75,12 @@ Readiness:
 Invoke-RestMethod http://127.0.0.1:8000/api/v1/health/ready
 ```
 
+In Bash or macOS:
+
+```bash
+curl -fsS http://127.0.0.1:8000/api/v1/health/ready
+```
+
 Before building a release image, require committed corpus validation, the
 maintenance error gate, backend tests/lint, frontend tests/build, and the fixed
 evaluation to pass. The image build itself prepares and validates the signed
@@ -70,12 +88,17 @@ SQLite and Chroma runtime artifacts.
 
 ## Hosted Internal Environment
 
-The included `render.yaml` is the first hosted target. Connect the repository
-to Render as a Blueprint and review the generated service before deployment.
-If the final service URL differs from the placeholder URL, update
-`CORS_ORIGINS`.
+The included `render.yaml` is the first hosted target, but no hosted release is
+currently verified. Connect the repository to Render as a Blueprint, select the
+reviewed release commit, and review the generated service before deployment. If
+the final service URL differs from the candidate URL, update `CORS_ORIGINS`.
 
-No API key is required for the grouped deterministic fallback. When `OPENAI_API_KEY` is configured, the web and CLI use the same validated LLM pipeline. `MCC_LLM_MODEL` selects the response model. The structured intake, optional short question, and approved source evidence are sent to the configured response model with `store=False`; the app does not log or echo the optional question. Do not place student intake data, identifiers, or source content in environment variables.
+`autoDeployTrigger` is set to `off` for feature freeze. Deployments must be
+started manually from the reviewed commit and followed by the checks below.
+After the final submission, the team may deliberately choose `checksPass` if it
+wants Render to deploy only after linked CI checks pass.
+
+No API key is required for the grouped deterministic fallback. When `OPENAI_API_KEY` is configured, the web and CLI use the same validated LLM pipeline. `MCC_LLM_MODEL` selects the response model. The structured intake, optional short question, and approved source evidence are sent to the configured response model with `store=False`; the app does not log the optional question or return it in recommendation results. Do not place student intake data, identifiers, or source content in environment variables.
 
 Set `PRELOAD_RETRIEVAL=1` in the hosted process so startup loads the embedding model and verifies the signed Chroma collection before readiness can pass. Image construction and local source deployment must use `scripts/prepare_runtime.py`, which atomically derives signed SQLite and Chroma artifacts from the committed corpus. A mismatched or partial artifact must fail readiness rather than trigger an in-place production rebuild.
 
@@ -87,6 +110,10 @@ Required verification after deployment:
 4. Confirm `/api/v1/health/ready` returns `ok`.
 5. Confirm `/api/v1/maintenance/report` returns the generated report.
 6. Confirm an official source link opens in a new tab.
+7. Confirm the optional-question privacy notice is visible before submission.
+8. Confirm optional-question text is absent from results and operational logs.
+9. Enable Developer mode and confirm it shows only the approved diagnostic
+   fields described below.
 
 ## Privacy-Safe LLM Diagnostics
 
@@ -99,7 +126,19 @@ docker compose logs --tail 200 care-compass
 Get-Content .\logs\mcgill_care_compass.log -Tail 200
 ```
 
-Developer mode shows the generation mode, model, attempt count, application request ID, OpenAI request and response IDs, validation or fallback reason code, and stage timings. Expected LLM events are:
+In Bash or macOS:
+
+```bash
+docker compose logs --tail 200 care-compass
+tail -n 200 logs/mcgill_care_compass.log
+```
+
+Developer mode may show generation mode, model, attempt count, application and
+provider request IDs, validation or fallback reason, stage timings, source
+titles and official URLs, approved evidence IDs, review status, and quality
+flags. It must not show optional-question text, raw prompts, full retrieved
+passages beyond approved source excerpts, generated model payloads, API keys,
+or personal identifiers. Expected LLM events are:
 
 1. `llm_pipeline_started`
 2. `llm_request_started`

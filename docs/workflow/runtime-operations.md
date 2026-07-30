@@ -114,6 +114,26 @@ report and runtime corpus signature. The evidence uses content signatures
 rather than the mutable checkout state, so a clean rebuild can reproduce and
 verify the same committed result.
 
+## If a check fails
+
+| Check | Meaning and first action | Blocks | Owner |
+| --- | --- | --- | --- |
+| `uv run ruff check .` | A Python style or static-quality rule failed. Fix the reported file and rerun Ruff before testing. | Merge and release | Code owner |
+| `uv run pytest` | A backend, safety, retrieval, or API behavior regressed. Run the named test directly, diagnose the failing contract, and rerun the full suite. | Merge and release | Code owner for the failing area |
+| `validate_rag_corpus.py` | Committed datasets, schemas, hashes, counts, or provenance disagree. Review the complete generated artifact set; do not hand-edit one Silver row. | Runtime preparation and release | Data pipeline owner |
+| `prepare_runtime.py` | Signed SQLite or Chroma artifacts could not be derived from the committed corpus. Keep the previous valid artifacts and inspect the reported build stage. | Web and terminal retrieval demo | Runtime/data owner |
+| `health_check.py --json` | Required corpus or runtime resources are not ready. Inspect each failed health item; do not start or deploy the candidate. | Live demo and deployment | App/deployment owner |
+| `generate_maintenance_report.py --fail-on-error` | An integrity-blocking source, metadata, or category-coverage defect remains. Resolve it or add complete reviewed evidence only when policy permits. | Release | Data/maintenance owner |
+| `generate_maintenance_report.py --fail-on-attention` | Reviewable freshness or quality warnings remain. Record their disposition; this does not override a passing error gate. | Reviewer sign-off; demo only if explicitly accepted | Data/maintenance reviewer |
+| `evaluate_recommendations.py --check` | The committed evaluation is stale or the fixed relevance/safety gate changed. Diagnose the scenario, regenerate evidence only after intentional changes, and rerun `--check`. | Evaluation claim and release | Evaluation owner |
+| `npm test` or `npm run build` | The React interface or production bundle is broken. Fix the reported component/type/build error and repeat both commands. | Web demo and release | Frontend owner |
+| Hosted routine/emergency smoke check | The deployed revision, configuration, or runtime is not equivalent to the reviewed candidate. Keep the hosted URL unannounced and use the documented local/recorded backup. | Hosted demo claim | Deployment owner |
+
+Do not reinterpret an error as a warning to meet a deadline. When an external
+provider alone is unavailable, the validated deterministic fallback may be
+demonstrated; failures in safety, source grounding, runtime integrity, or
+readiness still block the candidate.
+
 ## Update procedure
 
 1. Fetch and check out the reviewed revision for the internal environment.

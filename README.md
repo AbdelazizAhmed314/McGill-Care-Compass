@@ -4,13 +4,40 @@ McGill Care Compass: Newcomer Service Navigator is a source-grounded service-nav
 
 This is a navigator, not an open-ended advice chatbot. Recommendations must be grounded in retrieved source chunks from the governed RAG corpus, include official source links, and avoid medical, legal, immigration, tax, insurance, or financial eligibility decisions.
 
+## Final Demo and Release Status
+
+The canonical final-demo path is the single-container FastAPI/React
+application. Streamlit is superseded and is not an approved final-demo path.
+The primary local navigator is <http://127.0.0.1:8000/navigator>; status is
+available at <http://127.0.0.1:8000/status>, and API documentation is available
+at <http://127.0.0.1:8000/docs>.
+
+As of 2026-07-28, no hosted release URL has passed the documented readiness
+checks, so the current candidate is the local Docker workflow. Follow the
+[final demo runbook](docs/workflow/final-demo-runbook.md) for setup, smoke
+scenarios, privacy checks, backup operation, and rehearsal evidence.
+
+Current release state: final candidate pending recorded Docker rehearsal and
+final QA. The 2026-07-27 feature freeze is in effect, so only critical fixes
+should be accepted before the final submission and presentation on 2026-07-30.
+
+The demo uses governed Silver RAG data, not a manually approved Gold
+recommendation corpus. Passing the
+[fixed evaluation](docs/evaluation/recommendation-evaluation-report.md) supports
+the bounded MVP navigator claim; it does not create professional advice or
+eligibility decisions.
+
 ## Start Here
 
+- Final demo runbook: [docs/workflow/final-demo-runbook.md](docs/workflow/final-demo-runbook.md)
 - Product contract: [docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
 - Project plan: [docs/project/Project-Plan-High-Level.md](docs/project/Project-Plan-High-Level.md)
+- Engineering decision log: [docs/project/decisions.md](docs/project/decisions.md)
 - Team workload appendix: [docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md](docs/Appendices/Team-Roles-and-Individual-Workload-Appendix.md)
 - Data evidence: [data/README.md](data/README.md)
 - Matching and routing: [docs/workflow/matching-routing.md](docs/workflow/matching-routing.md)
+- Evaluation plan and current status: [docs/project/Evaluation-and-Usability-Plan.md](docs/project/Evaluation-and-Usability-Plan.md)
+- Generated recommendation evaluation report: [docs/evaluation/recommendation-evaluation-report.md](docs/evaluation/recommendation-evaluation-report.md)
 - Runtime updates and rollback: [docs/workflow/runtime-operations.md](docs/workflow/runtime-operations.md)
 - Agent/collaboration contract: [AGENTS.md](AGENTS.md)
 
@@ -61,10 +88,22 @@ In the same PowerShell window that will run Docker:
 $env:OPENAI_API_KEY = "your-api-key"
 ```
 
+In Bash or macOS:
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
 Optionally override the configured model:
 
 ```powershell
 $env:MCC_LLM_MODEL = "gpt-5.6-luna"
+```
+
+In Bash or macOS:
+
+```bash
+export MCC_LLM_MODEL="gpt-5.6-luna"
 ```
 
 Never commit an API key, put it in the Docker image, or include it in logs,
@@ -75,6 +114,13 @@ As an alternative, copy the ignored local environment template:
 ```powershell
 Copy-Item .env.example .env
 notepad .env
+```
+
+In Bash or macOS:
+
+```bash
+cp .env.example .env
+${EDITOR:-vi} .env
 ```
 
 Then set `OPENAI_API_KEY` in `.env`. Docker Compose automatically reads this
@@ -100,6 +146,13 @@ docker compose logs -f care-compass
 ```powershell
 docker compose ps
 Invoke-RestMethod http://127.0.0.1:8000/api/v1/health/ready
+```
+
+In Bash or macOS:
+
+```bash
+docker compose ps
+curl -fsS http://127.0.0.1:8000/api/v1/health/ready
 ```
 
 Continue when the container is `healthy` and readiness reports
@@ -187,6 +240,13 @@ as a fallback:
 ```powershell
 Copy-Item .env.example .env
 notepad .env
+```
+
+In Bash or macOS:
+
+```bash
+cp .env.example .env
+${EDITOR:-vi} .env
 ```
 
 Run the optional LLM response layer:

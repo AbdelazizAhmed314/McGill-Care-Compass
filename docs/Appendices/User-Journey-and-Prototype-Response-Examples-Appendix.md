@@ -1,6 +1,13 @@
 # User Journey and Prototype Response Examples Appendix
 
 This appendix keeps compact examples for the prototype response format. The main journey document owns the UI contract; this appendix shows representative outputs that can later become evaluation scenarios.
+
+> **Illustrative examples only.** Placeholder evidence IDs and example wording
+> are not current production output. Do not copy contact details, dates, or
+> service claims into the final demo or presentation without verifying them
+> against the governed corpus and linked official source. User-facing responses
+> must use retrieved official links and source text.
+
 ### Example 1: Activate International Health Insurance
 
 **Expected category:** `insurance`
@@ -19,7 +26,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 - [https://www.mcgill.ca/internationalstudents/health/activate-ihi-coverage](https://www.mcgill.ca/internationalstudents/health/activate-ihi-coverage)
 
-**Last verified:** 2026-06-24
+**Example source capture date:** 2026-06-24
 
 **Source details:**
 
@@ -44,7 +51,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 **Why this matched:** You asked about entering Canada as a study-permit-exempt student, and the retrieved source route explains eTA application requirements.
 
-**Recommended next step:** Apply online using the official eTA application form. Have a valid passport, credit card, and email address ready. The application should only take a few minutes. For more information, visit the official page or call 555-0104.
+**Recommended next step:** Apply online using the official eTA application form. Have a valid passport, credit card, and email address ready. The application should only take a few minutes. If assistance is needed, use the current official contact route on the linked source.
 
 **Important limit:** The app cannot decide whether you are study-permit exempt or eTA-eligible. Confirm your situation with the official source.
 
@@ -52,7 +59,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 - [https://www.mcgill.ca/internationalstudents/immigration-documents/documents/eta](https://www.mcgill.ca/internationalstudents/immigration-documents/documents/eta)
 
-**Last verified:** 2026-06-24
+**Example source capture date:** 2026-06-24
 
 **Source details:**
 
@@ -77,7 +84,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 **Why this matched:** You asked how to start working in Canada, and the retrieved source route says a SIN is needed before work begins.
 
-**Recommended next step:** Check whether your Study Permit includes a condition or remark that allows on-campus or off-campus work. If it does not, request an amendment before applying for a SIN. Have your valid Study Permit and valid passport ready. For more information, visit the official page or call 555-0109.
+**Recommended next step:** Check whether your Study Permit includes a condition or remark that allows on-campus or off-campus work. If it does not, request an amendment before applying for a SIN. Have your valid Study Permit and valid passport ready. If assistance is needed, use the current official contact route on the linked source.
 
 **Important limit:** The app cannot decide whether you are authorized to work. Confirm your Study Permit wording and official criteria.
 
@@ -86,7 +93,7 @@ This appendix keeps compact examples for the prototype response format. The main
 - [https://www.mcgill.ca/internationalstudents/work/social-insurance-number](https://www.mcgill.ca/internationalstudents/work/social-insurance-number)
 - [https://www.mcgill.ca/internationalstudents/work/work-authorization-cheat-sheet](https://www.mcgill.ca/internationalstudents/work/work-authorization-cheat-sheet)
 
-**Last verified:** 2026-06-24
+**Example source capture date:** 2026-06-24
 
 **Source details:**
 
@@ -111,7 +118,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 **Why this matched:** You asked where to start for a non-emergency health concern, and the retrieved source route explains appointment-based Hub access.
 
-**Recommended next step:** Use the booking route listed on the Hub page, then bring your student ID and insurance information. If direct billing applies, your medical acts or lab tests may be billed to McGill IHI or a Canadian provincial plan. For more information, visit the official page or call 555-0111.
+**Recommended next step:** Use the booking route listed on the Hub page, then bring your student ID and insurance information. If direct billing applies, your medical acts or lab tests may be billed to McGill IHI or a Canadian provincial plan. If assistance is needed, use the current official contact route on the linked source.
 
 **Important limit:** This is not medical advice and does not assess symptoms. If the issue is urgent or dangerous, use emergency or crisis routes first.
 
@@ -119,7 +126,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 - [https://www.mcgill.ca/wellness-hub/get-support/find-community-resources/navigatinghealthcare](https://www.mcgill.ca/wellness-hub/get-support/find-community-resources/navigatinghealthcare)
 
-**Last verified:** 2026-06-24
+**Example source capture date:** 2026-06-24
 
 **Source details:**
 
@@ -144,7 +151,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 **Why this matched:** You asked whether Wellness Hub services may apply to you, and the retrieved source route lists service criteria.
 
-**Recommended next step:** The official source lists eligibility criteria that may apply to your situation. Check whether you are a full-time or part-time student at the downtown or Macdonald campus, physically located in Quebec at the time of appointment, able to consent to the appointment, covered by insurance, and have paid the Student Services fee. For more information, visit the official page or call 555-0112.
+**Recommended next step:** The official source lists eligibility criteria that may apply to your situation. Check whether you are a full-time or part-time student at the downtown or Macdonald campus, physically located in Quebec at the time of appointment, able to consent to the appointment, covered by insurance, and have paid the Student Services fee. If assistance is needed, use the current official contact route on the linked source.
 
 **Important limit:** The app cannot confirm clinical eligibility or appointment availability. The official Hub route decides access.
 
@@ -152,7 +159,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 - [https://www.mcgill.ca/wellness-hub/contact/hub-policies](https://www.mcgill.ca/wellness-hub/contact/hub-policies)
 
-**Last verified:** 2026-06-24
+**Example source capture date:** 2026-06-24
 
 **Source details:**
 
@@ -177,7 +184,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 **Why this matched:** You asked for help covering costs, and the retrieved source route discusses financial aid applications, appointments, and deferrals.
 
-**Recommended next step:** Submit or update your In-Course Financial Aid profile or application. After submitting, make an appointment with a Financial Aid Counsellor if the application tells you to do so. Have your budget, expected funding, expenses, and student ID ready before starting. For more information, visit the official page or call 555-0114.
+**Recommended next step:** Submit or update your In-Course Financial Aid profile or application. After submitting, make an appointment with a Financial Aid Counsellor if the application tells you to do so. Have your budget, expected funding, expenses, and student ID ready before starting. If assistance is needed, use the current official contact route on the linked source.
 
 **Important limit:** The app cannot decide financial-aid eligibility, award amount, or application outcome.
 
@@ -185,7 +192,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 - [https://www.mcgill.ca/studentaid/scholarships-aid/international-students](https://www.mcgill.ca/studentaid/scholarships-aid/international-students)
 
-**Last verified:** 2026-06-24
+**Example source capture date:** 2026-06-24
 
 **Source details:**
 
@@ -210,7 +217,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 **Why this matched:** You asked for tax filing help, and the retrieved source route is about free tax clinics for people with modest income and a simple tax situation.
 
-**Recommended next step:** The official source lists eligibility criteria that may apply to your situation. Use the CRA free tax clinic page to find a clinic, then prepare your tax slips, tuition documents, identification, and income records before the appointment. For more information, visit the official page or call the listed clinic at 555-0118.
+**Recommended next step:** The official source lists eligibility criteria that may apply to your situation. Use the CRA free tax clinic page to find a clinic, then prepare your tax slips, tuition documents, identification, and income records before the appointment. If assistance is needed, use the current official contact route on the linked source.
 
 **Important limit:** The app cannot decide whether your tax situation is simple or whether a clinic will accept your case.
 
@@ -219,7 +226,7 @@ This appendix keeps compact examples for the prototype response format. The main
 - [https://www.canada.ca/en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html](https://www.canada.ca/en/revenue-agency/services/tax/individuals/community-volunteer-income-tax-program.html)
 - [https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html](https://www.canada.ca/en/revenue-agency/services/tax/individuals/segments/students.html)
 
-**Last verified:** 2026-06-24
+**Example source capture date:** 2026-06-24
 
 **Source details:**
 
@@ -244,7 +251,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 **Why this matched:** You asked how to start looking for housing after arriving, and the retrieved source route gives search actions and lease-check reminders.
 
-**Recommended next step:** Find temporary housing first so you have time to assess your needs. Start with housing rented by the week or month, within your budget, and in a central area. Check online classifieds, join housing search groups, walk around to identify rentals, and consider registering for Accompagnement Quebec. Before signing a lease, check the rent amount, exact address, owner information, and tenant responsibilities. For more information, visit the official page or call 555-0119.
+**Recommended next step:** Find temporary housing first so you have time to assess your needs. Start with housing rented by the week or month, within your budget, and in a central area. Check online classifieds, join housing search groups, walk around to identify rentals, and consider registering for Accompagnement Quebec. Before signing a lease, check the rent amount, exact address, owner information, and tenant responsibilities. If assistance is needed, use the current official contact route on the linked source.
 
 **Important limit:** The app cannot provide legal advice or decide a housing dispute.
 
@@ -252,7 +259,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 - [https://www.quebec.ca/en/immigration/settle-and-integrate-in-quebec](https://www.quebec.ca/en/immigration/settle-and-integrate-in-quebec)
 
-**Last verified:** 2026-06-24
+**Example source capture date:** 2026-06-24
 
 **Source details:**
 
@@ -285,7 +292,7 @@ This appendix keeps compact examples for the prototype response format. The main
 
 - [https://www.mcgill.ca/libraries/contact-us/ask-librarian](https://www.mcgill.ca/libraries/contact-us/ask-librarian)
 
-**Last verified:** 2026-06-24
+**Example source capture date:** 2026-06-24
 
 **Source details:**
 
@@ -316,7 +323,7 @@ These cases are fallback behavior examples, not category examples. They describe
 - **Recommended next step:** Use official emergency or clinical channels instead of relying on this app for diagnosis.
 - **Important limit:** This app can help navigate official resources, but it cannot provide emergency, legal, medical, tax, or financial advice.
 - **Official sources:** Emergency or official healthcare resources should be displayed only when available in the retrieved evidence.
-- **Last verified:** Use the latest available source timestamp from the evidence set.
+- **Source date:** Use the latest available source timestamp from the evidence set.
 - **Source details:** Show publisher, terms, and retrieval timestamp for any official emergency or healthcare source used.
 
 ### No Source-Grounded Match
@@ -333,5 +340,5 @@ These cases are fallback behavior examples, not category examples. They describe
 - **Recommended next step:** Do not guess. Ask for one clarifying detail or direct the user to the broadest official source only if that source is present in the retrieved evidence.
 - **Important limit:** The app should not invent eligibility, deadlines, documents, or contact details when the evidence is missing.
 - **Official sources:** Show only the sources actually retrieved.
-- **Last verified:** Use the latest available source timestamp from the evidence set.
+- **Source date:** Use the latest available source timestamp from the evidence set.
 - **Source details:** Show publisher, terms, and retrieval timestamp for each source used.

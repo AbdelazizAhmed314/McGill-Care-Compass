@@ -21,11 +21,14 @@ SQLite, and Chroma runtime artifacts are generated locally and ignored.
   source-updated time where available, source terms, and taxonomy metadata.
 - Chunks must preserve source group, source owner, source priority rank,
   freshness score, `terms_url`, and `licence_or_terms`.
-- Retrieval should prefer primary source groups in this order for same-topic
-  evidence: Canada, Quebec, official healthcare systems, McGill, then other
-  approved sources.
-- Within the same source tier, retrieval should prefer fresher source-updated
-  dates when available.
+- Source authority is contextual, not one global publisher order. Prefer McGill
+  for McGill-owned services and campus processes; Canadian or Quebec government
+  sources for laws, immigration, tax, public systems, and government programs;
+  and the responsible healthcare system, insurer, or administrator for
+  decisions it owns. Use approved community sources only for appropriate
+  referral-focused gaps where an official route is unavailable.
+- Within an equal contextual authority tier, semantic relevance comes before
+  freshness and stable tie-breakers.
 - The response layer must not convert retrieved chunks into medical, legal,
   immigration, tax, insurance, financial, or eligibility decisions.
 

@@ -4,7 +4,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/v1/health/ready
-    autoDeployTrigger: commit
+    autoDeployTrigger: "off"
     envVars:
       - key: APP_ENV
         value: internal
