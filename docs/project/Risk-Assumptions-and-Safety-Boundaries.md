@@ -12,32 +12,33 @@ The navigator provides grounded service navigation, not professional advice. It 
 
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
-| Official pages change, become unavailable, or lack structured fields. | Medium | High | Curate priority records, retain official links, display last-verified dates, monitor broken links, and provide manual-update procedures. |
-| Curated official sources provide conflicting information about eligibility, fees, hours, or procedures. | Medium | High | Establish a source-authority hierarchy, record each claim's source and date, flag unresolved conflicts, explain uncertainty, and direct users to the responsible service for confirmation. |
-| The tool produces unsupported or overly definitive guidance on high-risk topics. | Medium | High | Use deterministic routing and safety messages, ground generated explanations in approved records, prohibit definitive eligibility decisions, and refer users to qualified services. |
+| Official pages change, become unavailable, or lack structured fields. | Medium | High | Retain official links, store content hashes, display source dates, monitor drift/broken links, and provide manual-update procedures. |
+| Official sources provide conflicting information about eligibility, fees, hours, or procedures. | Medium | High | Establish a source-authority hierarchy, record each chunk's source and date, flag unresolved conflicts, explain uncertainty, and direct users to the responsible service for confirmation. |
+| The tool produces unsupported or overly definitive guidance on high-risk topics. | Medium | High | Use deterministic routing and safety messages, ground generated explanations in retrieved chunks, prohibit definitive eligibility decisions, and refer users to qualified services. |
 | Scope exceeds the available timeline. | Medium | High | Prioritize highest-value service categories, defer lower-priority features, freeze the presentation-ready build by July 27, and reserve July 28-29 for contingency fixes. |
 | Recruitment from upcoming McGill newcomer cohorts is lower than expected. | Medium | Medium | Recruit early, use short predefined testing sessions, and supplement with proxy users only if participation is insufficient. |
-| Healthcare facility data is misunderstood as clinical advice or service availability. | Medium | High | Present ODHF facility data as location/provenance context only; include source, license/terms, retrieval date, and limitations. |
+| Retrieved healthcare content is misunderstood as clinical advice or service availability. | Medium | High | Present healthcare chunks as source-linked navigation context only; include limitations and direct users to qualified services. |
 | Matching rules produce ties or unstable rankings. | Medium | Medium | Use deterministic tie-breakers and test repeated runs against fixed scenarios. |
 
 ## Source Authority Rules
 
-When sources conflict or overlap, the product should use this authority order:
+Source authority is contextual, not one global publisher ladder. Emergency and crisis routing always has precedence. For ordinary recommendations, prefer the official owner of the service or decision relevant to the intake:
 
-1. Emergency and crisis instructions for immediate safety.
-2. Official McGill service pages for McGill-owned student services.
-3. Official Quebec, federal, RAMQ, health-system, and ODHF sources for government, healthcare, insurance, and facility records.
-4. Trusted community or settlement organizations for community referrals.
-5. General informational pages only when no more authoritative source exists.
+1. McGill pages for McGill-owned student services, campus processes, and advising.
+2. Quebec or Canadian government and public-system pages for laws, status, tax, public insurance, healthcare systems, and government programs.
+3. Official insurer or administrator pages for plan administration and claims routes.
+4. Trusted community or settlement organizations for community-delivered services and referrals.
+5. General informational pages only when no responsible official source exists.
 
-If the conflict cannot be resolved, the tool should show uncertainty and direct the user to the responsible office or service.
+The intake jurisdiction is a ranking signal, not a claim about legal responsibility. Within the same contextual authority tier, semantic relevance comes before freshness; specificity, student-context fit, accessibility, and recency then refine the order, followed by stable deterministic tie-breakers. If sources materially conflict, disclose the uncertainty and direct the user to the responsible office or service rather than silently resolving professional or eligibility questions.
 
 ## Routing Safety Rules
 
 1. If the intake indicates emergency, immediate danger, or severe symptoms, route first to urgent/safety guidance and show regular services only as secondary follow-up.
 2. If the need falls under a McGill-owned student service, rank the McGill service above external services unless the case requires public healthcare, legal, government, or emergency authority.
-3. If the need requires official government, healthcare, insurance, tax, immigration, or eligibility information, rank official source-backed records above general support pages.
+3. If the need requires official government, healthcare, insurance, tax, immigration, or eligibility information, rank official source-backed chunks above general support pages.
 4. If two services match the same need with equal authority, break the tie by specificity to the student's situation, then accessibility/location, then most recently verified source.
+5. If sources materially conflict, disclose the difference, explain why the chosen route was preferred, and provide official contacts or source links the user can use to verify with a human.
 
 ## Tie-Breaking Rules
 
@@ -48,8 +49,8 @@ Use this deterministic tie-break order:
 3. Authority level.
 4. Student eligibility/context fit.
 5. Distance or accessibility fit, if available.
-6. Most recently verified record.
-7. Stable alphabetical order or record ID.
+6. Most recently verified source chunk.
+7. Stable source/chunk ID ordering.
 
 ## No Live Human Review Claim
 
@@ -57,7 +58,7 @@ Do not say that every recommendation "requires human review" if that could imply
 
 Use this framing instead:
 
-> The navigator uses curated and approved service records, provides limitation notices, avoids definitive eligibility or professional judgments, and directs users to qualified services for individual decisions.
+> The navigator uses approved source-grounded chunks, provides limitation notices, avoids definitive eligibility or professional judgments, and directs users to qualified services for individual decisions.
 
 ## High-Risk Topic Boundaries
 
@@ -73,17 +74,16 @@ Use this framing instead:
 ## Data And Privacy Assumptions
 
 - The MVP should not collect sensitive identifiers such as student ID, SIN, passport number, medical record number, or financial account details.
-- The MVP should avoid storing free-text descriptions that may contain sensitive personal information.
+- The optional short question is limited to 300 characters, used ephemerally, screened for common identifier patterns, and must not be logged, echoed in results, or stored by the app. When the configured LLM response layer is enabled, the question and approved evidence are processed by that provider with response storage disabled, and the UI must disclose this processing.
 - Logged events should be minimized and should not include sensitive identifiers.
-- Source records must include official URLs and last-verified dates.
-- ODHF-derived healthcare records must include source and license/terms provenance when surfaced.
+- Source chunks must include official URLs, retrieved dates, source-updated dates where available, and source terms metadata.
 
 ## Scope Control
 
 Lower-priority features are deferred until all required milestones pass. This includes:
 
 - French interface text beyond basic labels.
-- Broad coverage beyond the 40-record MVP directory.
+- Broad coverage beyond the approved v1 source scope.
 - Advanced personalization.
 - General chatbot behavior.
 - Full production hosting beyond the course deliverable.
@@ -96,6 +96,20 @@ Before final release, verify:
 - Unsupported scenarios fail gracefully.
 - Empty-result cases do not invent services.
 - Every recommendation includes source links.
-- ODHF-derived facility records include source/license provenance.
+- Retrieved chunks include source and terms metadata.
 - Matching uses documented routing precedence and tie-breakers.
 - The app can be run from documented commands.
+
+## Progress Report 3 Closeout Risk Register
+
+Progress Report 3 was submitted through the course webform. No repository
+artifact is expected for that submission. The following register records the
+remaining risks and their disposition as of 2026-07-30 so project tracking does
+not imply that deferred or later work was part of the submitted report.
+
+| Risk or tracking gap | Owner | Action | Milestone disposition |
+| --- | --- | --- | --- |
+| Delivery-board status fields and several issue states lag the merged implementation. | Abdelaziz | Reconcile the board and close Issues 6, 8, 9, and 11 only with linked merge evidence. | Closeout action for the Progress Report 3 milestone. |
+| The fixed evaluation retains the documented `R13_FREE_TAX_CLINIC` contact-information miss. | Future matching/data owner | Preserve the finding and address it only if reviewed source evidence supports a genuine contact route. | Non-blocking: the fixed evaluation passed at 13/14 relevance journeys (92.9%) and all guardrail checks passed. |
+| Participant usability sessions were not conducted within the available timeline. | Future project iteration | Treat participant testing as deferred work; do not substitute automated evaluation for participant evidence. | Not part of the completed automated evaluation or Progress Report 3 evidence. |
+| Production release and final delivery checks remain separate from the Progress Report 3 milestone. | Abdelaziz | Track deployment, release tagging, and remaining delivery verification in their dedicated issue. | Does not block truthful closure of the earlier Progress Report 3 milestone. |

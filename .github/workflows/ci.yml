@@ -2,21 +2,58 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, develop]
   push:
     branches: [develop]
 
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: ${{ runner.os }}-huggingface-all-MiniLM-L6-v2-1110a243fdf4706b3f48f1d95db1a4f5529b4d41
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --frozen
       - name: Lint
         run: uv run ruff check .
       - name: Test
         run: uv run pytest
+      - name: Validate committed corpus
+        run: uv run python scripts/data/validate_rag_corpus.py
+      - name: Enforce active-retrieval maintenance gate
+        run: uv run python scripts/data/generate_maintenance_report.py --fail-on-error
+      - name: Prepare reports without local vector build
+        run: uv run python scripts/prepare_runtime.py --skip-vector-store
+      - name: Verify fixed recommendation evaluation
+        run: |
+          cp data/evaluation/recommendation_evaluation_report.json /tmp/committed-evaluation.json
+          if ! uv run python scripts/evaluate_recommendations.py --check; then
+            uv run python scripts/evaluate_recommendations.py
+            diff -u /tmp/committed-evaluation.json data/evaluation/recommendation_evaluation_report.json || true
+            exit 1
+          fi
       - name: Import smoke test
-        run: uv run python -c "import mcgill_care_compass; print(mcgill_care_compass.__version__)"
+        run: uv run python -c "from mcgill_care_compass.api.app import app; print(app.title)"
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Test
+        run: npm run test
+      - name: Build
+        run: npm run build

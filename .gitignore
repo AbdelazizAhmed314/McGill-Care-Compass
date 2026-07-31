@@ -9,9 +9,12 @@ htmlcov/
 
 # Environments
 .venv/
+.venv-*/
+.uv-cache/
 venv/
 .env
 .env.*
+!.env.example
 
 # Local notebooks and generated artifacts
 .ipynb_checkpoints/
@@ -19,14 +22,42 @@ notebooks/local/
 outputs/
 reports/generated/
 
-# Raw/source inputs are documented but not committed by default.
+# Medallion data artifacts generated locally and not committed by default.
+data/bronze/raw/
+data/silver/processed/
+data/silver/rag/*.sqlite
+data/silver/rag/*.sqlite-*
+data/silver/vector_store/
+data/silver/maintenance/
+
+# Removed pre-v1 local artifact paths; retained to avoid accidental commits if regenerated locally.
 data/raw/
+data/processed/
+data/rag/
+data/vector_store/
 data/external/
 data/source-inputs/*
 !data/source-inputs/README.md
+!data/source-inputs/rag_seed_urls.csv
+!data/source-inputs/rag_failed_source_dispositions.csv
+!data/source-inputs/rag_required_source_urls.csv
+!data/source-inputs/questionnaire_metadata_map.yml
 
 # OS/editor noise
 .DS_Store
 Thumbs.db
+.obsidian/
 .vscode/
 .idea/
+scripts/github/bootstrap_github.py
+scripts/github/configure_project_fields.py
+
+# Local app logs
+logs/
+
+# Local test/runtime temp
+.tmp/
+
+# React/Vite generated artifacts
+web/node_modules/
+web/dist/

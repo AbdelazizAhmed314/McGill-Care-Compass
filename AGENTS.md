@@ -4,10 +4,10 @@ This repository is designed for human teammates and coding agents working togeth
 
 ## Source Of Truth
 
-Use these documents before making behavior or scope changes:
+Use these documents and the GitHub issues' details before making behavior or scope changes:
 
-1. [docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
-2. [docs/project/GitHub-Issue-Based-Task-Breakdown.md](docs/project/GitHub-Issue-Based-Task-Breakdown.md)
+1. [README.md](README.md)
+2. [docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
 3. [docs/project/Risk-Assumptions-and-Safety-Boundaries.md](docs/project/Risk-Assumptions-and-Safety-Boundaries.md)
 4. [data/README.md](data/README.md)
 
@@ -23,8 +23,8 @@ Use these documents before making behavior or scope changes:
 
 - Do not implement open-ended advice generation.
 - Do not invent services, eligibility rules, medical guidance, immigration advice, tax advice, or insurance decisions.
-- Recommendations must come from curated records or clearly marked evidence datasets.
-- Healthcare facility records derived from ODHF must carry source/license provenance when surfaced.
+- Recommendations must come from retrieved source chunks in the governed RAG corpus or clearly marked evidence datasets.
+- Healthcare facility evidence must carry source/license provenance when surfaced.
 - Do not collect student ID, SIN, passport number, medical record number, or detailed health descriptions.
 
 ## Expected Checks
@@ -34,6 +34,7 @@ Run before opening or updating a pull request:
 ```powershell
 uv run ruff check .
 uv run pytest
+uv run python scripts/data/validate_rag_corpus.py
 ```
 
 ## Agent Notes

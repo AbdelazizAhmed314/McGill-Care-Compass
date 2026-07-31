@@ -1,0 +1,114 @@
+{
+  "artifact_schema_version": "2",
+  "artifacts": {
+    "chunks_csv": {
+      "bytes": 13886339,
+      "exists": true,
+      "path": "data/silver/datasets/rag_chunks.csv",
+      "rows": 4239,
+      "sha256": "e0a6d54624efc54a79006e5babee5054022c2627514fbca52ff25b002093be12"
+    },
+    "links_csv": {
+      "bytes": 13541807,
+      "exists": true,
+      "path": "data/silver/datasets/rag_links.csv",
+      "rows": 22548,
+      "sha256": "77f977e04e91038a375f3d8c018af5fd526ffb2ac366be32771be30d5ab81f5e"
+    },
+    "pages_csv": {
+      "bytes": 2162713,
+      "exists": true,
+      "path": "data/silver/datasets/rag_pages.csv",
+      "rows": 490,
+      "sha256": "58ee2b6bf682691c24dbc76d78c09aa5b272339b615958881e0a8288d53dce82"
+    },
+    "quality_report_md": {
+      "bytes": 1691,
+      "exists": true,
+      "path": "data/silver/reports/rag_corpus_quality_report.md",
+      "sha256": "275ab54ed81c3547248e0ea87ade449b0e26d2340c18c7eabbbe2661e5e18236"
+    },
+    "report_md": {
+      "bytes": 6797,
+      "exists": true,
+      "path": "data/silver/reports/rag_pipeline_report.md",
+      "sha256": "bb38acc1d42a6d6659149293bbc9308990e0cbb3cc26e698424fdd5d4b7edfda"
+    },
+    "sqlite_db": {
+      "bytes": 35147776,
+      "exists": true,
+      "path": "data/silver/rag/rag_metadata.sqlite",
+      "sha256": "5647648ee80e62ffc3938a75726d6d8a13efa02f6acbc3524a75962cce4bb4d3"
+    }
+  },
+  "code_versions": {
+    "chunking_config_version": "1",
+    "link_priority_config_version": "1"
+  },
+  "configuration": {
+    "chunking_config_version": "1",
+    "crawl_config_hash": "2c774104781ff52e68c13b6dd36cb1048005621267e6632b8e4a11134b85e9f3",
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "fetch_pause": 0.2,
+    "force_rechunk": false,
+    "link_priority_config_version": "1",
+    "max_depth": 3,
+    "max_links_per_page": 10,
+    "max_pages": 500,
+    "metadata_only": true,
+    "questionnaire_config_hash": "c7be6a5508632e0cb9c502bc5a3259e35e5678431f51f451004fbbfd008c7258",
+    "questionnaire_map": "data/source-inputs/questionnaire_metadata_map.yml",
+    "questionnaire_metadata_version": "2",
+    "seed_config_hash": "a2858cb02a78ac24c244efe1f4b6b9a7cdc7801c914c1381a1917f1fd12ec3b8",
+    "seed_csv": "data/source-inputs/rag_seed_urls.csv",
+    "skip_embeddings": false,
+    "timeout": 25
+  },
+  "counts": {
+    "categories": 11,
+    "chunks": 4239,
+    "crawl_decisions": {
+      "not_crawled": 22079,
+      "queued": 469
+    },
+    "drift": {
+      "changed": 121,
+      "fetch_failed": 4,
+      "new": 4,
+      "unchanged": 361
+    },
+    "link_types": {
+      "external": 2576,
+      "file": 192,
+      "in_scope": 11756,
+      "skipped": 7922,
+      "tel": 102
+    },
+    "links": 22548,
+    "pages": 490
+  },
+  "manifest_schema_version": "1",
+  "pipeline": {
+    "generated_at": "2026-07-01T22:35:04+00:00",
+    "name": "mcgill_care_compass_local_rag_pipeline",
+    "run_id": "20260701T223504Z",
+    "version": "1.0.0"
+  },
+  "stats": {
+    "chunks": 4239,
+    "drift": {
+      "metadata_refreshed": 490
+    },
+    "links": 22548,
+    "processed_pages": 490,
+    "seeds": 0
+  },
+  "vector_store": {
+    "bytes": 70143756,
+    "collection": "mcgill_care_compass_rag",
+    "exists": true,
+    "file_count": 6,
+    "path": "data/silver/vector_store/chroma",
+    "status": "rebuilt:4239"
+  }
+}
