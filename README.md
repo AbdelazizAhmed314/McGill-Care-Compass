@@ -12,14 +12,18 @@ The primary local navigator is <http://127.0.0.1:8000/navigator>; status is
 available at <http://127.0.0.1:8000/status>, and API documentation is available
 at <http://127.0.0.1:8000/docs>.
 
-As of 2026-07-28, no hosted release URL has passed the documented readiness
-checks, so the current candidate is the local Docker workflow. Follow the
-[final demo runbook](docs/workflow/final-demo-runbook.md) for setup, smoke
-scenarios, privacy checks, backup operation, and rehearsal evidence.
+As of 2026-07-31, the presentation-ready candidate is deployed at
+<https://mcgill-care-compass.onrender.com> from `develop` commit `3379c12`.
+The root application, liveness, strict readiness, maintenance report, routine
+OpenAI-backed recommendation, emergency-first path, official source link,
+privacy boundary, and approved developer diagnostics all passed hosted checks.
+Follow the [final demo runbook](docs/workflow/final-demo-runbook.md) for the
+hosted path, local backup, and release checks.
 
-Current release state: final candidate pending recorded Docker rehearsal and
-final QA. The 2026-07-27 feature freeze is in effect, so only critical fixes
-should be accepted before the final submission and presentation on 2026-07-30.
+The 2026-07-27 feature freeze remains in effect. Only release-blocking fixes
+may enter the `v0.1.0` release path; non-critical improvements belong in future
+work. See the [v0.1.0 release notes](docs/releases/v0.1.0.md) for the verified
+scope, evidence, and limitations.
 
 The demo uses governed Silver RAG data, not a manually approved Gold
 recommendation corpus. Passing the
@@ -30,6 +34,7 @@ eligibility decisions.
 ## Start Here
 
 - Final demo runbook: [docs/workflow/final-demo-runbook.md](docs/workflow/final-demo-runbook.md)
+- v0.1.0 release notes: [docs/releases/v0.1.0.md](docs/releases/v0.1.0.md)
 - Product contract: [docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md](docs/project/Product-Definition_McGill-Care-Compass-Newcomer-Service-Navigator.md)
 - Project plan: [docs/project/Project-Plan-High-Level.md](docs/project/Project-Plan-High-Level.md)
 - Engineering decision log: [docs/project/decisions.md](docs/project/decisions.md)
