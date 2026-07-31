@@ -5,23 +5,25 @@
 The canonical final-demo application is the single-container FastAPI/React
 application. Streamlit is superseded and is not an approved final-demo path.
 
-As of 2026-07-28, the documented Render candidate returns HTTP 404 at both the
-root and readiness paths, so no hosted release URL is claimed. The primary
-candidate path is local Docker, pending the recorded end-to-end rehearsal
-required below. No successful Docker rehearsal is recorded in this document as
-of 2026-07-28; do not describe the candidate as verified until a release owner
-records the commit, verification time, and routine and emergency results.
+As of 2026-07-31, the hosted candidate at
+<https://mcgill-care-compass.onrender.com> is verified from `develop` commit
+`3379c12781f2eda97d8e147e486b05b00744fce2`. Strict readiness confirms the
+signed 4,239-chunk runtime. Routine OpenAI-backed generation, emergency-first
+routing, maintenance output, privacy handling, developer diagnostics, and an
+official source link passed hosted checks.
 
-Current release state: final candidate pending recorded Docker rehearsal and
-final QA. The 2026-07-27 feature freeze is in effect, so only critical fixes
-should be accepted before the final submission and presentation on 2026-07-30.
+The 2026-07-27 feature freeze is in effect. Only release-blocking fixes may
+enter the `v0.1.0` release path.
 
-| Surface | Local URL |
+| Surface | Hosted URL |
 | --- | --- |
-| Navigator | `http://127.0.0.1:8000/navigator` |
-| Status | `http://127.0.0.1:8000/status` |
-| API documentation | `http://127.0.0.1:8000/docs` |
-| Readiness | `http://127.0.0.1:8000/api/v1/health/ready` |
+| Navigator | `https://mcgill-care-compass.onrender.com/navigator` |
+| Status | `https://mcgill-care-compass.onrender.com/status` |
+| API documentation | `https://mcgill-care-compass.onrender.com/docs` |
+| Readiness | `https://mcgill-care-compass.onrender.com/api/v1/health/ready` |
+
+The local URLs remain the backup path when running the same Docker image on
+port 8000.
 
 The demo uses governed Silver RAG data. Silver data is source-grounded and
 validated for this MVP, but it is not a manually approved Gold recommendation
@@ -160,9 +162,9 @@ Before presentation day, store:
 - one screenshot of emergency-first routing;
 - one screenshot of the status/readiness page;
 - one short recording of the routine and emergency flows;
-- the reviewed commit SHA and the last successful rehearsal time.
+- the reviewed commit SHA and the last successful verification time.
 
-## Rehearsal gate
+## Release gate
 
 Run the complete release checks and use the failure-triage table in
 [`runtime-operations.md`](runtime-operations.md) before declaring the candidate

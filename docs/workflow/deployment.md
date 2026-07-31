@@ -13,15 +13,17 @@ same `/api/v1` contract available to a future mobile client.
 
 ## Current Deployment Status
 
-As of 2026-07-28, `https://mcgill-care-compass.onrender.com` returns HTTP 404 at
-both the root and `/api/v1/health/ready`. It is a candidate service name, not a
-verified deliverable URL. The current final-demo candidate is the local Docker
-workflow documented in
-[`final-demo-runbook.md`](final-demo-runbook.md).
+As of 2026-07-31, <https://mcgill-care-compass.onrender.com> is the verified
+hosted candidate. Render deployed `develop` commit
+`3379c12781f2eda97d8e147e486b05b00744fce2` through the repository Dockerfile.
+The service uses the free instance tier and may take 50 seconds or more to wake
+after inactivity.
 
-Do not publish a hosted URL until a release owner records the exact deployed
-commit, URL, verification time, and successful routine, emergency, liveness,
-readiness, maintenance, source-link, and privacy checks.
+Hosted verification passed for the root application, liveness, strict
+readiness, the read-only maintenance report, routine OpenAI-backed generation,
+emergency-first behavior, privacy handling, developer diagnostics, and an
+official source link. The final `v0.1.0` tag must identify the exact `main`
+commit deployed after the release pull request is merged.
 
 ## Local Development
 
@@ -88,10 +90,10 @@ SQLite and Chroma runtime artifacts.
 
 ## Hosted Internal Environment
 
-The included `render.yaml` is the first hosted target, but no hosted release is
-currently verified. Connect the repository to Render as a Blueprint, select the
-reviewed release commit, and review the generated service before deployment. If
-the final service URL differs from the candidate URL, update `CORS_ORIGINS`.
+The included `render.yaml` records the hosted target. The current service is a
+Docker web service connected to the public repository, with manual deployments
+from the reviewed release branch. If the final service URL differs from the
+candidate URL, update `CORS_ORIGINS`.
 
 `autoDeployTrigger` is set to `off` for feature freeze. Deployments must be
 started manually from the reviewed commit and followed by the checks below.
@@ -99,6 +101,10 @@ After the final submission, the team may deliberately choose `checksPass` if it
 wants Render to deploy only after linked CI checks pass.
 
 No API key is required for the grouped deterministic fallback. When `OPENAI_API_KEY` is configured, the web and CLI use the same validated LLM pipeline. `MCC_LLM_MODEL` selects the response model. The structured intake, optional short question, and approved source evidence are sent to the configured response model with `store=False`; the app does not log the optional question or return it in recommendation results. Do not place student intake data, identifiers, or source content in environment variables.
+
+Store `OPENAI_API_KEY` only in the hosting provider's masked environment
+settings. Never add it to `render.yaml`, `.env.example`, repository files,
+issues, pull requests, screenshots, or logs.
 
 Set `PRELOAD_RETRIEVAL=1` in the hosted process so startup loads the embedding model and verifies the signed Chroma collection before readiness can pass. Image construction and local source deployment must use `scripts/prepare_runtime.py`, which atomically derives signed SQLite and Chroma artifacts from the committed corpus. A mismatched or partial artifact must fail readiness rather than trigger an in-place production rebuild.
 
@@ -114,6 +120,14 @@ Required verification after deployment:
 8. Confirm optional-question text is absent from results and operational logs.
 9. Enable Developer mode and confirm it shows only the approved diagnostic
    fields described below.
+
+The maintenance warning stream is operational evidence, not recommendation
+evidence. `generate_maintenance_report.py`, the read-only
+`/api/v1/maintenance/report` endpoint, and the separate `/status` transparency
+view consume it. Recommendation generation reads governed chunks and their
+approved provenance/quality fields; it does not read or repeat maintenance
+warning text. A warning can therefore require internal review without appearing
+inside a user's recommendation.
 
 ## Privacy-Safe LLM Diagnostics
 
